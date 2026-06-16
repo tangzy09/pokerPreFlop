@@ -18,9 +18,12 @@ known answer before trusting it on a real spot, and measure exploitability.
    (MDF), exploitability ~0.004. Run: `python tools/solver/test_postflop.py`.
    Scope: one bet size, no raises (v1). A nice GTO truth it surfaces: vs a
    range that can only fold, betting the nuts is EV-indifferent (not forced).
-3. ⬜ **Add streets** — turn/river as chance nodes on top of the same betting
-   CFR (the river solver becomes the leaf evaluator). Then multiple bet sizes /
-   raises, and bigger ranges (needs vectorization).
+3. 🚧 **Add streets** — `test_streets.py` written first (TDD, currently RED):
+   pins the multi-street solver to (a) reduces-to-river (5-card board ==
+   RiverGame), (b) chance averaging (nuts-vs-air over all rivers → value +P/2,
+   air folds), (c) exploitability → 0 on a real turn spot. Next: implement
+   `PostflopGame` (turn/river chance nodes on top of the betting CFR + a
+   recursive best response that scales past per-river infosets).
 4. ⬜ Output strategy as data; only then consider feeding preflop leaves.
 
 ## Why HU only
