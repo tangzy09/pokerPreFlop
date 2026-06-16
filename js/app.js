@@ -778,7 +778,7 @@ function runCalc(){
  const vill=[...expand(document.getElementById('calcVill').value)];
  if(!hero.length||!vill.length){out.innerHTML=`<div class="calc-err">范围为空或写法无法识别——试试 <code>22+, AJs+, KQo</code> 这类写法喵～</div>`;return;}
  SFX.click();
- out.innerHTML=`<div class="calc-edge">计算中…（${CALC_SAMPLES/1000}k 次模拟）</div>`;
+ out.innerHTML=`<div class="calc-edge">计算中…（${CALC_SAMPLES/10000} 万次模拟）</div>`;
  setTimeout(()=>{                                   // let the "计算中" frame paint before the blocking compute
   const rng=mulberry32(0x5eed);                     // fixed seed → reproducible numbers
   const e=rangeEquity(hero,vill,CALC_SAMPLES,rng);
@@ -788,7 +788,7 @@ function runCalc(){
    +`<div class="calc-track"><i style="width:${pct.toFixed(1)}%;background:${color}"></i></div></div>`;
   const lead = Math.abs(edge)<0.6 ? '两边几乎五五开' : `${edge>0?'你':'对手'}领先 <b>${Math.abs(edge).toFixed(1)}%</b>`;
   out.innerHTML=`<div class="calc-bars">${bar('你',hp,'var(--best)')}${bar('对手',vp,'var(--raise)')}</div>`
-   +`<div class="calc-edge">范围优势：${lead}　<span style="color:var(--foldink,#7c8c82)">· ${CALC_SAMPLES/1000}k 次全下到河模拟</span></div>`;
+   +`<div class="calc-edge">范围优势：${lead}　<span style="color:var(--foldink,#7c8c82)">· ${CALC_SAMPLES/10000} 万次全下到河模拟</span></div>`;
  },20);
 }
 function openCalc(){aInit();SFX.click();
