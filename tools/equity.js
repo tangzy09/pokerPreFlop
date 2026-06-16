@@ -1,0 +1,97 @@
+'use strict';
+/*
+ * equity.js — exact all-in hold'em equity engine (dependency-free, pure JS).
+ *
+ * Used offline (Node) to COMPUTE preflop push/fold data ourselves, and later
+ * in-browser for the Range-vs-Range tool. Cards are integers 0..51 with
+ *   card = rank*4 + suit,  rank 0='2' .. 12='A',  suit 0..3.
+ * No Node APIs here, so the module loads in a browser too.
+ */
+
+const RV = { '2':0,'3':1,'4':2,'5':3,'6':4,'7':5,'8':6,'9':7,'T':8,'J':9,'Q':10,'K':11,'A':12 };
+const SV = { 's':0,'h':1,'d':2,'c':3 };          // spade/heart/diamond/club
+const RC = '23456789TJQKA';
+const SC = 'shdc';
+
+const card = (rank, suit) => rank * 4 + suit;
+const cardRank = (c) => (c / 4) | 0;
+const cardSuit = (c) => c % 4;
+const cardStr = (c) => RC[cardRank(c)] + SC[cardSuit(c)];
+function parseCard(s) {                            // "Ah" -> int
+  const r = RV[s[0]], su = SV[s[1].toLowerCase()];
+  if (r === undefined || su === undefined) throw new Error('bad card ' + s);
+  return card(r, su);
+}
+
+// ---- 7-card evaluator: returns an integer; higher is a better hand ----
+function ranksFromMask(m) { const a = []; for (let r = 12; r >= 0; r--) if (m & (1 << r)) a.push(r); return a; }
+function straightHigh(mask) {
+  for (let top = 12; top >= 4; top--) {
+    let ok = true;
+    for (let k = 0; k < 5; k++) if (!(mask & (1 << (top - k)))) { ok = false; break; }
+    if (ok) return top;
+  }
+  // wheel A-2-3-4-5: needs the ace (bit 12) AND all of 2,3,4,5 (bits 0..3)
+  if ((mask & (1 << 12)) && (mask & 0b1111) === 0b1111) return 3;
+  return -1;
+}
+function score(cat, tb) {                          // cat 0..8, tb up to 5 rank values
+  let v = cat;
+  for (let i = 0; i < 5; i++) v = v * 16 + (tb[i] || 0);
+  return v;
+}
+function evaluate7(cs) {
+  const rc = new Array(13).fill(0), sc = new Array(4).fill(0), srm = [0, 0, 0, 0];
+  let rm = 0;
+  for (let i = 0; i < 7; i++) { const c = cs[i], r = (c / 4) | 0, s = c % 4; rc[r]++; sc[s]++; srm[s] |= (1 << r); rm |= (1 << r); }
+  let flushSuit = -1; for (let s = 0; s < 4; s++) if (sc[s] >= 5) flushSuit = s;
+  if (flushSuit >= 0) { const sf = straightHigh(srm[flushSuit]); if (sf >= 0) return score(8, [sf]); }
+
+  let quad = -1; const trips = [], pairs = [];
+  for (let r = 12; r >= 0; r--) { if (rc[r] === 4) quad = r; else if (rc[r] === 3) trips.push(r); else if (rc[r] === 2) pairs.push(r); }
+
+  if (quad >= 0) { let k = -1; for (let r = 12; r >= 0; r--) if (r !== quad && rc[r] > 0) { k = r; break; } return score(7, [quad, k]); }
+  if (trips.length && (pairs.length || trips.length >= 2)) {
+    const t = trips[0]; let p = pairs.length ? pairs[0] : -1; if (trips.length >= 2) p = Math.max(p, trips[1]);
+    return score(6, [t, p]);
+  }
+  if (flushSuit >= 0) return score(5, ranksFromMask(srm[flushSuit]).slice(0, 5));
+  const st = straightHigh(rm); if (st >= 0) return score(4, [st]);
+  if (trips.length) { const t = trips[0]; const ks = []; for (let r = 12; r >= 0 && ks.length < 2; r--) if (r !== t && rc[r] > 0) ks.push(r); return score(3, [t, ...ks]); }
+  if (pairs.length >= 2) { const [p1, p2] = pairs; let k = -1; for (let r = 12; r >= 0; r--) if (r !== p1 && r !== p2 && rc[r] > 0) { k = r; break; } return score(2, [p1, p2, k]); }
+  if (pairs.length === 1) { const p = pairs[0]; const ks = []; for (let r = 12; r >= 0 && ks.length < 3; r--) if (r !== p && rc[r] > 0) ks.push(r); return score(1, [p, ...ks]); }
+  return score(0, ranksFromMask(rm).slice(0, 5));
+}
+
+// ---- combos for a hand label ("AA" / "AKs" / "AKo") -> array of [cardA,cardB] ----
+function comboCards(label) {
+  const r1 = RV[label[0]], r2 = RV[label[1]], out = [];
+  if (label.length === 2) { for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) out.push([card(r1, a), card(r1, b)]); return out; }
+  const suited = label[2] === 's';
+  if (suited) { for (let s = 0; s < 4; s++) out.push([card(r1, s), card(r2, s)]); }
+  else { for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) if (a !== b) out.push([card(r1, a), card(r2, b)]); }
+  return out;
+}
+
+// ---- exact equity of hero[2] vs villain[2] over all C(48,5) boards ----
+function equityExact(hero, villain) {
+  const dead = new Set([...hero, ...villain]);
+  if (dead.size !== 4) throw new Error('card conflict between hands');
+  const deck = []; for (let c = 0; c < 52; c++) if (!dead.has(c)) deck.push(c);
+  const n = deck.length;             // 48
+  const h7 = [hero[0], hero[1], 0, 0, 0, 0, 0];
+  const v7 = [villain[0], villain[1], 0, 0, 0, 0, 0];
+  let win = 0, lose = 0, tie = 0, total = 0;
+  for (let a = 0; a < n - 4; a++) { h7[2] = v7[2] = deck[a];
+    for (let b = a + 1; b < n - 3; b++) { h7[3] = v7[3] = deck[b];
+      for (let c = b + 1; c < n - 2; c++) { h7[4] = v7[4] = deck[c];
+        for (let d = c + 1; d < n - 1; d++) { h7[5] = v7[5] = deck[d];
+          for (let e = d + 1; e < n; e++) { h7[6] = v7[6] = deck[e];
+            const hs = evaluate7(h7), vs = evaluate7(v7);
+            if (hs > vs) win++; else if (hs < vs) lose++; else tie++;
+            total++;
+          }}}}}
+  return (win + tie / 2) / total;
+}
+
+module.exports = { card, cardRank, cardSuit, cardStr, parseCard, evaluate7, comboCards, equityExact, RV, SV, RC, SC };
