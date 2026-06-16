@@ -265,6 +265,12 @@ function choose(choice,btn,e){
 function resolve(choice,btn,timedOut){
  const t=G.table,correct=G.correct_set,hand=G.hand;
  const ok=correct.includes(choice);
+ // frequency-aware grading: a precise spot carries real solved frequencies, so a
+ // mix point HAS a majority line — reward matching it as 最佳, a secondary line as
+ // 好棋. Curated/approx mixes are placeholder ~50/50, so we cannot rank them (§6).
+ const fmap=handFreq(t,hand);
+ const topAct=Object.keys(fmap).sort((a,b)=>fmap[b]-fmap[a])[0];
+ const freqGraded = t.confidence==='precise' && G.isMix;
  const elapsed=performance.now()-handStart;
  const speedFrac=Math.max(0,1-elapsed/handDur);
  G.hands++;
@@ -283,7 +289,7 @@ function resolve(choice,btn,timedOut){
   if(G.combo>=2 && elapsed<1500 && !timedOut)G.fastCorrect++;
   const mult=Math.min(3,1+G.combo*0.1);
   const spd=timedOut?1:1+speedFrac*0.6;
-  if(G.isMix){grade='好棋';gcolor='var(--good)';G.q.good++;pts=Math.round(85*mult*spd);}
+  if(G.isMix && !(freqGraded && choice===topAct)){grade='好棋';gcolor='var(--good)';G.q.good++;pts=Math.round(85*mult*spd);}
   else{grade='最佳';gcolor='var(--best)';G.q.best++;pts=Math.round(100*mult*spd);big=true;}
   G.score+=pts;
   SFX[G.combo>=5?'great':'correct']();buzz(G.combo>=5?[20,40,20]:30);
@@ -315,7 +321,8 @@ function resolve(choice,btn,timedOut){
  const v=document.getElementById('verdict');
  document.getElementById('grade').textContent=(timedOut?'超时 · ':'')+grade;
  document.getElementById('grade').style.color=gcolor;
- document.getElementById('tip').innerHTML= ok ? (G.isMix?'边缘混合点':'打得漂亮！') : `应 <b>${corrStr}</b>`;
+ const mixTip = (freqGraded && choice===topAct) ? `主频线 ${MODES[t.mode].names[topAct]||topAct} ${Math.round(fmap[topAct]*100)}%` : '边缘混合点';
+ document.getElementById('tip').innerHTML= ok ? (G.isMix?mixTip:'打得漂亮！') : `应 <b>${corrStr}</b>`;
  v.className='verdict show';
 
  // button feedback
@@ -676,7 +683,9 @@ function renderMatrix(){
   if(cat!=='fold')inC+= cat.startsWith('edge') ? combosOf(hand)/2 : combosOf(hand);
   cell.onclick=()=>{cSel=hand;
     document.querySelectorAll('.ccell.sel').forEach(x=>x.classList.remove('sel'));cell.classList.add('sel');
-    document.getElementById('cInfo').innerHTML=`<b>${hand}</b> · ${catName(cat,t.mode)}`;};
+    // precise spots carry real solved frequencies → show them; others stay qualitative (§6 honesty)
+    const fq = (t.confidence==='precise' && cat!=='fold') ? ` · <span class="cfreq">${freqText(t,hand)}</span>` : '';
+    document.getElementById('cInfo').innerHTML=`<b>${hand}</b> · ${catName(cat,t.mode)}${fq}`;};
   m.appendChild(cell);
  }
  document.getElementById('cStat').innerHTML=`入池 <b>${(inC/1326*100).toFixed(0)}%</b>`;
