@@ -94,4 +94,82 @@ function solveHU(S, EQ, { iters = 400, damp = 0.2 } = {}) {
   return { jam: jamR, call: callR, jamPct: pct(jamR), callPct: pct(callR) };
 }
 
-module.exports = { CLASSES, IDX, baseCount, buildEqMatrix, solveHU, N };
+// matrix-vector product result[c] = sum_v EQ[c][v]*g[v]
+function matvec(EQ, g) {
+  const out = new Float64Array(N);
+  for (let c = 0; c < N; c++) { const row = EQ[c]; let s = 0; for (let v = 0; v < N; v++) s += row[v] * g[v]; out[c] = s; }
+  return out;
+}
+
+/*
+ * solveRing — multiway jam/fold Nash for a full ring, no-overcall model.
+ *
+ * Decomposition: when it folds to seat i and i jams, every later seat only
+ * CALLS (i pre-empts their open), and a call closes the action (so all
+ * showdowns are heads-up and use the HU class-equity matrix). Each caller's
+ * decision depends only on i's jam range, so the table splits into independent
+ * sub-problems per jammer seat i = 0..SB. Seats: 0..nSeats-1, SB=nSeats-2,
+ * BB=nSeats-1. BB never opens (folded-to-BB just wins).
+ *
+ * Net-chip EV (no antes): jammer fold loses its posted blind (SB only); all
+ * fold to a jam -> win the dead blinds; on a heads-up all-in for S with equity
+ * e and dead money D, the all-in player's net = S*(2e-1) + e*D.
+ */
+function solveRing(S, EQ, { nSeats = 9, iters = 700, damp = 0.15 } = {}) {
+  const w = CLASSES.map(baseCount);
+  const totW = w.reduce((a, b) => a + b, 0);
+  const SB = nSeats - 2, BB = nSeats - 1;
+  const D = (i, k) => (SB !== i && SB !== k ? 0.5 : 0) + (BB !== i && BB !== k ? 1 : 0);
+  const netAllFold = (i) => (SB !== i ? 0.5 : 0) + (BB !== i ? 1 : 0);
+  const jammerFold = (i) => (i === SB ? -0.5 : 0);
+  const callerFold = (k) => (k === SB ? -0.5 : k === BB ? -1 : 0);
+
+  const seats = {};
+  for (let i = 0; i <= SB; i++) {                  // independent sub-problem per jammer seat
+    const behind = []; for (let k = i + 1; k <= BB; k++) behind.push(k);
+    let jam = new Float64Array(N).fill(1);
+    const call = {}; for (const k of behind) call[k] = new Float64Array(N).fill(0);
+    for (let it = 0; it < iters; it++) {
+      // --- callers' best response vs i's jam range (one matvec shared by all callers) ---
+      let jw = 0; for (let s = 0; s < N; s++) jw += w[s] * jam[s];
+      const eqVsJam = jw > 0 ? matvec(EQ, w.map((wi, s) => wi * jam[s])) : null;
+      const brCall = {};
+      for (const k of behind) {
+        const arr = new Float64Array(N), Dik = D(i, k), fEV = callerFold(k);
+        for (let c = 0; c < N; c++) {
+          const eq = eqVsJam ? eqVsJam[c] / jw : 0;
+          arr[c] = (S * (2 * eq - 1) + eq * Dik > fEV) ? 1 : 0;
+        }
+        brCall[k] = arr;
+      }
+      // --- jammer's best response vs callers (one matvec per caller) ---
+      const pCall = {}, eqK = {};
+      for (const k of behind) {
+        let m = 0; for (let c = 0; c < N; c++) m += w[c] * brCall[k][c];
+        pCall[k] = m / totW;
+        eqK[k] = m > 0 ? matvec(EQ, w.map((wi, c) => wi * brCall[k][c])).map((x) => x / m) : null;
+      }
+      const brJam = new Float64Array(N), jf = jammerFold(i);
+      for (let c = 0; c < N; c++) {
+        let pAll = 1; for (const k of behind) pAll *= (1 - pCall[k]);
+        let ev = pAll * netAllFold(i), reach = 1;
+        for (const k of behind) {
+          const eq = eqK[k] ? eqK[k][c] : 0;
+          ev += reach * pCall[k] * (S * (2 * eq - 1) + eq * D(i, k));
+          reach *= (1 - pCall[k]);
+        }
+        brJam[c] = (ev > jf) ? 1 : 0;
+      }
+      // --- damped update ---
+      for (const k of behind) { const a = call[k], b = brCall[k]; for (let c = 0; c < N; c++) a[c] += damp * (b[c] - a[c]); }
+      for (let c = 0; c < N; c++) jam[c] += damp * (brJam[c] - jam[c]);
+    }
+    const round = (x) => Math.round(x * 1000) / 1000;
+    const jr = {}; for (let c = 0; c < N; c++) jr[CLASSES[c]] = round(jam[c]);
+    let a = 0; for (let c = 0; c < N; c++) a += w[c] * jam[c];
+    seats[i] = { jam: jr, jamPct: a / totW };
+  }
+  return { seats, SB, BB, nSeats };
+}
+
+module.exports = { CLASSES, IDX, baseCount, buildEqMatrix, solveHU, solveRing, matvec, N };

@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { buildEqMatrix, solveHU, CLASSES, baseCount } = require('../tools/pushfold');
+const { buildEqMatrix, solveHU, solveRing, CLASSES, baseCount } = require('../tools/pushfold');
 
 // one modest-sample seeded matrix shared by all asserts (build is the cost)
 const EQ = buildEqMatrix(400, 7);
@@ -44,4 +44,18 @@ test('shorter stacks jam wider (monotonic in stack depth)', () => {
 test('jam frequency respects dominance (AA >= A2o >= 72o)', () => {
   const r = solveHU(10, EQ);
   assert.ok(r.jam.AA >= r.jam.A2o && r.jam.A2o >= r.jam['72o'], 'jam monotonic by strength');
+});
+
+test('multiway ring jam ranges widen by position and match HU at the SB seat', () => {
+  const ring = solveRing(10, EQ);
+  const s = ring.seats;                            // 0=UTG .. 6=BTN, 7=SB
+  // monotonic widening from early to late
+  assert.ok(s[0].jamPct < s[5].jamPct && s[5].jamPct < s[6].jamPct && s[6].jamPct < s[7].jamPct,
+    `jam% should widen: UTG=${s[0].jamPct} CO=${s[5].jamPct} BTN=${s[6].jamPct} SB=${s[7].jamPct}`);
+  // the SB sub-problem must reduce to the (independently verified) HU solve
+  assert.ok(Math.abs(s[7].jamPct - solveHU(10, EQ).jamPct) < 0.06, 'SB seat ~= HU solve');
+  // UTG tight, premiums in / trash out; SB wide
+  assert.equal(s[0].jam.AA, 1); assert.equal(s[0].jam['72o'], 0);
+  assert.ok(s[0].jamPct > 0.05 && s[0].jamPct < 0.17, `UTG jam%=${s[0].jamPct}`);
+  assert.ok(s[7].jamPct > 0.50 && s[7].jamPct < 0.66, `SB jam%=${s[7].jamPct}`);
 });
