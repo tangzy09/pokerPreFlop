@@ -6,7 +6,7 @@ const { loadApp } = require('./load-app');
 const { buildSnapshot, SNAP_PATH } = require('./snapshot');
 
 const app = loadApp();
-const { MODES, PACKS, expand, handLabel, combosOf, catName, handFreq } = app;
+const { MODES, PACKS, expand, handLabel, combosOf, catName, handFreq, freqNote, confOf } = app;
 
 const approx1 = (s) => Math.abs(s - 1) < 1e-9;
 const sumFreq = (f) => Object.values(f).reduce((a, b) => a + b, 0);
@@ -94,6 +94,16 @@ test('computed push spots (10/15/20bb) loaded as precise with freqTable', () => 
   assert.ok(utg('d10').R.has('AA') && !utg('d10').R.has('72o'), 'UTG jams AA not 72o');
   // deeper stacks jam tighter (pure jam/fold)
   assert.ok(sb('d10').union.length > sb('d20p').union.length, 'SB tighter at 20bb than 10bb');
+});
+
+test('UI labels computed spots as precise (real freq) and curated as placeholder', () => {
+  const precise = PACKS.mtt.d10.find((t) => t.pf === 'UTG');
+  const curated = PACKS.cash['6'][0];
+  assert.equal(confOf(precise).txt, '自算 Nash');
+  assert.equal(confOf(curated).txt, '手搓参考');
+  // precise spot shows a computed frequency; curated mix stays a placeholder
+  assert.match(freqNote(precise, 'AA', false, false), /计算频率/);
+  assert.match(freqNote(curated, 'AA', true, false), /占位/);
 });
 
 test('range DSL expand() parses representative tokens', () => {

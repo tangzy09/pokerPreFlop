@@ -174,6 +174,28 @@ function startTimer(){
 }
 function stopTimer(){if(timerRAF)cancelAnimationFrame(timerRAF);timerRAF=null;}
 
+/* ---- data-confidence labelling (honest per-spot provenance in the UI) ---- */
+const CONF={
+ precise:{mark:'✓',txt:'自算 Nash',cls:'conf-precise',desc:'由本工具的 equity + Nash 求解器计算所得（推弃 no-overcall 模型）——非手搓'},
+ curated:{mark:'≈',txt:'手搓参考',cls:'conf-curated',desc:'参考公开图表手工整理，核对过量级/形状；混合频率为占位，非 solver 精确'},
+ approx :{mark:'~',txt:'粗略估计',cls:'conf-approx', desc:'最粗的一档（如 ICM / 6人估计）'},
+};
+function confOf(t){return CONF[(t&&t.confidence)]||CONF.curated;}
+function confChip(t){const c=confOf(t);const title=(t&&t.src)?c.desc+' · '+t.src:c.desc;
+ return `<span class="conf ${c.cls}" title="${title.replace(/"/g,'&quot;')}">${c.mark} ${c.txt}</span>`;}
+/* frequency string: precise spots show the REAL computed %; others stay qualitative (占位) */
+function freqText(t,hand){
+ const f=handFreq(t,hand), names=MODES[t.mode].names;
+ return Object.keys(f).filter(k=>f[k]>0).sort((a,b)=>f[b]-f[a])
+  .map(k=>`${names[k]||k} ${Math.round(f[k]*100)}%`).join(' / ');
+}
+function freqNote(t,hand,isMix,isEdge){
+ if(t&&t.confidence==='precise') return `（计算频率：${freqText(t,hand)}）`;
+ if(isEdge) return '（边缘 · 占位频率）';
+ if(isMix)  return '（混合 · 占位 ~50/50）';
+ return '（100%）';
+}
+
 function nextHand(){
  if(G.over)return;
  G.busy=false;
@@ -196,7 +218,7 @@ function nextHand(){
 
  // render scene
  document.getElementById('sceneName').textContent=t.name;
- document.getElementById('sceneWho').textContent=t.who + (G.reviewMode?' · 📕复习':'');
+ document.getElementById('sceneWho').innerHTML=t.who + (G.reviewMode?' · 📕复习':'') + ' ' + confChip(t);
  // cards
  const cardsEl=document.getElementById('cards');cardsEl.innerHTML='';
  const cd=dealCards(hand);
@@ -287,7 +309,7 @@ function resolve(choice,btn,timedOut){
  // GTO answer string
  const nameMap=MODES[t.mode].names;
  const corrStr=correct.map(a=>nameMap[a]).join(' / ');
- const freq = G.isEdge ? '（边缘 · 部分频率）' : (G.isMix?'（混合 ~50/50）':'（100%）');
+ const freq = freqNote(t,hand,G.isMix,G.isEdge);
 
  // center verdict flash
  const v=document.getElementById('verdict');
@@ -327,7 +349,7 @@ function resolve(choice,btn,timedOut){
  const r=reasonFor(t,hand,correct,choice,ok,grade);
  document.getElementById('fbGrade').textContent=(timedOut?'超时 · ':'')+grade;
  document.getElementById('fbGrade').style.color=gcolor;
- document.getElementById('fbAns').innerHTML=`正确打法：<b>${corrStr}</b> ${freq}`;
+ document.getElementById('fbAns').innerHTML=`正确打法：<b>${corrStr}</b> ${freq} ${confChip(t)}`;
  const youLine = ok ? '' : `<span class="you">你选了「${nameMap[choice]||'弃牌'}」 —— 不是最优。</span>`;
  document.getElementById('fbReason').innerHTML=youLine+r;
  const nextBtn=document.getElementById('fbNext');
@@ -644,7 +666,7 @@ function renderCChips(){
 function renderMatrix(){
  const t=PACKS[cFormat][cVariant][cIdx];
  document.getElementById('cName').textContent=t.name;
- document.getElementById('cWho').textContent=t.who||'';
+ document.getElementById('cWho').innerHTML=(t.who||'')+' '+confChip(t);
  const m=document.getElementById('cMatrix');m.innerHTML='';
  let inC=0;
  for(let r=0;r<13;r++)for(let c=0;c<13;c++){
