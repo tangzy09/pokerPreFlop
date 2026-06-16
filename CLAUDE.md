@@ -60,6 +60,11 @@ Read these relationships before editing:
 ### Game loop & state
 `G` is the mutable game-state object. Flow: `newGame()` → `nextHand()` (deals via `pickHand(t, filter)` using `HANDFILTERS`, computes `G.correct_set` from `MODES`) → `choose()`/`timeOut()` → `resolve()` (grades, scores, HP, feedback via `reasonFor()`) → `advance()`. `PREMIUM` marks hands whose misplay is graded a "blunder".
 
+**频率评级（Phase 2/3，中文说明）**：`resolve()` 的评分会读 `handFreq(t,hand)`。判定支持集（`G.correct_set`）仍来自 `MODES`，但**混合点的「最佳 vs 好棋」按真实频率细分**：
+- 仅当 `t.confidence==='precise'`（有真 `freqTable`，如自算推弃 Nash）时，混合点才有「主频线」——选**频率最高**的动作记 **最佳**（触发庆祝），选次频但仍在支持集内的动作记 **好棋**；支持集外仍是失误。
+- `curated`/`approx` 局面的混合频率是 `MIX=0.5` 占位，**不分高下**，任一支持动作都记 **好棋**（§6 诚实红线：不从占位频率编造「最佳」）。
+- 这套逻辑只在运行期的 `resolve()`，**不动 `MODES` 也不影响金快照**；反馈面板与图表 `cInfo` 仅对 `precise` 局面显示真实百分比，其余维持定性。
+
 ### Persistence & review
 `localStorage` holds prefs, lifetime stats (`statsBySpot`), and the **mistake review pile** (`reviewPile`) — a lightweight spaced-repetition queue (a spot leaves the pile once answered correctly). Review mode replays the pile without affecting HP/stats.
 
