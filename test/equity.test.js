@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { parseCard, evaluate7, comboCards, equityExact } = require('../js/equity');
+const { parseCard, evaluate7, comboCards, equityExact, rangeCombos, rangeEquity, mulberry32 } = require('../js/equity');
 
 const ev = (...cs) => evaluate7(cs.map(parseCard));
 
@@ -51,4 +51,20 @@ test('comboCards yields the right number of combinations', () => {
   // no card appears twice within a combo
   for (const label of ['AA', 'AKs', 'AKo'])
     for (const [a, b] of comboCards(label)) assert.notEqual(a, b);
+});
+
+test('rangeCombos is combo-weighted and rangeEquity matches known matchups', () => {
+  assert.equal(rangeCombos(['AA', 'AKo', 'AKs']).length, 6 + 12 + 4); // weighted, not 3
+  const rng = mulberry32(0x5eed);
+  // single-hand "ranges" reproduce the pairwise equity within MC error (~±1%)
+  const aaVsKk = rangeEquity(['AA'], ['KK'], 40000, rng);
+  assert.ok(aaVsKk > 0.79 && aaVsKk < 0.84, `AA vs KK = ${aaVsKk}`);
+  // a dominating range should be a clear favourite
+  const dom = rangeEquity(['QQ+', 'AKs', 'AKo'], ['TT', 'JJ', 'AQs', 'AQo'], 40000, rng);
+  assert.ok(dom > 0.6 && dom < 0.78, `QQ+/AK vs JJ-/AQ = ${dom}`);
+  // symmetric ranges must be ~50/50
+  const mirror = rangeEquity(['AKs'], ['AKs'], 20000, rng);
+  assert.ok(mirror > 0.47 && mirror < 0.53, `AKs vs AKs = ${mirror}`);
+  // disjoint-but-blocked edge case still returns a number
+  assert.equal(typeof rangeEquity(['AA'], ['AA'], 5000, rng), 'number');
 });

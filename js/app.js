@@ -763,6 +763,47 @@ document.getElementById('guideBtn').onclick=()=>{aInit();SFX.click();
 document.getElementById('guideBack').onclick=()=>{SFX.click();
  document.getElementById('guideScreen').classList.add('hide');
  document.getElementById('startScreen').classList.remove('hide');};
+
+/* ---- Range vs Range 胜率计算器 (Phase 4) — real Monte-Carlo equity, zero data risk ---- */
+const CALC_SAMPLES=60000;
+function calcCombos(set){return rangeCombos([...set]).length;}
+function updateCalcCounts(){
+ const h=expand(document.getElementById('calcHero').value), v=expand(document.getElementById('calcVill').value);
+ document.getElementById('calcHN').textContent=h.size?`· ${h.size} 手 / ${calcCombos(h)} 组合`:'· —';
+ document.getElementById('calcVN').textContent=v.size?`· ${v.size} 手 / ${calcCombos(v)} 组合`:'· —';
+}
+function runCalc(){
+ const out=document.getElementById('calcOut');
+ const hero=[...expand(document.getElementById('calcHero').value)];
+ const vill=[...expand(document.getElementById('calcVill').value)];
+ if(!hero.length||!vill.length){out.innerHTML=`<div class="calc-err">范围为空或写法无法识别——试试 <code>22+, AJs+, KQo</code> 这类写法喵～</div>`;return;}
+ SFX.click();
+ out.innerHTML=`<div class="calc-edge">计算中…（${CALC_SAMPLES/1000}k 次模拟）</div>`;
+ setTimeout(()=>{                                   // let the "计算中" frame paint before the blocking compute
+  const rng=mulberry32(0x5eed);                     // fixed seed → reproducible numbers
+  const e=rangeEquity(hero,vill,CALC_SAMPLES,rng);
+  if(e==null){out.innerHTML=`<div class="calc-err">这两个范围牌张冲突太多，无法对局喵～</div>`;return;}
+  const hp=e*100, vp=100-hp, edge=hp-vp;
+  const bar=(name,pct,color)=>`<div class="calc-bar"><div class="bl"><span>${name}</span><span class="pct">${pct.toFixed(1)}%</span></div>`
+   +`<div class="calc-track"><i style="width:${pct.toFixed(1)}%;background:${color}"></i></div></div>`;
+  const lead = Math.abs(edge)<0.6 ? '两边几乎五五开' : `${edge>0?'你':'对手'}领先 <b>${Math.abs(edge).toFixed(1)}%</b>`;
+  out.innerHTML=`<div class="calc-bars">${bar('你',hp,'var(--best)')}${bar('对手',vp,'var(--raise)')}</div>`
+   +`<div class="calc-edge">范围优势：${lead}　<span style="color:var(--foldink,#7c8c82)">· ${CALC_SAMPLES/1000}k 次全下到河模拟</span></div>`;
+ },20);
+}
+function openCalc(){aInit();SFX.click();
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('calcScreen').classList.remove('hide');
+ updateCalcCounts();
+ document.getElementById('calcOut').innerHTML='';
+}
+document.getElementById('calcBtn').onclick=openCalc;
+document.getElementById('calcBack').onclick=()=>{SFX.click();
+ document.getElementById('calcScreen').classList.add('hide');
+ document.getElementById('startScreen').classList.remove('hide');};
+document.getElementById('calcRun').onclick=runCalc;
+document.getElementById('calcHero').addEventListener('input',updateCalcCounts);
+document.getElementById('calcVill').addEventListener('input',updateCalcCounts);
 function guideLaunch(fmt,variant){
  selFormat=fmt;
  applyGame(gameOf(fmt),true,variant);

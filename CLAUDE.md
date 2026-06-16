@@ -6,22 +6,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A zero-build, dependency-free web app: a **pre-flop poker GTO decision trainer** (Chinese UI). [gto-trainer.html](gto-trainer.html) holds the markup + CSS and loads four plain classic scripts (no ES modules, no bundler — still double-click-to-run from `file://`):
+A zero-build, dependency-free web app: a **pre-flop poker GTO decision trainer** (Chinese UI). [gto-trainer.html](gto-trainer.html) holds the markup + CSS and loads plain classic scripts (no ES modules, no bundler — still double-click-to-run from `file://`):
 
 ```
-gto-trainer.html         markup + ~600 lines CSS, then 5 <script src> tags (order matters)
+gto-trainer.html         markup + ~650 lines CSS, then 6 <script src> tags (order matters)
+js/equity.js             dual-loaded all-in equity engine (evaluate7, equityExact, classEquity,
+                         rangeEquity); also require()d by tools/ — module.exports is guarded
 js/ranges.js             range-string DSL (expand) + scenario taxonomy (FORMATS/GAMETYPES/VARIANTS)
 js/modes.js              MODES — single source of mode behaviour (+ FREQ/handFreq, cellCat/catName)
 js/data/pushfold.js      AUTO-GENERATED computed 10/15/20bb Nash (global PUSHFOLD); loads before packs
 js/packs.js              PACKS range database (+ PREMIUM); overrides d10 spots with the computed data
-js/app.js                persistence, audio, confetti, hand helpers, game engine, charts UI, boot
+js/app.js                persistence, audio, confetti, hand helpers, game engine, charts + 胜率计算器 UI, boot
 tools/                   offline (Node) data computation — NOT shipped to the browser:
-  equity.js              exact + Monte-Carlo all-in equity engine (evaluate7, equityExact, classEquity)
-  pushfold.js            HU + multiway push/fold Nash solvers (buildEqMatrix, solveHU, solveRing)
+  pushfold.js            HU + multiway push/fold Nash solvers (buildEqMatrix, solveHU, solveRing); require()s ../js/equity
   gen-pushfold.js        runs the solver and writes js/data/pushfold.js (10/15/20bb)
 ```
 
-The four scripts share one global scope (browser behaviour for classic scripts); load order is `ranges → modes → packs → app` and is enforced by the `<script src>` order. An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
+The scripts share one global scope (browser behaviour for classic scripts); load order is `equity → ranges → modes → packs → app` and is enforced by the `<script src>` order. `js/equity.js` is the one file used both in the browser (plain globals) and by Node tools (`require`, via the guarded `module.exports`). An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
 
 ## Running & verifying (no build step)
 
