@@ -168,6 +168,26 @@
   .back-btn{appearance:none;border:0;background:transparent;cursor:pointer;color:var(--gold);font-family:inherit;font-weight:600;font-size:14px;padding:4px 2px}
   .chart-body{flex:1;overflow-y:auto;padding:16px 16px 30px;display:flex;flex-direction:column;gap:6px;align-items:center}
   .chart-body .sel-group{max-width:360px}
+  /* range-vs-range calculator */
+  .chart-body.calc{gap:10px}
+  .calc .cnote{max-width:380px}
+  .calc code{background:rgba(255,255,255,.07);border-radius:4px;padding:1px 5px;font-size:12px}
+  .calc-row{width:100%;max-width:380px;display:flex;flex-direction:column;gap:5px}
+  .calc-lab{font-size:13px;font-weight:600;color:var(--ink)}
+  .calc-n{color:var(--gold-dim,#9c8240);font-weight:500;font-size:12px}
+  .calc-in{width:100%;box-sizing:border-box;font-family:inherit;font-size:15px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-variant-numeric:tabular-nums}
+  .calc-in:focus{outline:none;border-color:var(--gold)}
+  .calc-vs{font-weight:700;color:var(--foldink,#7c8c82);letter-spacing:1px;font-size:13px}
+  .calc .big-btn{max-width:380px;width:100%;margin-top:4px}
+  .calc-out{width:100%;max-width:380px;min-height:10px}
+  .calc-bars{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .calc-bar{display:flex;flex-direction:column;gap:4px}
+  .calc-bar .bl{display:flex;justify-content:space-between;font-size:13px;font-weight:600}
+  .calc-bar .bl .pct{font-variant-numeric:tabular-nums}
+  .calc-track{height:14px;border-radius:7px;background:rgba(255,255,255,.07);overflow:hidden}
+  .calc-track i{display:block;height:100%;border-radius:7px}
+  .calc-edge{text-align:center;font-size:13px;color:var(--ink);margin-top:10px}
+  .calc-err{color:var(--mistake,#e0954f);font-size:13px;text-align:center}
   .cchips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px;max-width:430px}
   .cchip{appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
     background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:7px 13px;transition:.15s}
@@ -365,6 +385,7 @@
       <button class="navbtn" id="reviewBtn"><span class="ic">📕</span><span class="lbl">错题</span></button>
       <button class="navbtn" id="guideBtn"><span class="ic">🗺️</span><span class="lbl">导览</span></button>
       <button class="navbtn" id="chartsBtn"><span class="ic">📊</span><span class="lbl">图表</span></button>
+      <button class="navbtn" id="calcBtn"><span class="ic">🧮</span><span class="lbl">算胜率</span></button>
       <button class="navbtn" id="statsBtn"><span class="ic">📈</span><span class="lbl">统计</span></button>
       <button class="navbtn" id="aboutBtn"><span class="ic">ℹ️</span><span class="lbl">关于</span></button>
     </div>
@@ -479,6 +500,29 @@
         <p>建议使用 PioSOLVER、GTO Wizard、MonkerSolver 等专业 solver 获取针对你的下注尺度、抽水、筹码深度的精确范围。本工具用于建立直觉，不替代它们。</p>
       </div>
       <p class="cnote">真 GTO 随下注尺度、抽水、前注、筹码深度变化。本工具固定了上述假设。松鼠出品 🐿</p>
+    </div>
+  </div>
+
+  <!-- CALCULATOR screen -->
+  <div class="chart-screen hide" id="calcScreen">
+    <div class="chart-bar">
+      <button class="back-btn" id="calcBack">← 返回</button>
+      <div class="chart-title">胜率计算器</div>
+      <div class="back-btn" style="visibility:hidden">返回</div>
+    </div>
+    <div class="chart-body calc">
+      <p class="cnote">翻前 all-in 胜率 · <b>蒙特卡洛精确计算，非编造</b>。范围用逗号分隔，支持 <code>22+, AJs+, KQo</code> 这类写法；单手如 <code>AKs</code> 也行。</p>
+      <div class="calc-row">
+        <div class="calc-lab">你的范围 <span class="calc-n" id="calcHN"></span></div>
+        <input class="calc-in" id="calcHero" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="QQ+, AKs, AKo">
+      </div>
+      <div class="calc-vs">VS</div>
+      <div class="calc-row">
+        <div class="calc-lab">对手范围 <span class="calc-n" id="calcVN"></span></div>
+        <input class="calc-in" id="calcVill" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="TT, JJ, AQs, AQo">
+      </div>
+      <button class="big-btn" id="calcRun">计算胜率</button>
+      <div class="calc-out" id="calcOut"></div>
     </div>
   </div>
 

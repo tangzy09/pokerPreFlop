@@ -1,43 +1,44 @@
 """
-postflop.py — heads-up RIVER CFR solver (the first real postflop solver).
+postflop.py — heads-up multi-street CFR solver (flop/turn/river).
 
-River = board complete, so there are NO chance nodes — just the betting tree +
-showdown. This isolates the betting-tree CFR (verified here against closed-form
-river GTO in test_postflop.py) before turn/river runouts are layered on.
+A betting round per street; between streets a CHANCE node deals the next board
+card. River (5-card board) has no chance node and reduces to the verified
+single-street solver. Showdowns use a ported evaluate7; all-in lines run the
+board out (expected equity). Exploitability uses a recursive best response
+(scales past per-river infosets, unlike pure-strategy enumeration).
 
-Scope (v1): one bet size, no raises (facing a bet → fold/call). With stack==pot
-a pot-sized bet is all-in, which is exactly the toy the tests use. Multi-size /
-raises are a later extension of the same tree.
-
-Model / EV convention: the dead pot P is treated as co-owned 50/50 at river
-start, so utilities are zero-sum (sum to 0); game_value 0 = breakeven for OOP,
->0 = OOP profits. Pure stdlib.
+Scope v1: one bet size, no raises (facing a bet -> fold/call). EV convention:
+the dead pot P is co-owned 50/50 at the start, so utilities are zero-sum;
+game_value 0 = breakeven for OOP. Pure stdlib.
 """
 import itertools
 
-# ---------- card parsing + 7-card evaluator (port of tools/equity.js) ----------
+# ---------- cards (int 0..51 = rank*4+suit) + 7-card evaluator ----------
 RV = {c: i for i, c in enumerate("23456789TJQKA")}
 SU = {c: i for i, c in enumerate("shdc")}
 def parse_card(s):
-    return (RV[s[0]], SU[s[1].lower()])
+    return RV[s[0]] * 4 + SU[s[1].lower()]
+def hand_cards(h):
+    return (parse_card(h[0:2]), parse_card(h[2:4]))
 
 def _straight_high(mask):
     for top in range(12, 3, -1):
         if all(mask & (1 << (top - k)) for k in range(5)):
             return top
-    if (mask & (1 << 12)) and (mask & 0b1111) == 0b1111:   # wheel A-2-3-4-5
+    if (mask & (1 << 12)) and (mask & 0b1111) == 0b1111:
         return 3
     return -1
 def _ranks(mask):
     return [r for r in range(12, -1, -1) if mask & (1 << r)]
 def _score(cat, tb):
     v = cat
-    for i in range(5):
-        v = v * 16 + (tb[i] if i < len(tb) else 0)
+    for k in range(5):
+        v = v * 16 + (tb[k] if k < len(tb) else 0)
     return v
 def evaluate7(cards):
     rc = [0] * 13; sc = [0] * 4; srm = [0, 0, 0, 0]; rm = 0
-    for (r, s) in cards:
+    for c in cards:
+        r = c >> 2; s = c & 3
         rc[r] += 1; sc[s] += 1; srm[s] |= 1 << r; rm |= 1 << r
     flush = next((s for s in range(4) if sc[s] >= 5), -1)
     if flush >= 0:
@@ -73,57 +74,78 @@ def evaluate7(cards):
         return _score(1, [p] + ks)
     return _score(0, _ranks(rm)[:5])
 
-def hand_cards(h):
-    return [parse_card(h[0:2]), parse_card(h[2:4])]
-
-# ---------- river betting tree (one bet size, no raises) ----------
-TERMINAL = {"xx", "bf", "bc", "xbf", "xbc"}
-LEGAL = {"": "xb", "x": "xb", "b": "fc", "xb": "fc"}
+# ---------- betting tree (one bet size, no raises) ----------
+CLOSED_PROCEED = {"xx", "bc", "xbc"}   # street closes, hand continues
+CLOSED_FOLD = {"bf", "xbf"}            # someone folded
 LABEL = {"x": "check", "b": "bet", "f": "fold", "c": "call"}
-def actor(h):
-    return 0 if len(h) % 2 == 0 else 1     # 0 = OOP, 1 = IP
+def actor(hist):
+    return len(hist) % 2               # 0 = OOP, 1 = IP
+def legal(hist):
+    return "fc" if hist.endswith("b") else "xb"
 
-class RiverGame:
+class PostflopGame:
     def __init__(self, board, oop, ip, pot, stack, bet_sizes):
-        self.board = [parse_card(c) for c in board]
-        self.pot = float(pot)
-        self.stack = float(stack)
-        self.bet = min(bet_sizes[0] * pot, stack)     # v1: single size
-        self.oop = [(h, float(w)) for h, w in oop]
-        self.ip = [(h, float(w)) for h, w in ip]
-        used = set()
-        for h, _ in self.oop + self.ip:
-            for c in hand_cards(h):
-                pass
-        # precompute showdown sign (to OOP) per (oop_hand, ip_hand), and valid deals
-        self.deals = []      # (oh, ih, weight, oop_wins_sign)
-        Z = 0.0
-        for oh, wo in self.oop:
-            oc = hand_cards(oh)
-            for ih, wi in self.ip:
-                ic = hand_cards(ih)
-                if set(oc) & set(ic) or (set(oc) | set(ic)) & set(self.board):
-                    continue                     # card conflict -> impossible deal
-                so = evaluate7(oc + self.board); si = evaluate7(ic + self.board)
-                sign = 1 if so > si else (0 if so == si else -1)
-                w = wo * wi
-                self.deals.append([oh, ih, w, sign]); Z += w
+        self.board = tuple(parse_card(c) for c in board)
+        self.pot = float(pot); self.stack = float(stack); self.frac = float(bet_sizes[0])
+        def mk(rng):
+            return [(h, float(w), hand_cards(h)) for h, w in rng]
+        self.oop = mk(oop); self.ip = mk(ip)
+        self.deals = []; Z = 0.0
+        for ohs, ow, ohc in self.oop:
+            for ihs, iw, ihc in self.ip:
+                if set(ohc) & set(ihc) or (set(ohc) | set(ihc)) & set(self.board):
+                    continue
+                w = ow * iw
+                self.deals.append([ohs, ihs, ohc, ihc, w]); Z += w
         if Z <= 0:
-            raise ValueError("no valid deals (all hands conflict)")
+            raise ValueError("no valid deals")
         for d in self.deals:
-            d[2] /= Z                            # normalise deal weights
+            d[4] /= Z
+        self._eq = {}
 
-    def util_oop(self, sign, h):
-        P, b = self.pot, self.bet
-        def show(fp, o):
-            pot_won = fp if sign > 0 else (fp / 2 if sign == 0 else 0)
-            return pot_won - o - P / 2
-        if h == "xx":  return show(P, 0)
-        if h == "bf":  return P / 2              # OOP bet, IP folded
-        if h == "bc":  return show(P + 2 * b, b)
-        if h == "xbf": return -P / 2             # OOP checked, IP bet, OOP folded
-        if h == "xbc": return show(P + 2 * b, b)
-        raise ValueError(h)
+    # apply an action; returns (o, i, new_hist).  board is unchanged.
+    def apply(self, a, pl, o, i, hist):
+        if a == "x" or a == "f":
+            return o, i, hist + a
+        if a == "b":
+            cur = self.pot + o + i
+            rem = self.stack - (o if pl == 0 else i)
+            amt = min(self.frac * cur, rem)
+            return (o + amt, i, hist + "b") if pl == 0 else (o, i + amt, hist + "b")
+        diff = abs(o - i)               # call
+        return (o + diff, i, hist + "c") if pl == 0 else (o, i + diff, hist + "c")
+
+    def equity_oop(self, ohc, ihc, board):
+        key = (ohc, ihc, board)
+        e = self._eq.get(key)
+        if e is not None:
+            return e
+        bl = list(board)
+        if len(board) == 5:
+            so = evaluate7(list(ohc) + bl); si = evaluate7(list(ihc) + bl)
+            e = 1.0 if so > si else (0.5 if so == si else 0.0)
+        else:
+            dead = set(board) | set(ohc) | set(ihc)
+            rem = [c for c in range(52) if c not in dead]
+            win = tie = tot = 0
+            for combo in itertools.combinations(rem, 5 - len(board)):
+                b2 = bl + list(combo)
+                so = evaluate7(list(ohc) + b2); si = evaluate7(list(ihc) + b2)
+                if so > si: win += 1
+                elif so == si: tie += 1
+                tot += 1
+            e = (win + 0.5 * tie) / tot
+        self._eq[key] = e
+        return e
+
+    def util_fold(self, folder, o, i):
+        share = (self.pot + o + i) if folder == 1 else 0.0   # non-folder wins
+        return share - o - self.pot / 2
+    def util_show(self, equity, o, i):
+        return (self.pot + o + i) * equity - o - self.pot / 2
+
+def RiverGame(board, oop, ip, pot, stack, bet_sizes):       # alias: 5-card == river
+    return PostflopGame(board, oop, ip, pot, stack, bet_sizes)
 
 # ---------- CFR ----------
 class _Node:
@@ -140,90 +162,153 @@ class _Node:
         n = sum(self.strat_sum.values())
         return {a: (self.strat_sum[a] / n if n > 0 else 1.0 / len(self.acts)) for a in self.acts}
 
-class Solution:
-    def __init__(self, game, nodes):
-        self.game = game
-        self._avg = {k: nd.average() for k, nd in nodes.items()}
-        self.game_value = self._tree_ev(self._strat_avg)
-
-    # strategy lookups (label-keyed) ------------------------------------------
-    def _avg_at(self, hand, h):
-        nd = self._avg.get((hand, h))
-        acts = LEGAL[h]
-        if nd is None:
-            return {a: 1.0 / len(acts) for a in acts}
-        return nd
-    def _labeled(self, hand, h):
-        return {LABEL[a]: p for a, p in self._avg_at(hand, h).items()}
-    def oop_strategy(self, hand):
-        return self._labeled(hand, "")
-    def ip_strategy(self, hand, facing):
-        return self._labeled(hand, "b" if facing == "bet" else "x")
-
-    # EV under arbitrary strategy functions -----------------------------------
-    def _ev(self, deal, h, strat_fn):
-        oh, ih, w, sign = deal
-        if h in TERMINAL:
-            return self.game.util_oop(sign, h)
-        pl = actor(h); hand = oh if pl == 0 else ih
-        strat = strat_fn(pl, hand, h)
-        return sum(strat[a] * self._ev(deal, h + a, strat_fn) for a in LEGAL[h])
-    def _tree_ev(self, strat_fn):
-        return sum(d[2] * self._ev(d, "", strat_fn) for d in self.game.deals)
-    def _strat_avg(self, pl, hand, h):
-        return self._avg_at(hand, h)
-
-    # exact exploitability via brute-force best response (small games only) ----
-    def _infosets(self, player):
-        hands = self.game.oop if player == 0 else self.game.ip
-        hsets = ["", "xb"] if player == 0 else ["x", "b"]
-        return [(hand, h) for hand, _ in hands for h in hsets]
-    def _pure_value(self, hero):
-        infos = self._infosets(hero)
-        best = -1e18
-        for choice in itertools.product(*[LEGAL[h] for (_, h) in infos]):
-            pure = {infos[i]: choice[i] for i in range(len(infos))}
-            def fn(pl, hand, h, _pure=pure):
-                if pl == hero:
-                    a = _pure[(hand, h)]
-                    return {x: (1.0 if x == a else 0.0) for x in LEGAL[h]}
-                return self._avg_at(hand, h)
-            v = self._tree_ev(fn)
-            v = v if hero == 0 else -v          # value to the hero
-            best = max(best, v)
-        return best
-    def exploitability(self):
-        return self._pure_value(0) + self._pure_value(1)   # 0 at Nash (zero-sum)
-
-def solve(game, iters=20000, seed=0):
-    nodes = {}
+def solve(game, iters=6000, seed=0):
+    g = game; nodes = {}
     def node(key, acts):
         nd = nodes.get(key)
         if nd is None:
             nd = nodes[key] = _Node(acts)
         return nd
-    def cfr(deal, h, p_oop, p_ip, p_chance):
-        oh, ih, w, sign = deal
-        if h in TERMINAL:
-            return game.util_oop(sign, h)
-        pl = actor(h); hand = oh if pl == 0 else ih; acts = LEGAL[h]
-        nd = node((hand, h), acts)
-        strat = nd.strategy()
-        util = {}; node_util = 0.0
+    def cfr(d, board, hist, o, i, p0, p1, pc):
+        ohs, ihs, ohc, ihc, w = d
+        if hist in CLOSED_FOLD:
+            return g.util_fold(actor(hist[:-1]), o, i)
+        if hist in CLOSED_PROCEED:
+            allin = o >= g.stack - 1e-9 or i >= g.stack - 1e-9
+            if len(board) == 5 or allin:
+                return g.util_show(g.equity_oop(ohc, ihc, board), o, i)
+            rem = [c for c in range(52) if c not in board and c not in ohc and c not in ihc]
+            tot = 0.0
+            for c in rem:
+                tot += cfr(d, board + (c,), "", o, i, p0, p1, pc / len(rem))
+            return tot / len(rem)
+        pl = actor(hist); acts = legal(hist)
+        hs = ohs if pl == 0 else ihs
+        key = (hs, board, hist, round(o, 4), round(i, 4))
+        nd = node(key, acts); strat = nd.strategy()
+        util = {}; nu = 0.0
         for a in acts:
+            no, ni, nh = g.apply(a, pl, o, i, hist)
             if pl == 0:
-                u = cfr(deal, h + a, p_oop * strat[a], p_ip, p_chance)
+                u = cfr(d, board, nh, no, ni, p0 * strat[a], p1, pc)
             else:
-                u = cfr(deal, h + a, p_oop, p_ip * strat[a], p_chance)
-            util[a] = u; node_util += strat[a] * u
-        s = 1 if pl == 0 else -1                      # actor's value sign vs util_oop
-        reach_opp = p_ip if pl == 0 else p_oop
-        reach_self = p_oop if pl == 0 else p_ip
+                u = cfr(d, board, nh, no, ni, p0, p1 * strat[a], pc)
+            util[a] = u; nu += strat[a] * u
+        s = 1 if pl == 0 else -1
+        ro = p1 if pl == 0 else p0; rs = p0 if pl == 0 else p1
         for a in acts:
-            nd.regret[a] += p_chance * reach_opp * (s * util[a] - s * node_util)
-            nd.strat_sum[a] += reach_self * strat[a]
-        return node_util
+            nd.regret[a] += pc * ro * (s * util[a] - s * nu)
+            nd.strat_sum[a] += rs * strat[a]
+        return nu
     for _ in range(iters):
-        for d in game.deals:
-            cfr(d, "", 1.0, 1.0, d[2])
-    return Solution(game, nodes)
+        for d in g.deals:
+            cfr(d, g.board, "", 0.0, 0.0, 1.0, 1.0, d[4])
+    return Solution(g, nodes)
+
+class Solution:
+    def __init__(self, game, nodes):
+        self.g = game
+        self._avg = {k: nd.average() for k, nd in nodes.items()}
+        self.game_value = self._tree_ev()
+
+    def _avg_at(self, key, acts):
+        nd = self._avg.get(key)
+        return nd if nd is not None else {a: 1.0 / len(acts) for a in acts}
+
+    # ---- strategy lookups (root) ----
+    def oop_strategy(self, hand):
+        key = (hand, self.g.board, "", 0.0, 0.0)
+        return {LABEL[a]: p for a, p in self._avg_at(key, "xb").items()}
+    def ip_strategy(self, hand, facing):
+        if facing == "bet":
+            amt = round(min(self.g.frac * self.g.pot, self.g.stack), 4)
+            key = (hand, self.g.board, "b", amt, 0.0)
+        else:
+            key = (hand, self.g.board, "x", 0.0, 0.0)
+        return {LABEL[a]: p for a, p in self._avg_at(key, legal("b" if facing == "bet" else "x")).items()}
+
+    # ---- exact game value under the average strategy ----
+    def _ev(self, d, board, hist, o, i):
+        ohs, ihs, ohc, ihc, w = d
+        if hist in CLOSED_FOLD:
+            return self.g.util_fold(actor(hist[:-1]), o, i)
+        if hist in CLOSED_PROCEED:
+            allin = o >= self.g.stack - 1e-9 or i >= self.g.stack - 1e-9
+            if len(board) == 5 or allin:
+                return self.g.util_show(self.g.equity_oop(ohc, ihc, board), o, i)
+            rem = [c for c in range(52) if c not in board and c not in ohc and c not in ihc]
+            return sum(self._ev(d, board + (c,), "", o, i) for c in rem) / len(rem)
+        pl = actor(hist); acts = legal(hist); hs = ohs if pl == 0 else ihs
+        strat = self._avg_at((hs, board, hist, round(o, 4), round(i, 4)), acts)
+        tot = 0.0
+        for a in acts:
+            no, ni, nh = self.g.apply(a, pl, o, i, hist)
+            tot += strat[a] * self._ev(d, board, nh, no, ni)
+        return tot
+    def _tree_ev(self):
+        return sum(d[4] * self._ev(d, self.g.board, "", 0.0, 0.0) for d in self.g.deals)
+
+    # ---- recursive best response -> exploitability ----
+    def _br_value(self, hero):
+        g = self.g
+        hero_hands = g.oop if hero == 0 else g.ip
+        opp_hands = g.ip if hero == 0 else g.oop
+        def rec(hh, board, hist, o, i, reach):     # reach: {opp_str: (opp_cards, prob)}
+            if hist in CLOSED_FOLD:
+                u_oop = g.util_fold(actor(hist[:-1]), o, i)
+                u = u_oop if hero == 0 else -u_oop
+                return u * sum(p for _, p in reach.values())
+            if hist in CLOSED_PROCEED:
+                allin = o >= g.stack - 1e-9 or i >= g.stack - 1e-9
+                if len(board) == 5 or allin:
+                    tot = 0.0
+                    for oc, p in reach.values():
+                        if p <= 0: continue
+                        oopc, ipc = (hh, oc) if hero == 0 else (oc, hh)
+                        u_oop = g.util_show(g.equity_oop(oopc, ipc, board), o, i)
+                        tot += p * (u_oop if hero == 0 else -u_oop)
+                    return tot
+                used = set(board) | set(hh)
+                for oc, p in reach.values():
+                    if p > 0: used |= set(oc)
+                cand = [c for c in range(52) if c not in used]
+                tot = 0.0
+                for c in cand:
+                    tot += rec(hh, board + (c,), "", o, i,
+                               {k: (oc, p / len(cand)) for k, (oc, p) in reach.items()})
+                return tot
+            pl = actor(hist); acts = legal(hist)
+            if pl == hero:
+                best = None
+                for a in acts:
+                    no, ni, nh = g.apply(a, pl, o, i, hist)
+                    v = rec(hh, board, nh, no, ni, reach)
+                    best = v if best is None or v > best else best
+                return best
+            tot = 0.0                                # opponent node: split by their avg strategy
+            for a in acts:
+                nr = {}
+                for k, (oc, p) in reach.items():
+                    sig = self._avg_at((k, board, hist, round(o, 4), round(i, 4)), acts)
+                    nr[k] = (oc, p * sig[a])
+                no, ni, nh = g.apply(a, pl, o, i, hist)
+                tot += rec(hh, board, nh, no, ni, nr)
+            return tot
+        total = 0.0; W = 0.0
+        for hhs, hw, hhc in hero_hands:
+            if set(hhc) & set(g.board):
+                continue
+            reach = {}
+            for ohs, ow, ohc in opp_hands:
+                if set(ohc) & set(hhc) or set(ohc) & set(g.board):
+                    continue
+                reach[ohs] = (ohc, ow)
+            Z = sum(p for _, p in reach.values())
+            if Z <= 0:
+                continue
+            reach = {k: (oc, p / Z) for k, (oc, p) in reach.items()}
+            total += hw * Z * rec(hhc, g.board, "", 0.0, 0.0, reach)
+            W += hw * Z
+        return total / W if W > 0 else 0.0
+    def exploitability(self):
+        return self._br_value(0) + self._br_value(1)
