@@ -12,10 +12,12 @@ known answer before trusting it on a real spot, and measure exploitability.
    verified against the closed-form Nash (game value −1/18, parameter-independent
    equilibrium frequencies, exploitability → 0 via exact best response).
    Run: `python tools/solver/kuhn_cfr.py` (pure stdlib).
-2. ⬜ **HU postflop, single flop** — vectorized (range × board) CFR + the
-   `evaluate7` showdown logic, a few discrete bet sizes, solve flop→turn→river.
-   Verify: exploitability small; sanity on a dry board (nut hands bet, air
-   bluffs at the right frequency).
+2. 🚧 **HU postflop** — `test_postflop.py` written first (TDD, currently RED):
+   pins the solver to closed-form river GTO (polarized MDF: nuts bet 100%, air
+   bluffs 50%, bluff-catcher calls 50% vs a pot bet), nuts-vs-air degeneracy,
+   and exploitability → 0. Next: implement `postflop.py` (betting-tree CFR +
+   `evaluate7` showdown) to make them pass — start RIVER-only (no chance nodes),
+   then add turn/river runouts.
 3. ⬜ Output strategy as data; only then consider feeding preflop leaves.
 
 ## Why HU only
