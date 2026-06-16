@@ -264,7 +264,9 @@ function choose(choice,btn,e){
 
 function resolve(choice,btn,timedOut){
  const t=G.table,correct=G.correct_set,hand=G.hand;
- const ok=correct.includes(choice);
+ // a timeout means the player never decided in time → never counts as correct,
+ // regardless of whether 'fold' happened to be the right play (consistent grading).
+ const ok = !timedOut && correct.includes(choice);
  // frequency-aware grading: a precise spot carries real solved frequencies, so a
  // mix point HAS a majority line — reward matching it as 最佳, a secondary line as
  // 好棋. Curated/approx mixes are placeholder ~50/50, so we cannot rank them (§6).
@@ -299,7 +301,8 @@ function resolve(choice,btn,timedOut){
  } else {
   G.combo=0;G.levelMistakes++;
   const shouldPlay=correct.includes('raise')||correct.includes('call')||correct.includes('shove');
-  if(G.isMix){grade='不准';gcolor='var(--inacc)';G.q.inacc++;hpHit=1;}
+  if(timedOut){grade='超时';gcolor='var(--mistake)';G.q.mistake++;hpHit=1;} // didn't act in time — uniform miss, no 漏着 award
+  else if(G.isMix){grade='不准';gcolor='var(--inacc)';G.q.inacc++;hpHit=1;}
   else if((shouldPlay&&choice==='fold'&&PREMIUM.has(hand)) || (correct[0]==='fold'&&PREMIUM.has(hand)===false&&choice!=='fold'&&isTrash(hand))){
    grade='漏着';gcolor='var(--blunder)';G.q.blunder++;hpHit=2;
    if(shouldPlay&&choice==='fold'&&PREMIUM.has(hand))award('巨牌漏着','😱');
@@ -322,7 +325,7 @@ function resolve(choice,btn,timedOut){
 
  // center verdict flash
  const v=document.getElementById('verdict');
- document.getElementById('grade').textContent=(timedOut?'超时 · ':'')+grade;
+ document.getElementById('grade').textContent=grade;
  document.getElementById('grade').style.color=gcolor;
  const mixTip = hitTop ? `主频线 ${MODES[t.mode].names[topAct]||topAct} ${Math.round(fmap[topAct]*100)}%` : '边缘混合点';
  document.getElementById('tip').innerHTML= ok ? (G.isMix?mixTip:'打得漂亮！') : `应 <b>${corrStr}</b>`;
@@ -357,10 +360,10 @@ function resolve(choice,btn,timedOut){
 
  // build detailed feedback panel
  const r=reasonFor(t,hand,correct,choice,ok,grade);
- document.getElementById('fbGrade').textContent=(timedOut?'超时 · ':'')+grade;
+ document.getElementById('fbGrade').textContent=grade;
  document.getElementById('fbGrade').style.color=gcolor;
  document.getElementById('fbAns').innerHTML=`正确打法：<b>${corrStr}</b> ${freq} ${confChip(t)}`;
- const youLine = ok ? '' : `<span class="you">你选了「${nameMap[choice]||'弃牌'}」 —— 不是最优。</span>`;
+ const youLine = ok ? '' : (timedOut ? `<span class="you">超时未操作 —— 本手作废喵～</span>` : `<span class="you">你选了「${nameMap[choice]||'弃牌'}」 —— 不是最优。</span>`);
  document.getElementById('fbReason').innerHTML=youLine+r;
  const nextBtn=document.getElementById('fbNext');
  nextBtn.textContent = dead ? '查看结果 →' : '下一步 →';
