@@ -78,6 +78,18 @@ test('every spot has a confidence tag', () => {
           `${fmt}/${v}/${t.name}: bad confidence "${t.confidence}"`);
 });
 
+test('10bb push spots use the computed Nash data (precise + freqTable)', () => {
+  const d10 = PACKS.mtt.d10;
+  const byPf = {}; d10.forEach((t) => { if (t.pf) byPf[t.pf] = t; });
+  for (const t of d10) {
+    assert.equal(t.confidence, 'precise', `${t.name}: computed data should have loaded`);
+    assert.ok(t.freqTable && Object.keys(t.freqTable).length > 0, `${t.name}: has freqTable`);
+  }
+  // computed shape: UTG tight (premiums only), SB much wider
+  assert.ok(byPf.UTG.R.has('AA') && !byPf.UTG.R.has('72o'), 'UTG jams AA not 72o');
+  assert.ok(byPf.SB.union.length > byPf.UTG.union.length, 'SB jams wider than UTG');
+});
+
 test('range DSL expand() parses representative tokens', () => {
   assert.deepEqual([...expand('AA')], ['AA']);
   assert.deepEqual([...expand('AKs')], ['AKs']);
