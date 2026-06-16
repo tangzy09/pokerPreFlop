@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> Product scope, feature roadmap, and the **honesty constraints** (no fabricated EV/frequencies, offline/zero-build, what's explicitly excluded) live in [PRODUCT.md](PRODUCT.md). Read it before adding features.
+
 ## What this is
 
 A zero-build, dependency-free web app: a **pre-flop poker GTO decision trainer** (Chinese UI). [gto-trainer.html](gto-trainer.html) holds the markup + CSS and loads four plain classic scripts (no ES modules, no bundler — still double-click-to-run from `file://`):
