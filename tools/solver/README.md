@@ -12,13 +12,16 @@ known answer before trusting it on a real spot, and measure exploitability.
    verified against the closed-form Nash (game value −1/18, parameter-independent
    equilibrium frequencies, exploitability → 0 via exact best response).
    Run: `python tools/solver/kuhn_cfr.py` (pure stdlib).
-2. 🚧 **HU postflop** — `test_postflop.py` written first (TDD, currently RED):
-   pins the solver to closed-form river GTO (polarized MDF: nuts bet 100%, air
-   bluffs 50%, bluff-catcher calls 50% vs a pot bet), nuts-vs-air degeneracy,
-   and exploitability → 0. Next: implement `postflop.py` (betting-tree CFR +
-   `evaluate7` showdown) to make them pass — start RIVER-only (no chance nodes),
-   then add turn/river runouts.
-3. ⬜ Output strategy as data; only then consider feeding preflop leaves.
+2. ✅ **HU river** — `postflop.py` (betting-tree CFR + ported `evaluate7`
+   showdown), verified by `test_postflop.py` against closed-form river GTO:
+   polarized pot bet → nuts bet 100%, air bluffs 50%, bluff-catcher calls 50%
+   (MDF), exploitability ~0.004. Run: `python tools/solver/test_postflop.py`.
+   Scope: one bet size, no raises (v1). A nice GTO truth it surfaces: vs a
+   range that can only fold, betting the nuts is EV-indifferent (not forced).
+3. ⬜ **Add streets** — turn/river as chance nodes on top of the same betting
+   CFR (the river solver becomes the leaf evaluator). Then multiple bet sizes /
+   raises, and bigger ranges (needs vectorization).
+4. ⬜ Output strategy as data; only then consider feeding preflop leaves.
 
 ## Why HU only
 CFR provably converges to Nash only in 2-player zero-sum games. Multiway

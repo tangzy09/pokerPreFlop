@@ -92,12 +92,15 @@ def run():
     check("air bluff ~ 0.5", near(oq.get("bet", 0), EXP_OOP_BLUFF), f"bet(QT)={oq.get('bet',0):.3f}")
     check("bluff-catcher call ~ 0.5 (MDF)", near(ia.get("call", 0), EXP_IP_CALL), f"call(AA)={ia.get('call',0):.3f}")
 
-    # --- 3. nuts vs air: degenerate-correct (bet the nuts, fold the air) ---
+    # --- 3. nuts vs air: degenerate-correct ---
+    # NOTE: when the villain can only ever fold, betting vs checking the nuts is
+    # EV-INDIFFERENT (OOP wins the pot either way) — so we do NOT require betting.
+    # The real invariants are: air must fold to a pot bet, and OOP (winning 100%
+    # of showdowns) earns exactly its fair share +P/2.
     sol2 = pf.solve(pf.RiverGame(**TRIVIAL), iters=8000, seed=2)
-    bj = sol2.oop_strategy("JhJc").get("bet", 0)
     fq = sol2.ip_strategy("QdTh", "bet").get("fold", 0)
-    check("nuts always bet", bj > 0.9, f"bet(JJ)={bj:.3f}")
     check("air must fold to pot bet", fq > 0.9, f"fold(QT)={fq:.3f}")
+    check("OOP wins 100% -> value = +P/2", near(sol2.game_value, 0.5), f"value={sol2.game_value:+.3f}")
 
     # --- 4. value sanity: polarized bettor (OOP) has positive EV from dead money + bluffs ---
     check("polarized OOP value > 0", sol.game_value > 0, f"value={sol.game_value:+.4f}")
