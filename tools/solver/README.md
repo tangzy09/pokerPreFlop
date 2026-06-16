@@ -24,7 +24,16 @@ known answer before trusting it on a real spot, and measure exploitability.
    `test_streets.py` GREEN: reduces-to-river matches (+0.250), nuts-vs-air over
    all rivers → value +0.5 / air folds / expl 0.0005, real turn spot expl 0.002.
    Run: `python tools/solver/test_streets.py`. Scope: one bet size, no raises.
-4. ⬜ Output strategy as data; only then consider feeding preflop leaves.
+4. 🚧 **Preflop ↔ postflop** — `test_preflop.py` written first (TDD, RED): a
+   HU SB/BB preflop tree values "see a flop" leaves via an INJECTED `leaf_ev`
+   callback (where the postflop solver / an EV model plugs in). Anchors:
+   reduces-to-push/fold when `leaf_ev=None` (jam/fold Nash, exploitability ~0,
+   best hand always jams), `leaf_ev` is actually invoked, combined game
+   converges. Next: implement `preflop.py`. NOTE: a *correct* leaf_ev needs the
+   postflop solve of the arriving ranges (chicken-and-egg) — v1 will inject a
+   cheap model (equity / realization factor) and label it honestly; real nested
+   solves are the expensive endgame.
+5. ⬜ Output strategy as data; only then consider feeding preflop leaves.
 
 ## Why HU only
 CFR provably converges to Nash only in 2-player zero-sum games. Multiway
