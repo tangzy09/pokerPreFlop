@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { parseCard, evaluate7, comboCards, equityExact } = require('../tools/equity');
+const { parseCard, evaluate7, comboCards, equityExact } = require('../js/equity');
 
 const ev = (...cs) => evaluate7(cs.map(parseCard));
 

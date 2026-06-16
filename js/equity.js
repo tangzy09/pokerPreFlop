@@ -2,10 +2,11 @@
 /*
  * equity.js — exact all-in hold'em equity engine (dependency-free, pure JS).
  *
- * Used offline (Node) to COMPUTE preflop push/fold data ourselves, and later
- * in-browser for the Range-vs-Range tool. Cards are integers 0..51 with
+ * Dual-loaded: required by the offline tools (Node) to COMPUTE push/fold data,
+ * AND loaded as a plain <script> in the browser for the Range-vs-Range tool —
+ * so it must stay free of Node APIs and ES-module syntax (PRODUCT.md §2).
+ * Cards are integers 0..51 with
  *   card = rank*4 + suit,  rank 0='2' .. 12='A',  suit 0..3.
- * No Node APIs here, so the module loads in a browser too.
  */
 
 const RV = { '2':0,'3':1,'4':2,'5':3,'6':4,'7':5,'8':6,'9':7,'T':8,'J':9,'Q':10,'K':11,'A':12 };
@@ -151,5 +152,35 @@ function classEquity(label1, label2, n, rng) {
   return (win + tie / 2) / n;
 }
 
-module.exports = { card, cardRank, cardSuit, cardStr, parseCard, evaluate7, comboCards,
-  equityExact, equityMC, classEquity, mulberry32, RV, SV, RC, SC };
+// ---- all combos for a list of hand labels (combo-weighted: AKo→12, AKs→4, AA→6) ----
+function rangeCombos(labels) { const out = []; for (const L of labels) for (const c of comboCards(L)) out.push(c); return out; }
+
+// ---- equity of range1 vs range2 (arrays of hand labels) all-in preflop ----
+// Monte-Carlo: each iter samples one combo from each range (uniform over combos
+// ⇒ naturally combo-weighted) and a random 5-card board, skipping card conflicts.
+// Returns range1's equity in [0,1], or null if the ranges can never be dealt apart.
+function rangeEquity(labels1, labels2, n, rng) {
+  const A = rangeCombos(labels1), B = rangeCombos(labels2);
+  if (!A.length || !B.length) return null;
+  const h7 = [0, 0, 0, 0, 0, 0, 0], v7 = [0, 0, 0, 0, 0, 0, 0];
+  let win = 0, tie = 0, done = 0, tries = 0;
+  const maxTries = n * 50 + 1000;                  // guard heavily-blocked pairs (e.g. AA vs AA)
+  while (done < n && tries < maxTries) {
+    tries++;
+    const a = A[(rng() * A.length) | 0], b = B[(rng() * B.length) | 0];
+    if (a[0] === b[0] || a[0] === b[1] || a[1] === b[0] || a[1] === b[1]) continue;
+    const dead = new Set([a[0], a[1], b[0], b[1]]);
+    const deck = []; for (let c = 0; c < 52; c++) if (!dead.has(c)) deck.push(c);
+    const m = deck.length;
+    h7[0] = a[0]; h7[1] = a[1]; v7[0] = b[0]; v7[1] = b[1];
+    for (let k = 0; k < 5; k++) { const j = k + ((rng() * (m - k)) | 0); const t = deck[k]; deck[k] = deck[j]; deck[j] = t; h7[2 + k] = v7[2 + k] = deck[k]; }
+    const hs = evaluate7(h7), vs = evaluate7(v7);
+    if (hs > vs) win++; else if (hs === vs) tie++;
+    done++;
+  }
+  return done ? (win + tie / 2) / done : null;
+}
+
+const EQUITY_API = { card, cardRank, cardSuit, cardStr, parseCard, evaluate7, comboCards,
+  equityExact, equityMC, classEquity, rangeCombos, rangeEquity, mulberry32, RV, SV, RC, SC };
+if (typeof module !== 'undefined' && module.exports) module.exports = EQUITY_API; // Node (tools); in the browser the names above are plain globals

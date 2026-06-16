@@ -12,7 +12,7 @@
  * combo-count weights. This reproduces standard push/fold charts closely; it is
  * a computed approximation, not a claim of bit-exact solver output.
  */
-const { comboCards, classEquity, mulberry32 } = require('./equity');
+const { comboCards, classEquity, mulberry32 } = require('../js/equity');
 
 // 169 hand-class labels (rank order high->low) + base combo counts
 const ORD = 'AKQJT98765432';
