@@ -5,9 +5,9 @@ const PACKS={
  cash:{
   6:[
    {mode:'open',name:'UTG · 枪口位',who:'6人桌 · 你先开局',tier:1,raise:"22+, A2s+, KTs+, QTs+, JTs, T9s, 98s, 87s, 76s, AJo+, KQo",mix:"65s, 54s, K9s, Q9s, J9s, ATo, A9o, KJo, QJo"},
-   {mode:'open',name:'BTN · 按钮位',who:'6人桌 · 你先开局',tier:1,raise:r_btn,mix:m_btn},
-   {mode:'open',name:'CO · 关煞位',who:'6人桌 · 你先开局',tier:2,raise:r_co,mix:m_co},
    {mode:'open',name:'HJ · 中位',who:'6人桌 · 你先开局',tier:3,raise:"22+, A2s+, K9s+, Q9s+, J9s+, T8s+, 98s, 87s, 76s, 65s, A9o+, KJo+, QJo",mix:"54s, K8s, Q8s, J8s, T7s, A8o, A5o, KTo, QTo, JTo"},
+   {mode:'open',name:'CO · 关煞位',who:'6人桌 · 你先开局',tier:2,raise:r_co,mix:m_co},
+   {mode:'open',name:'BTN · 按钮位',who:'6人桌 · 你先开局',tier:1,raise:r_btn,mix:m_btn},
    {mode:'open',name:'SB · 小盲位',who:'6人桌 · 仅剩大盲',tier:3,raise:r_sb,mix:m_sb},
    {mode:'defense',name:'BB vs BTN',who:'按钮位开局 · 大盲防守',tier:4,
     raise:"99+, ATs+, A5s-A2s, KJs+, AJo+, KQo",
