@@ -166,10 +166,70 @@ function solveRing(S, EQ, { nSeats = 9, iters = 700, damp = 0.15 } = {}) {
     }
     const round = (x) => Math.round(x * 1000) / 1000;
     const jr = {}; for (let c = 0; c < N; c++) jr[CLASSES[c]] = round(jam[c]);
+    const callers = {};
+    for (const k of behind) { const cr = {}; for (let c = 0; c < N; c++) cr[CLASSES[c]] = round(call[k][c]); callers[k] = cr; }
     let a = 0; for (let c = 0; c < N; c++) a += w[c] * jam[c];
-    seats[i] = { jam: jr, jamPct: a / totW };
+    seats[i] = { jam: jr, jamPct: a / totW, callers };
   }
   return { seats, SB, BB, nSeats };
 }
 
-module.exports = { CLASSES, IDX, baseCount, buildEqMatrix, solveHU, solveRing, matvec, N };
+/*
+ * ringRegret — exploitability of a solved ring: the largest EV (in bb/hand) a
+ * player could gain by best-responding instead of following the solution.
+ * 0 == exact Nash within the model; small == converged. Checks every jammer
+ * seat's hands and every caller's hands against the solution's opposing ranges.
+ */
+function ringRegret(S, EQ, ring) {
+  const w = CLASSES.map(baseCount); const totW = w.reduce((a, b) => a + b, 0);
+  const SB = ring.SB, BB = ring.BB;
+  const D = (i, k) => (SB !== i && SB !== k ? 0.5 : 0) + (BB !== i && BB !== k ? 1 : 0);
+  const netAllFold = (i) => (SB !== i ? 0.5 : 0) + (BB !== i ? 1 : 0);
+  const jammerFold = (i) => (i === SB ? -0.5 : 0);
+  const callerFold = (k) => (k === SB ? -0.5 : k === BB ? -1 : 0);
+  const arr = (dict) => { const a = new Float64Array(N); for (let c = 0; c < N; c++) a[c] = dict[CLASSES[c]] || 0; return a; };
+  let max = 0;
+  for (let i = 0; i <= SB; i++) {
+    const seat = ring.seats[i]; if (!seat) continue;
+    const jam = arr(seat.jam);
+    const behind = []; for (let k = i + 1; k <= BB; k++) behind.push(k);
+    const call = {}; for (const k of behind) call[k] = arr(seat.callers[k]);
+
+    // callers' regret vs i's jam range (shared equity vector)
+    let jw = 0; for (let s = 0; s < N; s++) jw += w[s] * jam[s];
+    const eqVsJam = jw > 0 ? matvec(EQ, w.map((wi, s) => wi * jam[s])) : null;
+    for (const k of behind) {
+      const Dik = D(i, k), fEV = callerFold(k);
+      for (let c = 0; c < N; c++) {
+        const eq = eqVsJam ? eqVsJam[c] / jw : 0;
+        const callEV = S * (2 * eq - 1) + eq * Dik;
+        const best = Math.max(callEV, fEV);
+        const actual = call[k][c] * callEV + (1 - call[k][c]) * fEV;
+        if (best - actual > max) max = best - actual;
+      }
+    }
+    // jammer's regret vs callers' ranges
+    const pCall = {}, eqK = {};
+    for (const k of behind) {
+      let m = 0; for (let c = 0; c < N; c++) m += w[c] * call[k][c];
+      pCall[k] = m / totW;
+      eqK[k] = m > 0 ? matvec(EQ, w.map((wi, c) => wi * call[k][c])).map((x) => x / m) : null;
+    }
+    const jf = jammerFold(i);
+    for (let c = 0; c < N; c++) {
+      let pAll = 1; for (const k of behind) pAll *= (1 - pCall[k]);
+      let ev = pAll * netAllFold(i), reach = 1;
+      for (const k of behind) {
+        const eq = eqK[k] ? eqK[k][c] : 0;
+        ev += reach * pCall[k] * (S * (2 * eq - 1) + eq * D(i, k));
+        reach *= (1 - pCall[k]);
+      }
+      const best = Math.max(ev, jf);
+      const actual = jam[c] * ev + (1 - jam[c]) * jf;
+      if (best - actual > max) max = best - actual;
+    }
+  }
+  return { maxRegret: max };
+}
+
+module.exports = { CLASSES, IDX, baseCount, buildEqMatrix, solveHU, solveRing, ringRegret, matvec, N };

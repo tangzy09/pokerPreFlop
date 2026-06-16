@@ -8,9 +8,10 @@
  */
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildEqMatrix, solveRing, CLASSES } = require('./pushfold');
+const { buildEqMatrix, solveRing, ringRegret, CLASSES } = require('./pushfold');
 
 const SAMPLES = 4000, SEED = 1234, NSEATS = 9, STACKS = [10, 15, 20];
+const SOLVE = { iters: 8000, damp: 0.02 };          // well-converged (deep stacks need it)
 // which 9-max seats back our 5 displayed positions (0=UTG .. 6=BTN,7=SB)
 const SEAT_OF = { UTG: 0, MP: 3, CO: 5, BTN: 6, SB: 7 };
 
@@ -19,9 +20,11 @@ let t = Date.now();
 const EQ = buildEqMatrix(SAMPLES, SEED);                       // stack-independent
 console.log(`  matrix done in ${((Date.now() - t) / 1000).toFixed(1)}s`);
 
-const stacks = {};
+const stacks = {}, exploit = {};
 for (const S of STACKS) {
-  const ring = solveRing(S, EQ, { nSeats: NSEATS });
+  const ring = solveRing(S, EQ, { nSeats: NSEATS, ...SOLVE });
+  const reg = ringRegret(S, EQ, ring).maxRegret;                // exploitability (bb/hand)
+  exploit[S] = Math.round(reg * 1000) / 1000;
   const seats = {};
   for (const [name, idx] of Object.entries(SEAT_OF)) {
     const jam = ring.seats[idx].jam, o = {};
@@ -29,12 +32,13 @@ for (const S of STACKS) {
     seats[name] = o;
   }
   stacks[S] = { seats };
-  console.log(`  ${S}bb: ` + Object.entries(SEAT_OF).map(([n, i]) => `${n} ${(ring.seats[i].jamPct * 100).toFixed(0)}%`).join('  '));
+  console.log(`  ${S}bb: ` + Object.entries(SEAT_OF).map(([n, i]) => `${n} ${(ring.seats[i].jamPct * 100).toFixed(0)}%`).join('  ') + `  | exploitability ${exploit[S]}bb`);
 }
 
 const data = {
   meta: { nSeats: NSEATS, stacks: STACKS, model: 'no-overcall chip-EV Nash equilibrium',
-    equity: 'Monte-Carlo class equity (combo+board averaged)', samples: SAMPLES, seed: SEED, seatMap: SEAT_OF },
+    equity: 'Monte-Carlo class equity (combo+board averaged)', samples: SAMPLES, seed: SEED,
+    seatMap: SEAT_OF, exploitability: exploit },
   stacks,
 };
 const out = path.join(__dirname, '..', 'js', 'data', 'pushfold.js');

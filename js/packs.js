@@ -185,7 +185,8 @@ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
   }
   t.R=R; t.C=new Set(); t.M=M; t.union=[...new Set([...R,...M])];
   t.freqTable=freqTable; t.confidence='precise';
-  t.src=`computed ${t.pfStack}bb Nash (${PUSHFOLD.meta.model})`;
+  const reg=PUSHFOLD.meta.exploitability && PUSHFOLD.meta.exploitability[t.pfStack];
+  t.src=`computed ${t.pfStack}bb Nash (${PUSHFOLD.meta.model}`+(reg!=null?` · 可剥削度~${reg}bb/手`:'')+')';
  })));
 })();
 

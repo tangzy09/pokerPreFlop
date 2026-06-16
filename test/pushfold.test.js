@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { buildEqMatrix, solveHU, solveRing, CLASSES, baseCount } = require('../tools/pushfold');
+const { buildEqMatrix, solveHU, solveRing, ringRegret, CLASSES, baseCount } = require('../tools/pushfold');
 
 // one modest-sample seeded matrix shared by all asserts (build is the cost)
 const EQ = buildEqMatrix(400, 7);
@@ -44,6 +44,18 @@ test('shorter stacks jam wider (monotonic in stack depth)', () => {
 test('jam frequency respects dominance (AA >= A2o >= 72o)', () => {
   const r = solveHU(10, EQ);
   assert.ok(r.jam.AA >= r.jam.A2o && r.jam.A2o >= r.jam['72o'], 'jam monotonic by strength');
+});
+
+test('solver is near-Nash: exploitability is small and shrinks with iterations', () => {
+  // HU is the cleanest case
+  const hu = solveRing(10, EQ, { nSeats: 2, iters: 3000, damp: 0.05 });
+  assert.ok(ringRegret(10, EQ, hu).maxRegret < 0.08, 'HU 10bb should be near equilibrium');
+  // more iterations / less damping must reduce exploitability (convergence)
+  const coarse = ringRegret(10, EQ, solveRing(10, EQ, { nSeats: 9, iters: 120, damp: 0.15 })).maxRegret;
+  const fine = ringRegret(10, EQ, solveRing(10, EQ, { nSeats: 9, iters: 4000, damp: 0.03 })).maxRegret;
+  assert.ok(fine >= 0, 'regret is non-negative');
+  assert.ok(fine < coarse, `more iters should reduce regret: coarse=${coarse} fine=${fine}`);
+  assert.ok(fine < 0.25, `converged 10bb 9-max exploitability bounded: ${fine}`);
 });
 
 test('multiway ring jam ranges widen by position and match HU at the SB seat', () => {

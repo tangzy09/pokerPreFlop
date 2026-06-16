@@ -85,6 +85,7 @@ test('computed push spots (10/15/20bb) loaded as precise with freqTable', () => 
     for (const t of arr) {
       assert.equal(t.confidence, 'precise', `${v}/${t.name}: computed data should have loaded`);
       assert.ok(t.freqTable && Object.keys(t.freqTable).length > 0, `${v}/${t.name}: has freqTable`);
+      assert.match(t.src, /可剥削度~[\d.]+bb/, `${v}/${t.name}: src discloses exploitability`);
     }
   }
   const sb = (v) => PACKS.mtt[v].find((t) => t.pf === 'SB');
