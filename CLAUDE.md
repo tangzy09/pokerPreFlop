@@ -1,0 +1,49 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+A single-file, self-contained web app: a **pre-flop poker GTO decision trainer** (Chinese UI). Everything — HTML, CSS, JS, range data, synth audio, canvas confetti — lives in [gto-trainer.html](gto-trainer.html). No build system, no dependencies, no framework, no package.json. The canonical/original copy also lives at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
+
+## Running & verifying (no build step)
+
+- **Run:** open `gto-trainer.html` in any browser. State persists to `localStorage` (`STORE_KEY = 'gtoTrainer_v1'`); it silently no-ops in sandboxed previews.
+- **Test:** `npm test` (= `node --test "test/*.test.js"`). Run a single test with `node --test --test-name-pattern="snapshot" "test/*.test.js"`.
+- **After an INTENTIONAL change to `MODES` or the ranges**, the snapshot test will fail by design — regenerate the golden with `npm run test:update`, then review the diff in `test/__snapshots__/regression.snap.json` before committing.
+- Node v24 is installed at `C:\Program Files\nodejs\`. Freshly-spawned tool shells may not have it on PATH until a terminal restart — use the full path (`& "C:\Program Files\nodejs\node.exe"` / `npm.cmd`).
+
+### How the tests work (no DOM, no dependencies)
+`test/load-app.js` extracts the `<script>` block and runs it in a `vm` context where every browser global is a **bulletproof Proxy stub** (each trap returns another callable/iterable Proxy), so the top-level boot code that touches `document`/`window`/`localStorage` can't throw. It appends `;globalThis.__app={MODES,PACKS,cellCat,…}` to capture the internal `const`s for inspection. `test/regression.test.js` then runs **contract invariants** (every PACKS mode has a MODES entry; `correct`/`cell` outputs are well-formed; range-DSL + `handLabel`/`combosOf` sanity) plus a **golden snapshot** (`test/snapshot.js` builds the full decision matrix + every spot's chart categories across all 169 hands). This is the regression net for the MODES-centralized design.
+
+## Architecture (the parts that span multiple sections)
+
+The script is ~1000 lines in one `<script>`. Read these relationships before editing:
+
+### Range data pipeline
+- `RANKS` / `RIDX` + `expand(str)` parse a **range-string DSL** (e.g. `"22+, A2s+, KTs+, AJo+, KQo"`) into a `Set` of canonical hand labels (`"AKs"`, `"TT"`, `"A2o"`). `handLabel(r,c)` is the canonical form (suited = upper-right, offsuit = lower-left).
+- `PACKS` is the range database, nested `format → variant → array of "tables"`. Each table (a "spot") has `{mode, name, who, tier, raise/call/mix}` strings. A post-load pass expands these into `t.R` (raise), `t.C` (call), `t.M` (mix/edge) Sets plus `t.union`. Shared range strings (`r_co`, `r_btn`, `m_btn`, …) are reused across packs.
+
+### MODES — single source of truth for decision behavior
+`MODES` (top of script) is the **central config keyed by mode** (`open`, `push`, `callshove`, `defense`, `face3b`, `squeeze`, `face4b`). Each entry defines everything mode-specific:
+- `actions` — button list `[key, ACT_LABEL.x]` (grid columns derived from count)
+- `names` — action→Chinese display name (for the answer string)
+- `correct(isR,isC,isM)` — the GTO-correct action set (array; length > 1 ⇒ a mix point)
+- `cell(isR,isC,isM)` — the chart matrix CSS category
+- `legend`, optional `catName` overrides
+- Reusable closures `CORRECT.*` / `CELL.*` back these so several modes share identical logic.
+
+**This is deliberate: to add or change a mode, edit `MODES` only.** All consumers read from it — `nextHand()` (`MODES[mode].correct`), `buildActions()` (`.actions`), `resolve()` (`.names`), and the charts page `cellCat`/`catName`/`renderMatrix` (`.cell`/`.catName`/`.legend`). The edge/mix "which action to play" is baked into `correct`/`cell` (there is no separate `EDGE_PLAY` table). The one exception that is intentionally NOT in `MODES`: `reasonFor()` (prose feedback) keeps its own per-mode branches because it's content, not config.
+
+### Selection taxonomy
+`GAMETYPES` (cash vs mtt) → `FORMATS` → `VARIANTS`. `gameOf(fmt)` maps a format back to its game. The start screen, charts screen, and guide all build option chips from these.
+
+### Game loop & state
+`G` is the mutable game-state object. Flow: `newGame()` → `nextHand()` (deals via `pickHand(t, filter)` using `HANDFILTERS`, computes `G.correct_set` from `MODES`) → `choose()`/`timeOut()` → `resolve()` (grades, scores, HP, feedback via `reasonFor()`) → `advance()`. `PREMIUM` marks hands whose misplay is graded a "blunder".
+
+### Persistence & review
+`localStorage` holds prefs, lifetime stats (`statsBySpot`), and the **mistake review pile** (`reviewPile`) — a lightweight spaced-repetition queue (a spot leaves the pile once answered correctly). Review mode replays the pile without affecting HP/stats.
+
+## Domain caveat (do not misrepresent)
+
+Ranges are **hand-curated GTO approximations, not solver-exact output**. Mix/edge frequencies are "~50%" placeholders, not true solver frequencies; MTT/ICM/6-max are the roughest. The in-app "关于" (About) screen documents every assumption. Keep new copy/features honest about this — never present output as solver-precise. UI text is Chinese and written in a "松鼠" (squirrel) persona.

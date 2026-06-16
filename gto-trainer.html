@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GTO 翻前对战 · 训练营</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@700&family=Noto+Sans+SC:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --felt:#0c2a22; --felt2:#0a201a;
+    --rail:#1a120c; --gold:#e8c66a; --gold2:#b8902f;
+    --panel:#161d18; --line:#28332a; --foldink:#54655a;
+    --ink:#f1f5ee; --muted:#8fa79a;
+    --raise:#e0544f; --threebet:#b06ad6; --call:#34b074; --fold:#5b6f63;
+    --best:#34b074; --good:#7fc6ff; --inacc:#e8c66a; --mistake:#e98a3c; --blunder:#e0544f;
+    --card-r:11px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Noto Sans SC","Space Grotesk",system-ui,sans-serif;
+    color:var(--ink);overflow:hidden;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #14463a 0%, var(--felt) 45%, var(--felt2) 100%);
+    -webkit-font-smoothing:antialiased;touch-action:manipulation;
+  }
+  #app{position:fixed;inset:0;display:flex;flex-direction:column;max-width:520px;margin:0 auto;
+    border-left:1px solid rgba(0,0,0,.3);border-right:1px solid rgba(0,0,0,.3);
+    box-shadow:0 0 80px rgba(0,0,0,.5);overflow:hidden}
+  #fx{position:fixed;inset:0;pointer-events:none;z-index:60}
+
+  /* ---------- top HUD ---------- */
+  .hud{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;gap:10px}
+  .hp{display:flex;gap:5px;font-size:19px;line-height:1}
+  .hp i{filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));transition:.25s}
+  .hp i.dead{filter:grayscale(1) brightness(.5);transform:scale(.8)}
+  .hud-right{text-align:right}
+  .score{font-family:"Space Grotesk";font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1}
+  .lvl{font-family:"Space Mono";font-size:10px;letter-spacing:.2em;color:var(--gold);text-transform:uppercase}
+  .combo-wrap{height:26px;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:2px}
+  .combo{font-family:"Space Grotesk";font-weight:700;font-size:16px;color:var(--gold);opacity:0;transform:scale(.6);transition:.18s}
+  .combo.show{opacity:1;transform:scale(1)}
+  .combo.big{font-size:21px;text-shadow:0 0 16px rgba(232,198,106,.7)}
+
+  /* ---------- table center ---------- */
+  .table{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:8px 18px;position:relative}
+  .scene{text-align:center}
+  .scene .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,.28);
+    border:1px solid rgba(232,198,106,.35);border-radius:999px;padding:7px 16px;
+    font-weight:700;font-size:14px}
+  .scene .badge .pip{width:9px;height:9px;border-radius:50%;background:var(--gold)}
+  .scene .who{margin-top:9px;color:var(--muted);font-size:12.5px}
+
+  .cards{display:flex;gap:12px;perspective:900px}
+  .card{width:88px;height:124px;border-radius:var(--card-r);position:relative;
+    transform-style:preserve-3d;transition:transform .42s cubic-bezier(.2,.8,.25,1)}
+  .card .face,.card .back{position:absolute;inset:0;border-radius:var(--card-r);backface-visibility:hidden;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.4)}
+  .card .back{background:
+      repeating-linear-gradient(45deg,#7d2230 0 7px,#8c2a39 7px 14px);
+    border:3px solid #f1f5ee}
+  .card .face{background:#f7f8f4;border:1px solid #d8ddd2;flex-direction:column;transform:rotateY(180deg)}
+  .card.flip{transform:rotateY(180deg)}
+  .card .rk{position:absolute;top:7px;left:9px;font-family:"Space Grotesk";font-weight:700;font-size:21px;line-height:.9}
+  .card .rk.br{top:auto;left:auto;bottom:7px;right:9px;transform:rotate(180deg)}
+  .card .pip-c{font-size:42px;line-height:1}
+  .red{color:#d23b46}.blk{color:#1d2330}
+
+  .timer{width:min(260px,72vw);height:8px;border-radius:6px;background:rgba(0,0,0,.3);overflow:hidden}
+  .timer > i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--call),var(--gold));transition:none}
+  .timer.warn > i{background:linear-gradient(90deg,var(--mistake),var(--blunder))}
+
+  /* feedback flash */
+  .verdict{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.7);
+    text-align:center;opacity:0;pointer-events:none;transition:.2s;z-index:30}
+  .verdict.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  .verdict .grade{font-family:"Space Grotesk";font-weight:700;font-size:42px;letter-spacing:-.02em;
+    text-shadow:0 4px 24px rgba(0,0,0,.5)}
+  .verdict .tip{margin-top:6px;font-size:13.5px;color:var(--ink);background:rgba(0,0,0,.55);
+    padding:6px 13px;border-radius:8px;display:inline-block;max-width:78vw}
+  .verdict .tip b{color:var(--gold)}
+
+  /* ---------- actions ---------- */
+  .actions{display:grid;gap:10px;padding:12px 16px calc(16px + env(safe-area-inset-bottom));}
+  .actions.n2{grid-template-columns:1fr 1fr}
+  .actions.n3{grid-template-columns:1fr 1fr 1fr}
+  .act{appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:17px;
+    color:#fff;padding:18px 8px;border-radius:14px;position:relative;overflow:hidden;
+    box-shadow:0 6px 0 rgba(0,0,0,.35), 0 10px 20px rgba(0,0,0,.3);transition:transform .08s, box-shadow .08s}
+  .act:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.35),0 6px 12px rgba(0,0,0,.3)}
+  .act small{display:block;font-weight:500;font-size:11px;opacity:.8;margin-top:2px;font-family:"Space Mono"}
+  .act[disabled]{opacity:.45;cursor:default}
+  .a-fold{background:linear-gradient(180deg,#6c8073,#52645a)}
+  .a-call{background:linear-gradient(180deg,#3fc183,#2a8d5c)}
+  .a-raise{background:linear-gradient(180deg,#ec6a64,#c5403b)}
+  .a-3bet{background:linear-gradient(180deg,#c07ce2,#9a4cca)}
+  .act.correct{animation:pop .4s}
+  .act.wrong{animation:shake .4s}
+
+  .feedback{padding:12px 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:11px;
+    animation:fbUp .25s ease}
+  .feedback.hide{display:none}
+  @keyframes fbUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .fb-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .fb-grade{font-family:"Space Grotesk";font-weight:700;font-size:18px}
+  .fb-ans{font-size:13.5px;color:var(--muted)}
+  .fb-ans b{color:var(--gold);font-weight:700}
+  .fb-reason{font-size:14px;line-height:1.6;color:var(--ink);background:rgba(0,0,0,.26);
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .fb-reason .you{color:var(--muted);display:block;margin-bottom:5px;font-size:12.5px}
+  .fb-next{appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:17px;
+    color:#16110a;background:linear-gradient(180deg,var(--gold),var(--gold2));
+    padding:16px;border-radius:14px;box-shadow:0 6px 0 rgba(0,0,0,.3)}
+  .fb-next:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.3)}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+
+  /* floating score */
+  .float{position:fixed;font-family:"Space Grotesk";font-weight:700;font-size:24px;z-index:55;
+    pointer-events:none;color:var(--gold);text-shadow:0 2px 10px rgba(0,0,0,.6);
+    animation:floatUp .9s ease-out forwards}
+  @keyframes floatUp{0%{opacity:0;transform:translateY(8px) scale(.8)}15%{opacity:1}100%{opacity:0;transform:translateY(-46px) scale(1.1)}}
+
+  /* toast */
+  .toast{position:fixed;left:50%;top:74px;transform:translateX(-50%) translateY(-14px);
+    background:linear-gradient(180deg,#1d3a30,#142a22);border:1px solid var(--gold2);
+    color:var(--ink);padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;z-index:58;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);opacity:0;transition:.3s;display:flex;gap:9px;align-items:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast .em{font-size:18px}
+
+  .banner{position:absolute;left:0;right:0;top:38%;text-align:center;z-index:40;opacity:0;pointer-events:none}
+  .banner.show{animation:bannerIn 1.4s ease forwards}
+  .banner .l{font-family:"Space Mono";letter-spacing:.3em;color:var(--gold);font-size:12px}
+  .banner .b{font-family:"Space Grotesk";font-weight:700;font-size:40px;text-shadow:0 0 30px rgba(232,198,106,.6)}
+  @keyframes bannerIn{0%{opacity:0;transform:scale(.7)}20%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:scale(1.1)}}
+
+  /* ---------- overlay screens ---------- */
+  .screen{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:18px;padding:30px;text-align:center;
+    background:radial-gradient(120% 80% at 50% 0%, rgba(20,70,58,.97), rgba(8,26,21,.98))}
+  .screen.hide{display:none}
+  #startScreen{justify-content:flex-start;overflow-y:auto;gap:13px;padding-top:26px;padding-bottom:26px}
+  .logo-suit{font-size:40px;letter-spacing:6px;margin-bottom:-6px}
+  .logo-suit .r{color:#e0544f}.logo-suit .k{color:#f1f5ee}
+  .screen h1{font-family:"Space Grotesk";font-weight:700;font-size:34px;margin:0;letter-spacing:-.02em;line-height:1.05}
+  .screen h1 b{color:var(--gold)}
+  .screen p{color:var(--muted);font-size:14px;max-width:34ch;margin:0;line-height:1.6}
+  .big-btn{appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:18px;
+    color:#16110a;background:linear-gradient(180deg,var(--gold),var(--gold2));
+    padding:16px 40px;border-radius:14px;box-shadow:0 8px 24px rgba(232,198,106,.35);margin-top:6px}
+  .big-btn:active{transform:translateY(2px)}
+  .ghost-btn{appearance:none;border:1px solid rgba(255,255,255,.14);cursor:pointer;font-family:inherit;font-weight:600;font-size:14px;
+    color:var(--muted);background:transparent;padding:11px 24px;border-radius:12px;margin-top:-2px}
+  .ghost-btn:active{transform:translateY(1px)}
+
+  /* charts screen */
+  .chart-screen{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;
+    background:radial-gradient(120% 80% at 50% 0%, rgba(20,70,58,.98), rgba(8,26,21,.99))}
+  .chart-screen.hide{display:none}
+  .chart-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;border-bottom:1px solid var(--line);gap:8px}
+  .chart-title{font-family:"Space Grotesk";font-weight:700;font-size:18px}
+  .back-btn{appearance:none;border:0;background:transparent;cursor:pointer;color:var(--gold);font-family:inherit;font-weight:600;font-size:14px;padding:4px 2px}
+  .chart-body{flex:1;overflow-y:auto;padding:16px 16px 30px;display:flex;flex-direction:column;gap:6px;align-items:center}
+  .chart-body .sel-group{max-width:360px}
+  .cchips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px;max-width:430px}
+  .cchip{appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
+    background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:7px 13px;transition:.15s}
+  .cchip[aria-selected="true"]{background:linear-gradient(180deg,rgba(232,198,106,.18),rgba(232,198,106,.06));border-color:var(--gold);color:var(--gold)}
+
+  .cmatrix-wrap{width:100%;max-width:430px;background:var(--panel,#161d18);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:4px}
+  .cmatrix-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+  .cmatrix-who{font-size:12px;color:var(--muted);margin-bottom:10px}
+  .cmatrix-head>span:first-child{font-family:"Space Grotesk";font-weight:700;font-size:15px}
+  .cmatrix-stat{font-family:"Space Mono";font-size:12px;color:var(--muted)}
+  .cmatrix-stat b{color:var(--gold)}
+  .cmatrix{display:grid;grid-template-columns:repeat(13,1fr);gap:2px;width:100%;aspect-ratio:1/1}
+  .ccell{display:flex;align-items:center;justify-content:center;border-radius:3px;overflow:hidden;
+    font-family:"Space Mono";font-weight:700;font-size:clamp(6px,1.7vw,11px);
+    background:var(--fold);color:#54655a;cursor:pointer;position:relative;letter-spacing:-.04em}
+  .ccell span{position:relative;z-index:2}
+  .ccell.pair{box-shadow:inset 0 0 0 1px rgba(232,198,106,.4)}
+  .ccell.raise,.ccell.shove{background:var(--raise);color:#1a0f0e}
+  .ccell.call{background:var(--call);color:#06150d}
+  .ccell.threebet{background:var(--threebet);color:#fff}
+  .ccell.mix{color:#fff}
+  .ccell.mix::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(118deg,var(--threebet) 0 50%,var(--call) 50% 100%)}
+  .ccell.mixjam::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(118deg,var(--raise) 0 50%,var(--call) 50% 100%)}
+  .ccell.mixjam{color:#fff}
+  .ccell.edge-raise,.ccell.edge-shove,.ccell.edge-call{color:#cdd8cf}
+  .ccell.edge-raise::before,.ccell.edge-shove::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(118deg,var(--raise) 0 50%,var(--fold) 50% 100%)}
+  .ccell.edge-call::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(118deg,var(--call) 0 50%,var(--fold) 50% 100%)}
+  .ccell.sel{box-shadow:0 0 0 2px var(--gold);z-index:3}
+  .clegend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .clegend .it{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .clegend .sw{width:13px;height:13px;border-radius:3px}
+  .cinfo{margin-top:12px;font-size:13px;color:var(--ink);min-height:20px;text-align:center}
+  .cinfo b{color:var(--gold)}
+  .cnote{max-width:430px;color:var(--foldink);font-size:11px;line-height:1.6;text-align:center;margin:14px 0 0}
+  .about{gap:12px}
+  .ab-card{width:100%;max-width:430px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 16px;text-align:left}
+  .ab-card.ab-ok{border-color:rgba(52,176,116,.5)}
+  .ab-card.ab-warn{border-color:rgba(224,84,79,.55);background:rgba(224,84,79,.06)}
+  .ab-card h3{margin:0 0 7px;font-family:"Space Grotesk";font-weight:700;font-size:15px}
+  .ab-card p{margin:0;font-size:13.5px;line-height:1.65;color:var(--muted)}
+  .ab-card p b{color:var(--ink)}
+  .ab-card ul{margin:0;padding-left:18px}
+  .ab-card li{font-size:13px;line-height:1.7;color:var(--muted)}
+  .ab-card li b{color:var(--ink)}
+  .gd-spine{width:100%;max-width:430px;display:flex;flex-direction:column;align-items:stretch;gap:0}
+  .gd-node{width:100%;max-width:430px;display:flex;align-items:center;gap:11px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:12px 13px;margin:5px 0;text-align:left}
+  .gd-badge{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-family:"Space Grotesk";font-weight:700;font-size:15px;background:var(--threebet);color:#fff}
+  .gd-badge.alt{background:var(--accent2,#7fc6ff);color:#06222e}
+  .gd-txt{flex:1;min-width:0}
+  .gd-txt b{font-size:14px;display:block}
+  .gd-txt small{display:block;color:var(--muted);font-size:12px;line-height:1.5;margin-top:2px}
+  .gd-go{flex:none;background:var(--best,#e8c66a);color:#1a1410;border:none;border-radius:9px;padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer}
+  .gd-go:active{transform:scale(.95)}
+  .gd-arrow{width:100%;max-width:430px;text-align:center;color:var(--muted);font-size:11.5px;padding:3px 0}
+  .sbar{display:flex;align-items:center;gap:9px;font-size:12.5px}
+  .sbar .nm{flex:none;width:108px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sbar .trk{flex:1;height:14px;background:rgba(255,255,255,.07);border-radius:7px;overflow:hidden}
+  .sbar .fil{height:100%;border-radius:7px;background:linear-gradient(90deg,var(--raise),var(--best))}
+  .sbar .pct{flex:none;width:62px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+  .rv-group{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 13px}
+  .rv-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .rv-head b{font-size:13.5px}
+  .rv-mini{flex:none;background:var(--best,#e8c66a);color:#1a1410;border:none;border-radius:8px;padding:5px 10px;font-weight:700;font-size:12px;cursor:pointer}
+  .rv-chips{display:flex;flex-wrap:wrap;gap:7px}
+  .rv-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:13px;font-variant-numeric:tabular-nums}
+  .rv-chip .wn{color:var(--mistake,#e0954f);font-size:11px}
+  .rv-chip .del{cursor:pointer;color:var(--muted);font-weight:700;padding:0 2px}
+  .rv-chip .del:active{color:var(--raise)}
+  .navrow{display:flex;gap:7px;width:100%;max-width:430px}
+  .navbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px 3px;color:var(--ink);font-size:11px;cursor:pointer;transition:transform .08s}
+  .navbtn .ic{font-size:17px;line-height:1}
+  .navbtn:active{transform:scale(.94)}
+  details.adv{width:100%;max-width:430px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.02)}
+  details.adv>summary{cursor:pointer;color:var(--muted);font-size:12.5px;padding:10px 12px;list-style:none;text-align:center;user-select:none}
+  details.adv>summary::-webkit-details-marker{display:none}
+  details.adv[open]>summary{color:var(--ink);border-bottom:1px solid var(--line)}
+  details.adv .sel-group{padding:10px 12px 4px}
+  details.adv .sel-group:last-child{padding-bottom:12px}
+  .rules{display:flex;flex-direction:column;gap:8px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);
+    border-radius:14px;padding:16px 18px;font-size:13px;color:var(--muted);max-width:330px}
+  .rules .row{display:flex;justify-content:space-between;gap:14px}
+  .rules .row b{color:var(--ink);font-weight:600}
+  .grade-chip{padding:2px 8px;border-radius:6px;font-weight:700;font-size:12px;color:#11160f}
+  .sel-group{width:100%;max-width:340px}
+  .sel-label{font-family:"Space Mono";font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 8px;text-align:left}
+  .opts{display:flex;gap:8px;margin-bottom:14px}
+  .opts-wrap{flex-wrap:wrap}
+  .opts-wrap .opt{flex:1 1 28%;min-width:92px}
+  .opt{flex:1;appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px;color:var(--ink);
+    background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 6px;transition:.15s;line-height:1.15}
+  .opt small{display:block;font-weight:400;font-size:10.5px;color:var(--muted);margin-top:3px;font-family:"Space Mono"}
+  .opt:active{transform:scale(.97)}
+  .opt[aria-selected="true"]{background:linear-gradient(180deg,rgba(232,198,106,.18),rgba(232,198,106,.06));
+    border-color:var(--gold);color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+  .opt[aria-selected="true"] small{color:var(--gold2)}
+
+  /* gameover stats */
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:330px}
+  .stat{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:13px}
+  .stat .v{font-family:"Space Grotesk";font-weight:700;font-size:26px;line-height:1}
+  .stat .k{color:var(--muted);font-size:11px;margin-top:4px;letter-spacing:.05em}
+  .ach-list{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:340px}
+  .ach{background:rgba(232,198,106,.12);border:1px solid var(--gold2);color:var(--gold);
+    font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:999px}
+
+  .scene-foot{position:absolute;bottom:8px;left:0;right:0;text-align:center;color:var(--muted);
+    font-size:10.5px;font-family:"Space Mono";opacity:.6}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.05ms!important}}
+  @media (max-height:680px){.card{width:74px;height:104px}.card .pip-c{font-size:34px}.screen h1{font-size:28px}}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div id="app">
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hp" id="hp"></div>
+    <div class="combo-wrap"><span class="combo" id="combo"></span></div>
+    <div class="hud-right">
+      <div class="score" id="score">0</div>
+      <div class="lvl" id="lvl">LV.1</div>
+    </div>
+  </div>
+
+  <!-- table -->
+  <div class="table">
+    <div class="scene">
+      <div class="badge"><span class="pip" id="scenePip"></span><span id="sceneName">—</span></div>
+      <div class="who" id="sceneWho"></div>
+    </div>
+    <div class="cards" id="cards"></div>
+    <div class="timer" id="timer"><i id="timerBar"></i></div>
+
+    <div class="verdict" id="verdict"><div class="grade" id="grade"></div><div class="tip" id="tip"></div></div>
+    <div class="banner" id="banner"><div class="l">LEVEL UP</div><div class="b" id="bannerLv">2</div></div>
+    <div class="scene-foot">右上角=同花组合 · GTO 参考范围 · 松鼠出品 🐿</div>
+  </div>
+
+  <!-- actions -->
+  <div class="actions n2" id="actions"></div>
+  <div class="feedback hide" id="feedback">
+    <div class="fb-top"><span class="fb-grade" id="fbGrade"></span><span class="fb-ans" id="fbAns"></span></div>
+    <div class="fb-reason" id="fbReason"></div>
+    <button class="fb-next" id="fbNext">下一步 →</button>
+  </div>
+
+  <!-- START screen -->
+  <div class="screen" id="startScreen">
+    <div class="logo-suit"><span class="blk">♠</span><span class="r">♥</span><span class="r">♦</span><span class="blk">♣</span></div>
+    <h1>GTO 翻前<b>训练</b></h1>
+    <p>用简化的 GTO 参考范围练翻前决策直觉。选好赛制和深度，发牌给位置，你来决策喵～<br><span style="color:var(--gold-dim,#9c8240);font-size:12px">入门训练用 · 非 solver 精确解 · 点下方「关于」看清假设</span></p>
+
+    <div class="sel-group">
+      <div class="sel-label">游戏类型</div>
+      <div class="opts" id="selGame">
+        <button class="opt" data-g="cash">现金局<small>100bb 深码</small></button>
+        <button class="opt" data-g="mtt">锦标赛 MTT<small>浅码 + ICM</small></button>
+      </div>
+    </div>
+    <div class="sel-group">
+      <div class="sel-label">场景</div>
+      <div class="opts opts-wrap" id="selFormat">
+        <button class="opt" data-v="cash">开局 + 防守<small>RFI / 大盲防守</small></button>
+        <button class="opt" data-v="mtt">开局范围<small>按深度 / 人数</small></button>
+        <button class="opt" data-v="face3b">面对 3-bet<small>4bet/跟/弃 · 最高频</small></button>
+        <button class="opt" data-v="face4b">面对 4-bet<small>5bet全下/跟/弃</small></button>
+        <button class="opt" data-v="squeeze">挤压 Squeeze<small>开+跟后你反加</small></button>
+        <button class="opt" data-v="coldcall">冷跟 · 非盲位<small>3bet/平跟/弃</small></button>
+      </div>
+    </div>
+    <div class="sel-group">
+      <div class="sel-label" id="selVarLabel">牌桌人数</div>
+      <div class="opts opts-wrap" id="selVariant"></div>
+    </div>
+    <button class="big-btn" id="startBtn">开始训练</button>
+
+    <details class="adv">
+      <summary>⚙ 进阶设置 · 发牌偏好</summary>
+      <div class="sel-group">
+        <div class="sel-label">发牌偏好 <span style="color:var(--foldink);letter-spacing:0;text-transform:none">· 练哪类牌</span></div>
+        <div class="opts opts-wrap" id="selDeal"></div>
+      </div>
+    </details>
+
+    <div class="navrow">
+      <button class="navbtn" id="reviewBtn"><span class="ic">📕</span><span class="lbl">错题</span></button>
+      <button class="navbtn" id="guideBtn"><span class="ic">🗺️</span><span class="lbl">导览</span></button>
+      <button class="navbtn" id="chartsBtn"><span class="ic">📊</span><span class="lbl">图表</span></button>
+      <button class="navbtn" id="statsBtn"><span class="ic">📈</span><span class="lbl">统计</span></button>
+      <button class="navbtn" id="aboutBtn"><span class="ic">ℹ️</span><span class="lbl">关于</span></button>
+    </div>
+
+    <div class="rules">
+      <div class="row"><span>评级</span><span>
+        <span class="grade-chip" style="background:var(--best)">最佳</span>
+        <span class="grade-chip" style="background:var(--good)">好棋</span>
+        <span class="grade-chip" style="background:var(--mistake)">失误</span>
+        <span class="grade-chip" style="background:var(--blunder)">漏着</span>
+      </span></div>
+      <div class="row"><b>❤ 生命</b><span>错误扣血 · ⚡连对加倍 · ⏱越快越高</span></div>
+    </div>
+  </div>
+
+  <!-- GAME OVER screen -->
+  <div class="screen hide" id="overScreen">
+    <div class="lvl">OUT · 出局</div>
+    <h1 id="overTitle">本局结束</h1>
+    <div class="stats" id="overStats"></div>
+    <div class="ach-list" id="overAch"></div>
+    <button class="big-btn" id="againBtn">再来一局</button>
+    <button class="ghost-btn" id="overReviewBtn">📕 错题复习堆 (0)</button>
+  </div>
+
+  <!-- CHARTS screen -->
+  <div class="chart-screen hide" id="chartScreen">
+    <div class="chart-bar">
+      <button class="back-btn" id="chartBack">← 返回</button>
+      <div class="chart-title">范围图表</div>
+      <div class="back-btn" style="visibility:hidden">返回</div>
+    </div>
+    <div class="chart-body">
+      <div class="sel-group">
+        <div class="sel-label">游戏类型</div>
+        <div class="opts" id="cSelGame">
+          <button class="opt" data-g="cash">现金局<small>100bb 深码</small></button>
+          <button class="opt" data-g="mtt">锦标赛 MTT<small>浅码 + ICM</small></button>
+        </div>
+      </div>
+      <div class="sel-group">
+        <div class="sel-label">场景</div>
+        <div class="opts opts-wrap" id="cSelFormat">
+          <button class="opt" data-v="cash">开局 + 防守<small>RFI / 大盲防守</small></button>
+          <button class="opt" data-v="mtt">开局范围<small>按深度 / 人数</small></button>
+          <button class="opt" data-v="face3b">面对 3-bet<small>4bet/跟/弃</small></button>
+          <button class="opt" data-v="face4b">面对 4-bet<small>5bet/跟/弃</small></button>
+          <button class="opt" data-v="squeeze">挤压 Squeeze<small>开+跟后反加</small></button>
+          <button class="opt" data-v="coldcall">冷跟 · 非盲位<small>3bet/平跟/弃</small></button>
+        </div>
+      </div>
+      <div class="sel-group">
+        <div class="sel-label" id="cSelVarLabel">牌桌人数</div>
+        <div class="opts opts-wrap" id="cSelVariant"></div>
+      </div>
+      <div class="sel-label" style="text-align:center">场景 / 位置</div>
+      <div class="cchips" id="cChips"></div>
+
+      <div class="cmatrix-wrap">
+        <div class="cmatrix-head">
+          <span id="cName">—</span>
+          <span class="cmatrix-stat" id="cStat"></span>
+        </div>
+        <div class="cmatrix-who" id="cWho"></div>
+        <div class="cmatrix" id="cMatrix"></div>
+        <div class="clegend" id="cLegend"></div>
+        <div class="cinfo" id="cInfo">点格子查看每手牌的建议</div>
+      </div>
+      <p class="cnote">右上三角=同花(s) · 左下=不同花(o) · 对角线=对子 · 斜分格=混合策略。学习参考范围，非逐局精确解。</p>
+    </div>
+  </div>
+
+  <!-- ABOUT screen -->
+  <div class="chart-screen hide" id="aboutScreen">
+    <div class="chart-bar">
+      <button class="back-btn" id="aboutBack">← 返回</button>
+      <div class="chart-title">关于数据与假设</div>
+      <div class="back-btn" style="visibility:hidden">返回</div>
+    </div>
+    <div class="chart-body about">
+      <div class="ab-card ab-ok">
+        <h3>✅ 这是什么</h3>
+        <p>一个翻前决策的<b>入门训练工具</b>，帮你建立「什么位置该开什么牌」的 GTO 范围直觉。适合练习、记忆、找漏洞。</p>
+      </div>
+      <div class="ab-card ab-warn">
+        <h3>⚠️ 这不是什么</h3>
+        <p>这<b>不是 solver 精确解</b>。范围是参考公开 GTO 图表 + 扑克理论<b>手工整理的简化范围</b>，与 PioSOLVER / GTO Wizard 的精确输出会有出入——尤其是边缘牌的取舍和混合频率。要做精确研究，请用真正的 solver。</p>
+      </div>
+      <div class="ab-card">
+        <h3>📐 假设条件</h3>
+        <ul>
+          <li><b>现金局</b>：100bb 深度、约 2.5x 开局、常规抽水</li>
+          <li><b>MTT 40/25/15bb</b>：带前注的近似开局范围。<b>注意</b>：真实前注会让范围更宽，本工具偏<b>保守（略紧）</b>，宁紧勿松，可按实战略放宽</li>
+          <li><b>MTT 6人（终桌/短手）</b>：40bb / 20bb 近似开局。人少→范围更宽；按"取后位+适度放宽"估计，<b>非精确解</b></li>
+          <li><b>10bb 推弃</b>：~10bb <b>无前注</b> Nash 近似</li>
+          <li><b>泡沫 ICM</b>：<b>本工具最粗的一块</b>。这里简化成「一律收紧开局＝保命」，但真实 ICM 的核心其实是<b>跟注/全下跟注更紧</b>（别出局）；筹码舒服的大牌量反而能<b>开得更宽去施压</b>风险厌恶的对手。请把 ICM 档当"保命直觉"看，别照搬到具体泡沫局</li>
+          <li><b>面对 3-bet（4bet/跟/弃）</b>：100bb 近似范围，4-bet ~3%。有位置(IP)防守更宽、无位置(OOP)更紧——形状对，但 4bet/跟注的精确分配随下注尺度变化</li>
+          <li><b>面对 4-bet（5bet全下/跟/弃）</b>：100bb 近似。基本"全下或弃"、跟注极窄；5-bet 视作直接全下</li>
+          <li><b>挤压 Squeeze（开+跟后反加）</b>：100bb 近似。挤压偏两极化（价值+阻断诈唬）、overcall 为多人底池投机牌；尺度/人数会影响精确范围</li>
+          <li><b>冷跟 Cold-call（非盲位防守）</b>：100bb 近似。<b>平跟范围≠开局范围</b>——开局会加的牌很多面对加注要改 3bet 或弃；位置越靠前/对手越强，跟注越窄</li>
+          <li><b>SB 用"加注或弃"模型</b>：真实浅码 SB 常用 limp / limp-jam，本工具未建模</li>
+          <li><b>边缘混合带</b>：频率按约一半估计，<b>非真实 solver 频率</b></li>
+        </ul>
+      </div>
+      <div class="ab-card">
+        <h3>🔍 范围怎么来的</h3>
+        <p>作者参考多个公开 GTO 图表整理而成，并已对照权威来源核对过<b>入池比例与整体形状</b>（量级正确），但<b>未逐手核对</b>。所有数据为原创整理，<b>不含任何第三方版权内容</b>。</p>
+      </div>
+      <div class="ab-card">
+        <h3>🎯 真要精确？</h3>
+        <p>建议使用 PioSOLVER、GTO Wizard、MonkerSolver 等专业 solver 获取针对你的下注尺度、抽水、筹码深度的精确范围。本工具用于建立直觉，不替代它们。</p>
+      </div>
+      <p class="cnote">真 GTO 随下注尺度、抽水、前注、筹码深度变化。本工具固定了上述假设。松鼠出品 🐿</p>
+    </div>
+  </div>
+
+  <div class="chart-screen hide" id="guideScreen">
+    <div class="chart-bar">
+      <button class="back-btn" id="guideBack">← 返回</button>
+      <div class="chart-title">翻前主线 · 怎么练</div>
+      <div class="back-btn" style="visibility:hidden">返回</div>
+    </div>
+    <div class="chart-body about">
+      <div class="ab-card ab-ok">
+        <h3>🧭 翻前是一棵决策树</h3>
+        <p>一手牌从「谁先加注」开始，随着反加层层升级。把每个环节单独练熟，整棵树就通了。建议新手<b>从上往下按顺序</b>练。</p>
+      </div>
+
+      <div class="gd-spine">
+        <div class="gd-node" data-fmt="cash" data-var="6">
+          <div class="gd-badge">1</div>
+          <div class="gd-txt"><b>开局 RFI ＋ 大盲防守</b><small>你第一个进池该开哪些牌；别人开了你在大盲怎么弃/跟/3-bet。一切的基础。</small></div>
+          <button class="gd-go">练 →</button>
+        </div>
+        <div class="gd-arrow">↓ 你开局后，被身后的人反加…</div>
+        <div class="gd-node" data-fmt="face3b" data-var="btn">
+          <div class="gd-badge">2</div>
+          <div class="gd-txt"><b>面对 3-bet</b><small>开局被反加：4-bet / 跟注 / 弃牌。最高频、最该补。重点学有位置 vs 无位置。</small></div>
+          <button class="gd-go">练 →</button>
+        </div>
+        <div class="gd-arrow">↓ 你（或对手）再加一手，战火升级…</div>
+        <div class="gd-node" data-fmt="face4b" data-var="ip">
+          <div class="gd-badge">3</div>
+          <div class="gd-txt"><b>面对 4-bet</b><small>你 3-bet 后被再加：5-bet 全下 / 跟 / 弃。100bb 基本"全下或弃"。</small></div>
+          <button class="gd-go">练 →</button>
+        </div>
+      </div>
+
+      <div class="ab-card" style="margin-top:6px"><h3>🌿 其他常见局面</h3>
+        <p>主线之外，这两种也很常见：</p></div>
+      <div class="gd-node" data-fmt="squeeze" data-var="bb">
+        <div class="gd-badge alt">S</div>
+        <div class="gd-txt"><b>挤压 Squeeze</b><small>有人开 + 有人跟，轮到你反加。多人底池死钱多，挤压回报高。</small></div>
+        <button class="gd-go">练 →</button>
+      </div>
+      <div class="gd-node" data-fmt="coldcall" data-var="btn">
+        <div class="gd-badge alt">C</div>
+        <div class="gd-txt"><b>冷跟 Cold-call</b><small>非盲位面对开局：3bet / 平跟 / 弃。注意平跟范围≠开局范围。</small></div>
+        <button class="gd-go">练 →</button>
+      </div>
+      <div class="gd-node" data-fmt="mtt" data-var="d40">
+        <div class="gd-badge alt">T</div>
+        <div class="gd-txt"><b>锦标赛 MTT 专线</b><small>按筹码深度变化：40→25→15bb 收紧 → 10bb 推弃 → 泡沫 ICM。独立一条线。</small></div>
+        <button class="gd-go">练 →</button>
+      </div>
+
+      <div class="ab-card ab-warn" style="margin-top:10px"><h3>📚 建议顺序</h3>
+        <p>① 先把 <b>开局 RFI</b> 练到每个位置张口就来 → ② 再练 <b>大盲防守</b>（同在现金局里）→ ③ <b>面对 3-bet</b>（收益最大）→ ④ <b>面对 4-bet</b> → ⑤ 想打多人池补 <b>挤压</b>，想打比赛走 <b>MTT 专线</b>。用<b>发牌偏好「边缘」</b>专攻每个 spot 的难点。</p></div>
+      <div class="ab-card"><h3>💾 本地存档</h3>
+        <p>本地运行时，app 会自动记住你的<b>错题堆、历史最高分、上次设置</b>（存在浏览器本地，不上传）。换浏览器或清缓存会丢失。</p>
+        <button class="gd-go" id="clearDataBtn" style="margin-top:8px;background:var(--fold,#5b6f63);color:#fff">🗑 清除本地存档</button></div>
+    </div>
+  </div>
+
+  <div class="chart-screen hide" id="reviewScreen">
+    <div class="chart-bar">
+      <button class="back-btn" id="reviewBack">← 返回</button>
+      <div class="chart-title">错题复习堆</div>
+      <div class="back-btn" style="visibility:hidden">返回</div>
+    </div>
+    <div class="chart-body about">
+      <button class="big-btn" id="reviewAllBtn" style="max-width:430px">▶ 开始复习全部</button>
+      <div id="reviewList" style="width:100%;max-width:430px;display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+  </div>
+
+  <div class="chart-screen hide" id="statsScreen">
+    <div class="chart-bar">
+      <button class="back-btn" id="statsBack">← 返回</button>
+      <div class="chart-title">生涯统计</div>
+      <div class="back-btn" style="visibility:hidden">返回</div>
+    </div>
+    <div class="chart-body about">
+      <div class="stats" id="statsTiles" style="width:100%;max-width:430px"></div>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>📊 各 spot 准确率</h3>
+        <div id="statsBars" style="display:flex;flex-direction:column;gap:9px;margin-top:4px"></div>
+      </div>
+      <p class="cnote">统计仅在正常训练时累计（复习模式不计入）。数据存在浏览器本地。</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ ranges (approx GTO reference) ============ */
+const RANKS=['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+const RIDX={};RANKS.forEach((r,i)=>RIDX[r]=i);
+const RX="[2-9TJQKA]";
+function expand(str){const out=new Set();if(!str)return out;
+ str.split(',').map(s=>s.trim()).filter(Boolean).forEach(tok=>{let m;
+  if(m=tok.match(new RegExp(`^(${RX})\\1\\+$`))){for(let i=RIDX[m[1]];i>=0;i--)out.add(RANKS[i]+RANKS[i]);}
+  else if(m=tok.match(new RegExp(`^(${RX})\\1-(${RX})\\2$`))){let a=RIDX[m[1]],b=RIDX[m[2]],lo=Math.min(a,b),hi=Math.max(a,b);for(let i=lo;i<=hi;i++)out.add(RANKS[i]+RANKS[i]);}
+  else if(m=tok.match(new RegExp(`^(${RX})\\1$`))){out.add(m[1]+m[1]);}
+  else if(m=tok.match(new RegExp(`^(${RX})(${RX})([so])\\+$`))){let f=RIDX[m[1]],s=RIDX[m[2]],suf=m[3];for(let i=s;i>f;i--)out.add(RANKS[f]+RANKS[i]+suf);}
+  else if(m=tok.match(new RegExp(`^(${RX})(${RX})([so])-(${RX})(${RX})\\3$`))){let f=RIDX[m[1]],s1=RIDX[m[2]],s2=RIDX[m[5]],suf=m[3],lo=Math.min(s1,s2),hi=Math.max(s1,s2);for(let i=lo;i<=hi;i++)if(i>f)out.add(RANKS[f]+RANKS[i]+suf);}
+  else if(m=tok.match(new RegExp(`^(${RX})(${RX})([so])$`))){let a=RIDX[m[1]],b=RIDX[m[2]],hi=Math.min(a,b),lo=Math.max(a,b);out.add(RANKS[hi]+RANKS[lo]+m[3]);}
+ });return out;}
+
+/* shared range strings (reused across packs) */
+const r_co="22+, A2s+, K4s+, Q7s+, J8s+, T8s+, 97s+, 86s+, 75s+, 65s, 54s, A8o+, A5o, KTo+, QTo+, JTo";
+const r_btn="22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o+, K7o+, Q8o+, J8o+, T8o+, 97o+, 87o, 76o, 65o";
+const r_sb="22+, A2s+, K3s+, Q5s+, J7s+, T7s+, 96s+, 85s+, 75s+, 64s+, 54s, A2o+, K8o+, Q9o+, J9o+, T9o, 98o";
+/* marginal/edge bands — hands solvers genuinely mix (play-or-fold ~part frequency) */
+const m_co="K2s, K3s, Q5s, Q6s, J7s, T7s, 96s, 85s, 64s, A7o, A6o, K9o, Q9o, J9o, T9o";
+const m_btn="Q2s, Q3s, J3s, J4s, J5s, T3s, T4s, T5s, 94s, 84s, 73s, 63s, K2o, K3o, K4o, K5o, K6o, Q4o, Q5o, Q6o, Q7o, J6o, J7o, T7o, 96o, 86o, 75o, 64o, 54o";
+const m_sb="K2s, Q2s-Q4s, J5s, J6s, T5s, T6s, 95s, 84s, 74s, 63s, 53s, 43s, K5o-K7o, Q7o, Q8o, J7o, J8o, T8o, 97o, 87o, 76o";
+
+const FORMATS={cash:{label:'现金局 · 深码',tag:'现金'},mtt:{label:'锦标赛 · MTT',tag:'MTT'},face3b:{label:'面对反加 · 3-bet',tag:'面3bet'},face4b:{label:'面对 4-bet',tag:'面4bet'},squeeze:{label:'挤压 Squeeze',tag:'挤压'},coldcall:{label:'冷跟 · 非盲位',tag:'冷跟'}};
+/* game type groups which scenarios (formats) belong to which game */
+const GAMETYPES={
+ cash:{label:'现金局',formats:['cash','face3b','face4b','squeeze','coldcall']},
+ mtt:{label:'锦标赛 MTT',formats:['mtt']},
+};
+function gameOf(fmt){for(const g in GAMETYPES)if(GAMETYPES[g].formats.includes(fmt))return g;return 'cash';}
+const VARIANTS={
+ cash:{
+  2:{label:'单挑 2人',sub:'2 人',short:'单挑'},
+  6:{label:'6人桌',sub:'常规',short:'6人'},
+  9:{label:'9人桌',sub:'满员',short:'9人'},
+ },
+ mtt:{
+  d40:{label:'40bb 深码',sub:'9人·前注',short:'9人40bb'},
+  d25:{label:'25bb 中码',sub:'9人·缩尺度',short:'9人25bb'},
+  d15:{label:'15bb 浅码',sub:'9人·转推弃前',short:'9人15bb'},
+  d10:{label:'10bb 推弃',sub:'9人·全下/弃',short:'9人推弃'},
+  icm:{label:'泡沫 ICM',sub:'9人·保命',short:'9人ICM'},
+  d40_6:{label:'40bb · 6人',sub:'终桌/短手',short:'6人40bb'},
+  d20_6:{label:'20bb · 6人',sub:'终桌浅码',short:'6人20bb'},
+ },
+ face3b:{
+  btn:{label:'你开 BTN',sub:'有位置·防守宽',short:'开BTN'},
+  co:{label:'你开 CO',sub:'有/无位置混合',short:'开CO'},
+  ep:{label:'你开 前位',sub:'很紧·4bet或弃',short:'开前位'},
+ },
+ face4b:{
+  ip:{label:'你有位置 3bet',sub:'被4bet·可跟可弃',short:'IP'},
+  oop:{label:'你无位置 3bet',sub:'被4bet·全下或弃',short:'OOP'},
+ },
+ squeeze:{
+  bb:{label:'你在大盲挤压',sub:'无位置·偏价值',short:'BB挤'},
+  btn:{label:'你在按钮挤压',sub:'有位置·更宽',short:'BTN挤'},
+ },
+ coldcall:{
+  btn:{label:'你在 BTN',sub:'有位置·可宽跟',short:'BTN跟'},
+  co:{label:'你在 CO',sub:'身后有人·偏紧',short:'CO跟'},
+ },
+};
+const VARIANT_LABEL={cash:'牌桌人数',mtt:'深度 / 人数 / 阶段',face3b:'你的开局位置',face4b:'你 3-bet 的位置',squeeze:'你挤压的位置',coldcall:'你的位置'};
+
+/* ============ MODES · 单一来源的模式配置 ============
+   每个决策模式集中定义：动作按钮(actions)、答案显示名(names)、训练判定(correct)、
+   图表格子分类(cell)、图例(legend)、分类显示名覆盖(catName)。
+   新增或修改一个模式，只改这一处 —— 训练页、反馈、图表会自动跟随。
+   correct(isR,isC,isM) → 正确动作集合（数组；长度>1 即混合点）
+   cell(isR,isC,isM)    → 矩阵格子 css 分类
+   边缘混合带(isM)的“该打动作”已内嵌进 correct/cell，不再单独维护 EDGE_PLAY 表。 */
+const ACT_LABEL={fold:['弃牌','FOLD','a-fold'],call:['跟注','CALL','a-call'],
+ raise:['加注开局','RAISE','a-raise'],raise3:['反加 3-bet','3-BET','a-3bet'],
+ raise4:['再加 4-bet','4-BET','a-3bet'],squeeze:['挤压 3-bet','SQUEEZE','a-3bet'],
+ shove5:['5-bet 全下','5-BET ALLIN','a-raise'],
+ shove:['全下','ALL IN','a-raise'],callshove:['跟注全下','CALL','a-call']};
+const CAT_NAME={raise:'加注',shove:'全下',threebet:'3-bet',call:'跟注',mix:'3-bet / 跟注（混合）',
+ 'edge-raise':'加注 / 弃牌（边缘混合）','edge-shove':'全下 / 弃牌（边缘混合）','edge-call':'跟注 / 弃牌（边缘混合）',fold:'弃牌'};
+/* 复用的判定 / 格子函数（按模式语义命名，供下方 MODES 引用） */
+const CORRECT={
+ raiseFold:(isR,isC,isM)=>isR?['raise']:isM?['raise','fold']:['fold'],
+ shoveFold:(isR,isC,isM)=>isR?['shove']:isM?['shove','fold']:['fold'],
+ callFold :(isR,isC,isM)=>isC?['call'] :isM?['call','fold'] :['fold'],
+ raiseCall:(isR,isC,isM)=>(isR&&isC)?['raise','call']:isR?['raise']:isC?['call']:isM?['call','fold']:['fold'],
+ shoveCall:(isR,isC,isM)=>(isR&&isC)?['shove','call']:isR?['shove']:isC?['call']:isM?['call','fold']:['fold'],
+};
+const CELL={
+ raiseFold:(isR,isC,isM)=>isR?'raise':isM?'edge-raise':'fold',
+ shoveFold:(isR,isC,isM)=>isR?'shove':isM?'edge-shove':'fold',
+ callFold :(isR,isC,isM)=>isC?'call' :isM?'edge-call':'fold',
+ raiseCall:(isR,isC,isM)=>(isR&&isC)?'mix'   :isR?'threebet':isC?'call':isM?'edge-call':'fold',
+ shoveCall:(isR,isC,isM)=>(isR&&isC)?'mixjam':isR?'shove'   :isC?'call':isM?'edge-call':'fold',
+};
+const MODES={
+ open:{actions:[['fold',ACT_LABEL.fold],['raise',ACT_LABEL.raise]],
+  names:{fold:'弃牌',raise:'加注'},correct:CORRECT.raiseFold,cell:CELL.raiseFold,
+  legend:[['raise','加注'],['edge-raise','边缘'],['fold','弃牌']]},
+ push:{actions:[['fold',ACT_LABEL.fold],['shove',ACT_LABEL.shove]],
+  names:{fold:'弃牌',shove:'全下'},correct:CORRECT.shoveFold,cell:CELL.shoveFold,
+  legend:[['shove','全下'],['edge-shove','边缘'],['fold','弃牌']]},
+ callshove:{actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.callshove]],
+  names:{fold:'弃牌',call:'跟注全下'},correct:CORRECT.callFold,cell:CELL.callFold,
+  legend:[['call','跟注全下'],['edge-call','边缘'],['fold','弃牌']]},
+ defense:{actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.call],['raise',ACT_LABEL.raise3]],
+  names:{fold:'弃牌',call:'跟注',raise:'3-bet'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,
+  legend:[['threebet','3-bet'],['call','跟注'],['mix','混合'],['edge-call','边缘'],['fold','弃牌']]},
+ face3b:{actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.call],['raise',ACT_LABEL.raise4]],
+  names:{fold:'弃牌',call:'跟注',raise:'4-bet'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,
+  catName:{threebet:'4-bet',mix:'4-bet / 跟注（混合）'},
+  legend:[['threebet','4-bet'],['call','跟注'],['mix','混合'],['edge-call','边缘'],['fold','弃牌']]},
+ squeeze:{actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.call],['raise',ACT_LABEL.squeeze]],
+  names:{fold:'弃牌',call:'跟注',raise:'挤压'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,
+  catName:{threebet:'挤压 3-bet',mix:'挤压 / 跟注（混合）'},
+  legend:[['threebet','挤压'],['call','跟注'],['mix','混合'],['edge-call','边缘'],['fold','弃牌']]},
+ face4b:{actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.call],['shove',ACT_LABEL.shove5]],
+  names:{fold:'弃牌',call:'跟注',shove:'5-bet 全下'},correct:CORRECT.shoveCall,cell:CELL.shoveCall,
+  catName:{shove:'5-bet 全下',mixjam:'5-bet全下 / 跟注（混合）'},
+  legend:[['shove','5-bet 全下'],['call','跟注'],['fold','弃牌']]},
+};
+
+/* modes: open(弃/加) · defense(弃/跟/3bet) · push(弃/全下) · callshove(弃/跟注全下) */
+const PACKS={
+ cash:{
+  6:[
+   {mode:'open',name:'UTG · 枪口位',who:'6人桌 · 你先开局',tier:1,raise:"22+, A2s+, KTs+, QTs+, JTs, T9s, 98s, 87s, 76s, AJo+, KQo",mix:"65s, 54s, K9s, Q9s, J9s, ATo, A9o, KJo, QJo"},
+   {mode:'open',name:'BTN · 按钮位',who:'6人桌 · 你先开局',tier:1,raise:r_btn,mix:m_btn},
+   {mode:'open',name:'CO · 关煞位',who:'6人桌 · 你先开局',tier:2,raise:r_co,mix:m_co},
+   {mode:'open',name:'HJ · 中位',who:'6人桌 · 你先开局',tier:3,raise:"22+, A2s+, K9s+, Q9s+, J9s+, T8s+, 98s, 87s, 76s, 65s, A9o+, KJo+, QJo",mix:"54s, K8s, Q8s, J8s, T7s, A8o, A5o, KTo, QTo, JTo"},
+   {mode:'open',name:'SB · 小盲位',who:'6人桌 · 仅剩大盲',tier:3,raise:r_sb,mix:m_sb},
+   {mode:'defense',name:'BB vs BTN',who:'按钮位开局 · 大盲防守',tier:4,
+    raise:"99+, ATs+, A5s-A2s, KJs+, AJo+, KQo",
+    call:"22-88, A2s-A9s, K2s-KTs, Q2s-QJs, J6s-JTs, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o-ATo, K7o-KQo, Q8o+, J8o+, T8o+, 97o+, 87o, 76o, 65o, 54o"},
+   {mode:'defense',name:'BB vs CO',who:'关煞位开局 · 大盲防守',tier:5,
+    raise:"TT+, AQs+, A5s, A4s, AQo+, KQs",
+    call:"22-99, A2s-AJs, K7s-KQs, Q8s-QJs, J8s-JTs, T8s+, 97s+, 86s+, 75s+, 65s, 54s, ATo+, A5o, KTo+, QTo+, JTo"},
+   {mode:'defense',name:'BB vs UTG',who:'枪口位开局 · 大盲防守',tier:6,
+    raise:"QQ+, AKo, AKs, A5s, A4s",
+    call:"22-JJ, ATs-AQs, A2s-A5s, KTs-KQs, QTs-QJs, JTs, J9s, T9s, 98s, 87s, 76s, 65s, AJo, AQo, KQo"},
+  ],
+  9:[
+   {mode:'open',name:'UTG · 枪口位',who:'9人桌 · 最早位开局',tier:1,raise:"55+, A9s+, A5s, KTs+, QJs, JTs, T9s, AJo+, KQo"},
+   {mode:'open',name:'MP · 中位',who:'9人桌 · 你先开局',tier:1,raise:"44+, A8s+, A5s-A4s, KTs+, QTs+, J9s+, T9s, 98s, ATo+, KJo+"},
+   {mode:'open',name:'CO · 关煞位',who:'9人桌 · 你先开局',tier:2,raise:r_co,mix:m_co},
+   {mode:'open',name:'BTN · 按钮位',who:'9人桌 · 你先开局',tier:2,raise:r_btn,mix:m_btn},
+   {mode:'open',name:'SB · 小盲位',who:'9人桌 · 仅剩大盲',tier:3,raise:r_sb,mix:m_sb},
+   {mode:'defense',name:'BB vs BTN',who:'按钮位开局 · 大盲防守',tier:4,
+    raise:"99+, ATs+, A5s-A2s, KJs+, AJo+, KQo",
+    call:"22-88, A2s-A9s, K2s-KTs, Q2s-QJs, J6s-JTs, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o-ATo, K7o-KQo, Q8o+, J8o+, T8o+, 97o+, 87o, 76o, 65o, 54o"},
+  ],
+  2:[
+   {mode:'open',name:'SB/BTN 开局',who:'单挑 · 你在按钮先行动',tier:1,
+    raise:"22+, A2s+, K2s+, Q2s+, J3s+, T5s+, 95s+, 84s+, 74s+, 63s+, 53s+, 43s, A2o+, K2o+, Q5o+, J7o+, T7o+, 97o+, 86o+, 76o, 65o"},
+   {mode:'defense',name:'BB vs SB 开局',who:'单挑 · 大盲防守',tier:1,
+    raise:"77+, A9s+, A5s-A4s, KTs+, K9s, QJs, Q9s, ATo+, KQo",
+    call:"22-66, A2s-A8s, K2s-K8s, Q2s-QTs, J2s-JTs, T5s-T9s, 95s+, 85s+, 74s+, 64s+, 53s+, A2o-A9o, K2o-KJo, Q5o+, J7o+, T7o+, 97o+, 87o, 76o, 65o"},
+  ],
+ },
+ mtt:{
+  d40:[
+   {mode:'open',name:'UTG · 枪口位',who:'9人桌 · 40bb 前注 · 你先开局',tier:1,raise:"44+, A9s+, A5s, KTs+, QJs, JTs, T9s, ATo+, KQo"},
+   {mode:'open',name:'MP · 中位',who:'9人桌 · 40bb 前注 · 你先开局',tier:1,raise:"33+, A8s+, A5s-A4s, KTs+, QTs+, J9s+, T9s, 98s, ATo+, KJo+"},
+   {mode:'open',name:'CO · 关煞位',who:'9人桌 · 40bb 前注 · 你先开局',tier:2,raise:r_co,mix:m_co},
+   {mode:'open',name:'BTN · 按钮位',who:'9人桌 · 40bb 前注 · 你先开局',tier:2,raise:r_btn,mix:m_btn},
+   {mode:'open',name:'SB · 小盲位',who:'9人桌 · 40bb 前注 · 仅剩大盲',tier:3,raise:r_sb,mix:m_sb},
+  ],
+  d25:[
+   {mode:'open',name:'UTG · 枪口位',who:'9人桌 · 25bb 中码 · 你先开局',tier:1,raise:"66+, ATs+, A5s, KJs+, QJs, AJo+, KQo"},
+   {mode:'open',name:'MP · 中位',who:'9人桌 · 25bb 中码 · 你先开局',tier:1,raise:"55+, A9s+, A5s, KTs+, QTs+, JTs, ATo+, KJo+"},
+   {mode:'open',name:'CO · 关煞位',who:'9人桌 · 25bb 中码 · 你先开局',tier:2,raise:"33+, A7s+, A5s-A2s, K9s+, QTs+, J9s+, T9s, 98s, A9o+, KTo+, QJo"},
+   {mode:'open',name:'BTN · 按钮位',who:'9人桌 · 25bb 中码 · 你先开局',tier:2,raise:"22+, A2s+, K6s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 76s, 65s, 54s, A7o+, A5o, K9o+, QTo+, JTo"},
+   {mode:'open',name:'SB · 小盲位',who:'9人桌 · 25bb 中码 · 仅剩大盲',tier:3,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T9s, 98s, A8o+, A5o, KTo+, QJo"},
+  ],
+  d15:[
+   {mode:'open',name:'UTG · 枪口位',who:'9人桌 · 15bb 浅码 · 你先开局',tier:1,raise:"77+, AJs+, A5s, KQs, AQo+"},
+   {mode:'open',name:'MP · 中位',who:'9人桌 · 15bb 浅码 · 你先开局',tier:1,raise:"66+, A9s+, KTs+, QJs, AJo+, KQo"},
+   {mode:'open',name:'CO · 关煞位',who:'9人桌 · 15bb 浅码 · 你先开局',tier:2,raise:"44+, A7s+, A5s, K9s+, QTs+, JTs, T9s, ATo+, KJo+"},
+   {mode:'open',name:'BTN · 按钮位',who:'9人桌 · 15bb 浅码 · 你先开局',tier:2,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T9s, A8o+, A5o, KTo+, QJo"},
+   {mode:'open',name:'SB · 小盲位',who:'9人桌 · 15bb 浅码 · 仅剩大盲',tier:3,raise:"33+, A5s+, A2s, K9s+, QTs+, JTs, A9o+, KTo+, QJo"},
+  ],
+  d10:[
+   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~10bb · 全下或弃',tier:1,raise:"44+, A8s+, A5s, KJs+, QJs, JTs, AJo+, KQo"},
+   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~10bb · 全下或弃',tier:1,raise:"22+, A7s+, A5s-A4s, K9s+, QTs+, JTs, T9s, ATo+, KQo"},
+   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~10bb · 全下或弃',tier:2,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T8s+, 98s, A8o+, A5o, KTo+, QJo"},
+   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~10bb · 全下或弃',tier:2,raise:"22+, A2s+, K3s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, A2o+, K7o+, Q9o+, J9o+, T9o, 98o"},
+   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~10bb · 仅剩大盲',tier:3,raise:"22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 95s+, 85s+, 74s+, 64s+, 54s, A2o+, K5o+, Q8o+, J8o+, T8o+, 97o+, 87o, 76o"},
+  ],
+  icm:[
+   {mode:'open',name:'UTG · 枪口位',who:'9人桌 · 泡沫期 ~20bb · 保命收紧',tier:1,raise:"88+, AJs+, AKo"},
+   {mode:'open',name:'MP · 中位',who:'9人桌 · 泡沫期 ~20bb · 保命收紧',tier:1,raise:"77+, ATs+, KQs, AJo+"},
+   {mode:'open',name:'CO · 关煞位',who:'9人桌 · 泡沫期 ~20bb · 保命收紧',tier:2,raise:"55+, A9s+, KTs+, QJs, ATo+, KQo"},
+   {mode:'open',name:'BTN · 按钮位',who:'9人桌 · 泡沫期 ~20bb · 可施压',tier:2,raise:"33+, A7s+, A5s, K9s+, QTs+, JTs, A9o+, KTo+, QJo"},
+   {mode:'open',name:'SB · 小盲位',who:'9人桌 · 泡沫期 ~20bb · 保命收紧',tier:3,raise:"44+, A8s+, KTs+, QJs, ATo+, KQo"},
+  ],
+  d40_6:[
+   {mode:'open',name:'UTG · 枪口位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 你先开局',tier:1,raise:"22+, A8s+, A5s, KTs+, QJs, JTs, T9s, AJo+, KQo"},
+   {mode:'open',name:'HJ · 劫机位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 你先开局',tier:1,raise:"22+, A5s+, A2s, K9s+, QTs+, J9s+, T9s, 98s, ATo+, KJo+, QJo"},
+   {mode:'open',name:'CO · 关煞位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 你先开局',tier:2,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T8s+, 97s+, 87s, 76s, A8o+, A5o, KTo+, QTo+, JTo"},
+   {mode:'open',name:'BTN · 按钮位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 你先开局',tier:2,raise:"22+, A2s+, K4s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, 54s, A2o+, K8o+, Q9o+, J9o+, T9o, 98o"},
+   {mode:'open',name:'SB · 小盲位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 仅剩大盲',tier:3,raise:"22+, A2s+, K5s+, Q7s+, J8s+, T8s+, 97s+, 86s+, 75s+, 65s, A2o+, K9o+, Q9o+, J9o+, T9o"},
+  ],
+  d20_6:[
+   {mode:'open',name:'UTG · 枪口位',who:'6人桌 · ~20bb · 终桌浅码 · 你先开局',tier:1,raise:"55+, A9s+, A5s, KTs+, QJs, JTs, AJo+, KQo"},
+   {mode:'open',name:'HJ · 劫机位',who:'6人桌 · ~20bb · 终桌浅码 · 你先开局',tier:1,raise:"44+, A7s+, A5s, K9s+, QTs+, JTs, ATo+, KJo+"},
+   {mode:'open',name:'CO · 关煞位',who:'6人桌 · ~20bb · 终桌浅码 · 你先开局',tier:2,raise:"22+, A2s+, K9s+, Q9s+, J9s+, T9s, 98s, A8o+, KTo+, QJo"},
+   {mode:'open',name:'BTN · 按钮位',who:'6人桌 · ~20bb · 终桌浅码 · 你先开局',tier:2,raise:"22+, A2s+, K6s+, Q8s+, J8s+, T8s+, 97s+, 87s, A5o+, K9o+, Q9o+, JTo"},
+   {mode:'open',name:'SB · 小盲位',who:'6人桌 · ~20bb · 终桌浅码 · 仅剩大盲',tier:3,raise:"22+, A4s+, K8s+, Q9s+, J9s+, T9s, A8o+, K9o+, QTo+"},
+  ],
+ },
+ face3b:{
+  btn:[
+   {mode:'face3b',name:'开 BTN，BB 反加',who:'你 BTN 开局 → 大盲 3-bet · 100bb · 你有位置',tier:1,
+    raise:"QQ+, AKs, AKo, A5s, A4s",call:"22-JJ, ATs-AQs, A2s-A5s, KTs-KQs, QTs-QJs, JTs, T9s, 98s, 87s, AJo, AQo, KQo"},
+   {mode:'face3b',name:'开 BTN，SB 反加',who:'你 BTN 开局 → 小盲 3-bet · 100bb · 你有位置',tier:1,
+    raise:"QQ+, AKs, AKo, A5s",call:"22-JJ, ATs-AQs, A2s-A5s, KTs-KQs, QTs-QJs, JTs, T9s, 98s, AJo, AQo, KQo"},
+  ],
+  co:[
+   {mode:'face3b',name:'开 CO，BTN 反加',who:'你 CO 开局 → 按钮位 3-bet · 100bb · 你无位置',tier:1,
+    raise:"QQ+, AKs, AKo, A5s",call:"99-JJ, ATs-AQs, KJs+, QJs, JTs, AQo"},
+   {mode:'face3b',name:'开 CO，BB 反加',who:'你 CO 开局 → 大盲 3-bet · 100bb · 你有位置',tier:2,
+    raise:"QQ+, AKs, AKo, A5s, A4s",call:"22-JJ, ATs-AQs, KTs-KQs, QTs-QJs, JTs, T9s, AJo, AQo, KQo"},
+  ],
+  ep:[
+   {mode:'face3b',name:'开 前位，被反加',who:'你 UTG/HJ 开局 → 被 3-bet · 100bb · 范围已很强',tier:1,
+    raise:"QQ+, AKs, AKo, A5s",call:"99-JJ, AQs, AJs, KQs"},
+  ],
+ },
+ face4b:{
+  ip:[
+   {mode:'face4b',name:'你 BTN 3bet 被 4bet',who:'你按钮位 3-bet → 对手 4-bet · 100bb · 你有位置',tier:1,
+    raise:"KK+, AKs, A5s",call:"QQ, JJ, AKo, AQs"},
+  ],
+  oop:[
+   {mode:'face4b',name:'你盲位 3bet 被 4bet',who:'你盲位 3-bet → 对手 4-bet · 100bb · 你无位置',tier:1,
+    raise:"KK+, AKs, AKo, A5s",call:"QQ"},
+  ],
+ },
+ squeeze:{
+  bb:[
+   {mode:'squeeze',name:'大盲挤压',who:'前位开局 + 有人跟注 → 你在大盲 · 100bb · 无位置',tier:1,
+    raise:"QQ+, AKs, AKo, AJs, A5s",call:"22-JJ, ATs-AQs, KQs, KJs, QJs, JTs, T9s, 98s"},
+  ],
+  btn:[
+   {mode:'squeeze',name:'按钮挤压',who:'前位开局 + 有人跟注 → 你在按钮 · 100bb · 有位置',tier:1,
+    raise:"TT+, AQs+, AKo, AJs, KQs, A5s, A4s",call:"22-99, ATs, KJs, QJs, JTs, T9s, 98s, 87s, AJo"},
+  ],
+ },
+ coldcall:{
+  btn:[
+   {mode:'defense',name:'BTN 冷跟 vs CO',who:'CO 开局 → 你在按钮 · 100bb · 有位置',tier:1,
+    raise:"QQ+, AKs, AKo, AJs, A5s, A4s",call:"22-JJ, ATs, KTs-KQs, QTs-QJs, JTs, T9s, 98s, 87s, AQs, AQo, KQo, KJo"},
+   {mode:'defense',name:'BTN 冷跟 vs UTG',who:'UTG 开局 → 你在按钮 · 100bb · 对手范围强',tier:2,
+    raise:"QQ+, AKs, AKo, A5s",call:"99-JJ, ATs-AQs, KQs, KJs, QJs, JTs, AQo"},
+  ],
+  co:[
+   {mode:'defense',name:'CO 冷跟 vs UTG',who:'UTG 开局 → 你在 CO · 100bb · 身后还有人（挤压风险）',tier:1,
+    raise:"QQ+, AKs, AKo, A5s",call:"99-JJ, AJs-AQs, KQs, JTs, AQo"},
+  ],
+ },
+};
+Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
+ t.R=expand(t.raise);t.C=expand(t.call);t.M=expand(t.mix);
+ t.union=[...new Set([...t.R,...t.C,...t.M])];
+})));
+
+const PREMIUM=new Set(['AA','KK','QQ','JJ','AKs','AKo','AQs']);
+
+/* ============ local persistence (graceful: works locally, no-ops in restricted previews) ============ */
+const STORE_KEY='gtoTrainer_v1';
+function loadStore(){try{const s=localStorage.getItem(STORE_KEY);return s?JSON.parse(s):{};}catch(e){return {};}}
+let STORE=loadStore();
+function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(STORE));}catch(e){}}
+function persistPrefs(){STORE.prefs={format:selFormat,variant:selVariant,deal:selDeal};persist();}
+function clearStore(){STORE={};try{localStorage.removeItem(STORE_KEY);}catch(e){}}
+
+/* ============ audio (synth) ============ */
+let AC=null;
+function aInit(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}}
+function tone(f,d,t='sine',g=.18,delay=0){if(!AC)return;const o=AC.createOscillator(),v=AC.createGain();
+ o.type=t;o.frequency.value=f;o.connect(v);v.connect(AC.destination);
+ const s=AC.currentTime+delay;v.gain.setValueAtTime(.0001,s);v.gain.exponentialRampToValueAtTime(g,s+.012);
+ v.gain.exponentialRampToValueAtTime(.0001,s+d);o.start(s);o.stop(s+d+.02);}
+const SFX={
+ deal(){tone(520,.05,'square',.05);tone(380,.06,'square',.04,.04);},
+ click(){tone(300,.04,'square',.06);},
+ correct(){tone(660,.1,'triangle',.16);tone(880,.16,'triangle',.14,.07);},
+ great(){[523,659,784,1046].forEach((f,i)=>tone(f,.14,'triangle',.13,i*.06));},
+ wrong(){tone(180,.22,'sawtooth',.13);tone(120,.28,'sawtooth',.1,.05);},
+ level(){[523,659,784,1046,1318].forEach((f,i)=>tone(f,.2,'sine',.14,i*.07));},
+ over(){[440,392,330,262].forEach((f,i)=>tone(f,.3,'sine',.14,i*.13));},
+};
+function buzz(p){if(navigator.vibrate)navigator.vibrate(p);}
+
+/* ============ confetti ============ */
+const fx=document.getElementById('fx');const fxc=fx.getContext('2d');let parts=[],raf=null;
+function resize(){fx.width=innerWidth;fx.height=innerHeight;}addEventListener('resize',resize);resize();
+function burst(x,y,colors,n=26,power=7){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,sp=power*(.4+Math.random());
+ parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,g:.22,life:1,c:colors[i%colors.length],s:4+Math.random()*4,r:Math.random()*6});}
+ if(!raf)loopFx();}
+function loopFx(){fxc.clearRect(0,0,fx.width,fx.height);parts=parts.filter(p=>p.life>0);
+ parts.forEach(p=>{p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.life-=.018;p.r+=.2;
+  fxc.globalAlpha=Math.max(p.life,0);fxc.fillStyle=p.c;fxc.save();fxc.translate(p.x,p.y);fxc.rotate(p.r);
+  fxc.fillRect(-p.s/2,-p.s/2,p.s,p.s*1.6);fxc.restore();});
+ fxc.globalAlpha=1;if(parts.length)raf=requestAnimationFrame(loopFx);else raf=null;}
+
+/* ============ helpers ============ */
+const SUITS=[['♠','blk'],['♥','red'],['♦','red'],['♣','blk']];
+function rankFace(r){return r==='T'?'10':r;}
+function dealCards(hand){ // hand like AKs / TT / A2o → [{r,suit,col},...]
+ let r1,r2,type;
+ if(hand.length===2){r1=hand[0];r2=hand[1];type='p';}
+ else{r1=hand[0];r2=hand[1];type=hand[2];}
+ let s=[...SUITS],i1=Math.floor(Math.random()*4);let suit1=s[i1];
+ let suit2;
+ if(type==='s'){suit2=suit1;}
+ else{let rest=s.filter((_,i)=>i!==i1);suit2=rest[Math.floor(Math.random()*rest.length)];}
+ return [{r:r1,sym:suit1[0],c:suit1[1]},{r:r2,sym:suit2[0],c:suit2[1]}];
+}
+function handLabel(r,c){if(r===c)return RANKS[r]+RANKS[r];return r<c?RANKS[r]+RANKS[c]+'s':RANKS[c]+RANKS[r]+'o';}
+function combosOf(h){return h.length===2?6:h.endsWith('s')?4:12;}
+
+/* deal-filter: which class of hands to drill */
+const HANDFILTERS={
+ all:{label:'全部',sub:'真实随机',short:'全部'},
+ good:{label:'好牌',sub:'价值/标准',short:'好牌'},
+ edge:{label:'边缘',sub:'难点·混合',short:'边缘'},
+ bad:{label:'坏牌',sub:'练弃牌纪律',short:'坏牌'},
+};
+const ALL169=(()=>{const a=[];for(let r=0;r<13;r++)for(let c=0;c<13;c++)a.push(handLabel(r,c));return a;})();
+function pickHand(t,filter){
+ const rnd=arr=>arr[Math.floor(Math.random()*arr.length)];
+ if(filter==='good'){const g=[...new Set([...t.R,...t.C])];if(g.length)return rnd(g);}
+ else if(filter==='edge'){const e=[...t.M];if(e.length)return rnd(e);
+   // fallback: hands just outside pure range still count as "近边缘" → use union
+   if(t.union.length)return rnd(t.union);}
+ else if(filter==='bad'){const uni=new Set(t.union);const folds=ALL169.filter(h=>!uni.has(h));if(folds.length)return rnd(folds);}
+ // all (default): 58% in-range, 42% any (keeps folds in the mix)
+ if(Math.random()<.58 && t.union.length)return rnd(t.union);
+ return rnd(ALL169);
+}
+
+/* ============ game state ============ */
+const G={};
+function unlocked(){const u=G.pack.filter(t=>t.tier<=G.level);return u.length?u:G.pack.filter(t=>t.tier===1);}
+
+/* ---- mistake review pile (session memory) ---- */
+let reviewPile=[];
+function pileKey(fmt,v,tname,hand){return fmt+'|'+v+'|'+tname+'|'+hand;}
+function addMistake(){
+ const key=pileKey(G.format,G.variant,G.table.name,G.hand);
+ const ex=reviewPile.find(r=>r.key===key);
+ if(ex){ex.wrong++;}
+ else reviewPile.push({key,t:G.table,hand:G.hand,fmt:G.format,variant:G.variant,
+  label:FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short,wrong:1});
+ persistReview();
+}
+function removeFromPile(rec){const i=reviewPile.indexOf(rec);if(i>=0)reviewPile.splice(i,1);persistReview();}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function serializeReview(){return reviewPile.map(r=>({tn:r.t.name,hand:r.hand,fmt:r.fmt,variant:r.variant,label:r.label,wrong:r.wrong}));}
+function persistReview(){STORE.review=serializeReview();persist();}
+function reviveReview(arr){
+ if(!Array.isArray(arr))return;
+ reviewPile=arr.map(r=>{
+  const pack=PACKS[r.fmt]&&PACKS[r.fmt][r.variant];
+  const t=pack&&pack.find(x=>x.name===r.tn);
+  if(!t)return null;
+  return {key:pileKey(r.fmt,r.variant,r.tn,r.hand),t,hand:r.hand,fmt:r.fmt,variant:r.variant,label:r.label||'',wrong:r.wrong||1};
+ }).filter(Boolean);
+}
+function updateReviewBtns(){
+ const n=reviewPile.length;
+ const nav=document.getElementById('reviewBtn');
+ if(nav){const lab=nav.querySelector('.lbl');if(lab)lab.textContent=n?`错题(${n})`:'错题';nav.style.opacity=n?'1':'.6';}
+ const over=document.getElementById('overReviewBtn');
+ if(over){over.textContent=`📕 错题复习堆 (${n})`;over.style.opacity=n?'1':'.45';}
+}
+
+function newGame(){
+ G.reviewMode=false;
+ G.pack=PACKS[G.format][G.variant];
+ G.score=0;G.level=1;G.hp=5;G.maxhp=5;G.combo=0;G.best=0;
+ G.hands=0;G.correct=0;G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
+ G.fastCorrect=0;G.levelMistakes=0;G.ach=new Set();G.busy=false;G.over=false;
+ renderHUD();nextHand();
+}
+
+function startReview(filterLabel){
+ const pool = filterLabel ? reviewPile.filter(r=>r.label===filterLabel) : reviewPile.slice();
+ if(!pool.length)return;
+ G.reviewMode=true;G.over=false;G.busy=false;
+ G.score=0;G.combo=0;G.best=0;G.hands=0;G.correct=0;
+ G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};G.fastCorrect=0;G.ach=new Set();
+ G.hp=5;G.maxhp=5;
+ G.reviewStart=pool.length;G.reviewCleared=0;
+ G.reviewQueue=shuffle(pool.slice());
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('overScreen').classList.add('hide');
+ document.getElementById('reviewScreen').classList.add('hide');
+ renderHUD();nextHand();
+}
+function reviewComplete(){
+ G.over=true;G.reviewMode=false;stopTimer();SFX.level();
+ const acc=G.hands?Math.round(G.correct/G.hands*100):0;
+ document.getElementById('overTitle').innerHTML=`复习完成 🎉`;
+ document.getElementById('overStats').innerHTML=`
+  <div class="stat"><div class="v" style="color:var(--best)">${G.reviewCleared}</div><div class="k">本轮清掉</div></div>
+  <div class="stat"><div class="v">${reviewPile.length}</div><div class="k">仍待练</div></div>
+  <div class="stat"><div class="v">${G.hands}</div><div class="k">复习手数</div></div>
+  <div class="stat"><div class="v">${acc}%</div><div class="k">本轮准确率</div></div>`;
+ document.getElementById('overAch').innerHTML='';
+ updateReviewBtns();
+ document.getElementById('overScreen').classList.remove('hide');
+}
+
+function renderHUD(){
+ const hp=document.getElementById('hp');hp.innerHTML='';
+ for(let i=0;i<G.maxhp;i++){const e=document.createElement('i');e.textContent='❤';if(i>=G.hp)e.className='dead';hp.appendChild(e);}
+ document.getElementById('score').textContent=G.score.toLocaleString();
+ document.getElementById('lvl').textContent = G.reviewMode
+  ? '复习模式 · 待清 '+reviewPile.length
+  : FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short+' · LV.'+G.level;
+ const c=document.getElementById('combo');
+ if(G.combo>=2){c.textContent='🔥 '+G.combo+' 连击';c.className='combo show'+(G.combo>=8?' big':'');}
+ else c.className='combo';
+}
+
+let timerRAF=null,handStart=0,handDur=0;
+function startTimer(){
+ handDur=Math.max(3500, 9000-(G.level-1)*700);
+ handStart=performance.now();
+ const bar=document.getElementById('timerBar'),wrap=document.getElementById('timer');
+ wrap.classList.remove('warn');
+ function tick(now){const el=now-handStart,frac=Math.max(0,1-el/handDur);
+  bar.style.width=(frac*100)+'%';
+  wrap.classList.toggle('warn',frac<.33);
+  if(frac<=0){timeOut();return;}
+  timerRAF=requestAnimationFrame(tick);}
+ timerRAF=requestAnimationFrame(tick);
+}
+function stopTimer(){if(timerRAF)cancelAnimationFrame(timerRAF);timerRAF=null;}
+
+function nextHand(){
+ if(G.over)return;
+ G.busy=false;
+ let t,hand;
+ if(G.reviewMode){
+  if(!G.reviewQueue.length){reviewComplete();return;}
+  const rec=G.reviewQueue.shift();G.reviewRec=rec;
+  t=rec.t;hand=rec.hand;G.format=rec.fmt;G.variant=rec.variant;
+ } else {
+  const pool=unlocked();
+  t=pool[Math.floor(Math.random()*pool.length)];
+  hand=pickHand(t,G.handFilter);
+ }
+ G.table=t;G.hand=hand;
+ // correct set — driven by the central MODES table (see top of script)
+ const isR=t.R.has(hand),isC=t.C.has(hand),isM=t.M.has(hand);
+ const correct=MODES[t.mode].correct(isR,isC,isM);
+ G.correct_set=correct;G.isMix=correct.length>1;
+ G.isEdge=isM;
+
+ // render scene
+ document.getElementById('sceneName').textContent=t.name;
+ document.getElementById('sceneWho').textContent=t.who + (G.reviewMode?' · 📕复习':'');
+ // cards
+ const cardsEl=document.getElementById('cards');cardsEl.innerHTML='';
+ const cd=dealCards(hand);
+ cd.forEach((card,i)=>{
+  const el=document.createElement('div');el.className='card';
+  el.innerHTML=`<div class="back"></div>
+   <div class="face">
+     <span class="rk ${card.c}">${rankFace(card.r)}<br>${card.sym}</span>
+     <span class="pip-c ${card.c}">${card.sym}</span>
+     <span class="rk br ${card.c}">${rankFace(card.r)}<br>${card.sym}</span>
+   </div>`;
+  cardsEl.appendChild(el);
+  setTimeout(()=>{el.classList.add('flip');SFX.deal();},120+i*130);
+ });
+ // actions
+ buildActions(t.mode);
+ document.getElementById('actions').style.display='';
+ document.getElementById('feedback').classList.add('hide');
+ // verdict reset
+ document.getElementById('verdict').className='verdict';
+ // timer
+ setTimeout(startTimer,260);
+}
+
+function buildActions(mode){
+ const wrap=document.getElementById('actions');wrap.innerHTML='';
+ const opts=MODES[mode].actions;
+ wrap.className='actions n'+opts.length;
+ opts.forEach(([key,[lab,sub,cls]])=>{
+  const b=document.createElement('button');b.className='act '+cls;
+  b.innerHTML=`${lab}<small>${sub}</small>`;
+  b.onclick=(e)=>choose(key,b,e);
+  wrap.appendChild(b);
+ });
+}
+
+function timeOut(){ if(G.busy)return; stopTimer(); resolve('fold',null,true); }
+
+function choose(choice,btn,e){
+ if(G.busy)return;G.busy=true;stopTimer();SFX.click();
+ resolve(choice,btn,false);
+}
+
+function resolve(choice,btn,timedOut){
+ const t=G.table,correct=G.correct_set,hand=G.hand;
+ const ok=correct.includes(choice);
+ const elapsed=performance.now()-handStart;
+ const speedFrac=Math.max(0,1-elapsed/handDur);
+ G.hands++;
+ // per-spot lifetime accuracy (normal play only)
+ if(!G.reviewMode){
+  const sk=FORMATS[G.format].tag+'·'+VARIANTS[G.format][G.variant].short;
+  STORE.statsBySpot=STORE.statsBySpot||{};
+  const e=STORE.statsBySpot[sk]||{h:0,c:0};
+  e.h++; if(ok)e.c++; STORE.statsBySpot[sk]=e; persist();
+ }
+
+ // grade
+ let grade,gcolor,hpHit=0,pts=0,big=false;
+ if(ok){
+  G.correct++;G.combo++;G.best=Math.max(G.best,G.combo);
+  if(G.combo>=2 && elapsed<1500 && !timedOut)G.fastCorrect++;
+  const mult=Math.min(3,1+G.combo*0.1);
+  const spd=timedOut?1:1+speedFrac*0.6;
+  if(G.isMix){grade='好棋';gcolor='var(--good)';G.q.good++;pts=Math.round(85*mult*spd);}
+  else{grade='最佳';gcolor='var(--best)';G.q.best++;pts=Math.round(100*mult*spd);big=true;}
+  G.score+=pts;
+  SFX[G.combo>=5?'great':'correct']();buzz(G.combo>=5?[20,40,20]:30);
+ } else {
+  G.combo=0;G.levelMistakes++;
+  const shouldPlay=correct.includes('raise')||correct.includes('call')||correct.includes('shove');
+  if(G.isMix){grade='不准';gcolor='var(--inacc)';G.q.inacc++;hpHit=1;}
+  else if((shouldPlay&&choice==='fold'&&PREMIUM.has(hand)) || (correct[0]==='fold'&&PREMIUM.has(hand)===false&&choice!=='fold'&&isTrash(hand))){
+   grade='漏着';gcolor='var(--blunder)';G.q.blunder++;hpHit=2;
+   if(shouldPlay&&choice==='fold'&&PREMIUM.has(hand))award('巨牌漏着','😱');
+  } else {grade='失误';gcolor='var(--mistake)';G.q.mistake++;hpHit=1;}
+  if(!G.reviewMode)G.hp-=hpHit;
+  SFX.wrong();buzz([60,30,60]);
+ }
+
+ // mistake pile bookkeeping
+ if(G.reviewMode){
+  if(ok){removeFromPile(G.reviewRec);G.reviewCleared++;}
+  else {G.reviewQueue.push(G.reviewRec);} // drill again this session
+  updateReviewBtns();
+ } else if(!ok){ addMistake(); updateReviewBtns(); }
+
+ // GTO answer string
+ const nameMap=MODES[t.mode].names;
+ const corrStr=correct.map(a=>nameMap[a]).join(' / ');
+ const freq = G.isEdge ? '（边缘 · 部分频率）' : (G.isMix?'（混合 ~50/50）':'（100%）');
+
+ // center verdict flash
+ const v=document.getElementById('verdict');
+ document.getElementById('grade').textContent=(timedOut?'超时 · ':'')+grade;
+ document.getElementById('grade').style.color=gcolor;
+ document.getElementById('tip').innerHTML= ok ? (G.isMix?'边缘混合点':'打得漂亮！') : `应 <b>${corrStr}</b>`;
+ v.className='verdict show';
+
+ // button feedback
+ if(btn)btn.classList.add(ok?'correct':'wrong');
+ [...document.getElementById('actions').children].forEach(b=>b.disabled=true);
+
+ // float score / burst
+ if(pts>0){const r=(btn||document.getElementById('cards')).getBoundingClientRect();
+  floatScore('+'+pts,r.left+r.width/2,r.top);}
+ if(ok&&big&&G.combo>=3)burst(innerWidth/2,innerHeight*0.42,['#e8c66a','#34b074','#fff','#7fc6ff'],G.combo>=8?40:24);
+
+ renderHUD();checkAch();
+
+ // level up (deferred to advance) — skip in review mode
+ G.pendingLevel=false;
+ if(!G.reviewMode){
+  const need=G.level*1000;
+  if(G.score>=need && G.level<6){
+   G.level++;G.pendingLevel=true;
+   if(G.levelMistakes===0)award('完美关卡','🏆');
+   G.levelMistakes=0;G.hp=Math.min(G.maxhp,G.hp+1);renderHUD();
+  }
+ }
+
+ const dead = !G.reviewMode && G.hp<=0;
+ const quick = ok && !G.isMix && !dead; // pure best → auto advance
+
+ if(quick){ setTimeout(()=>{ if(!G.over) advance(); }, 1000); return; }
+
+ // build detailed feedback panel
+ const r=reasonFor(t,hand,correct,choice,ok,grade);
+ document.getElementById('fbGrade').textContent=(timedOut?'超时 · ':'')+grade;
+ document.getElementById('fbGrade').style.color=gcolor;
+ document.getElementById('fbAns').innerHTML=`正确打法：<b>${corrStr}</b> ${freq}`;
+ const youLine = ok ? '' : `<span class="you">你选了「${nameMap[choice]||'弃牌'}」 —— 不是最优。</span>`;
+ document.getElementById('fbReason').innerHTML=youLine+r;
+ const nextBtn=document.getElementById('fbNext');
+ nextBtn.textContent = dead ? '查看结果 →' : '下一步 →';
+ nextBtn.onclick = ()=>{ SFX.click(); if(dead){gameOver();} else advance(); };
+ document.getElementById('actions').style.display='none';
+ document.getElementById('feedback').classList.remove('hide');
+}
+
+function advance(){
+ if(G.over)return;
+ if(G.pendingLevel){
+  G.pendingLevel=false;
+  SFX.level();showBanner(G.level);burst(innerWidth/2,innerHeight*0.4,['#e8c66a','#b8902f','#fff'],50,9);renderHUD();
+  setTimeout(()=>{ if(!G.over) nextHand(); },1500);
+ } else nextHand();
+}
+
+/* ---- reason generator ---- */
+function handKind(h){
+ if(h.length===2)return 'pair';
+ const a=h[0],b=h[1],suited=h.endsWith('s');
+ const hi='AKQJT', bw=hi.includes(a)&&hi.includes(b);
+ const gap=Math.abs(RIDX[a]-RIDX[b]);
+ if(a==='A')return suited?'axs':'axo';
+ if(bw)return suited?'bws':'bwo';
+ if(suited)return gap<=2?'sc':'sg';
+ return 'off';
+}
+function posName(t){return t.name.split(' · ')[0];}
+function reasonFor(t,hand,correct,choice,ok,grade){
+ const k=handKind(hand), p=posName(t);
+ // edge / mix explanations first
+ if(G.isEdge){
+  const act = correct.find(a=>a!=='fold');
+  const an = {raise:'加注',shove:'全下',call:'跟注'}[act]||'入池';
+  return `<b>${hand}</b> 是 ${p} 的<b>边缘混合牌</b>：GTO 把它在「${an}」与「弃牌」之间按频率分配（大致一半一半），两种长期 EV 很接近，所以怎么打都算合理，难以被对手剥削。`;
+ }
+ if(G.isMix && !G.isEdge){
+  return `<b>${hand}</b> 是 ${p} 的<b>混合点</b>：既可作价值/半诈唬反加，也可平跟控池。GTO 按频率混合两者来保持范围平衡，两种打法都对。`;
+ }
+ // facing a 3-bet: fold / call / 4-bet
+ if(t.mode==='face3b'){
+  const ip = t.who.includes('有位置');
+  if(correct[0]==='raise'){
+   const why = (k==='axs'&&!PREMIUM.has(hand))
+    ? '用手里的 A 阻断对手的 AA/AKs 等强牌，做带阻断的 4-bet 诈唬'
+    : '牌力够强，4-bet 拿价值——让对手用更差的牌跟注或弃掉权益';
+   return `<b>${hand}</b> 面对 3-bet 应<b>再加 4-bet</b>：${why}。只平跟会让最强牌少赚、也缺了诈唬平衡。`;
+  }
+  if(correct[0]==='call'){
+   return `<b>${hand}</b> 面对 3-bet 适合<b>跟注</b>防守：${ip?'你有位置、翻后能最后行动，平跟续战很舒服':'虽无位置，但这手仍强到值得跟注'}；不到 4-bet 的强度，弃掉又太亏。`;
+  }
+  return `<b>${hand}</b> 面对 3-bet 应<b>弃牌</b>：不足以 4-bet，跟注后翻前已投入不少、翻后又难打，长期为负。${ip?'':'无位置时更要收紧。'}`;
+ }
+ // facing a 4-bet: fold / call / 5-bet jam
+ if(t.mode==='face4b'){
+  if(correct.includes('shove')){
+   const why = (k==='axs'&&!PREMIUM.has(hand)) ? '用 A 阻断对手的 AA/AKs，做带阻断的诈唬全下' : '顶级牌力，100bb 下 5-bet 直接全下拿最大价值';
+   return `<b>${hand}</b> 面对 4-bet 应<b>5-bet 全下</b>：${why}。这么深的投入后，平跟反而难打、还暴露牌力。`;
+  }
+  if(correct[0]==='call'){
+   return `<b>${hand}</b> 面对 4-bet 可<b>跟注</b>续战：牌力够强、又有位置控池，但不到全下的强度，跟注保留对手的诈唬 4bet。`;
+  }
+  return `<b>${hand}</b> 面对 4-bet 应<b>弃牌</b>：你的 3-bet 多半是诈唬/施压，对手 4-bet 表达了强范围，这手没有继续的价值，干净放掉。`;
+ }
+ // squeeze: fold / call / squeeze(3-bet over an open + caller)
+ if(t.mode==='squeeze'){
+  const ip = t.who.includes('有位置');
+  if(correct[0]==='raise'){
+   const why = (k==='axs'&&!PREMIUM.has(hand)) ? '用阻断牌做诈唬挤压，吞掉底池里的死钱' : '价值够强，挤压把开局者和跟注者一起施压、收割他们投入的筹码';
+   return `<b>${hand}</b> 适合<b>挤压 3-bet</b>：${why}。有跟注者在，底池死钱多、挤压回报更高；平跟会让多人底池失控。`;
+  }
+  if(correct[0]==='call'){
+   return `<b>${hand}</b> 适合<b>跟注</b>（overcall）：${ip?'有位置、可低成本搏多人底池的中花/顺子/暗三':'适合凑set/同花的投机牌，多人底池摊牌价值高'}；不够强到挤压，但弃了可惜。`;
+  }
+  return `<b>${hand}</b> 应当<b>弃牌</b>：多人底池里这手既不够价值挤压，也缺乏多人摊牌的潜力，放掉最稳。`;
+ }
+ // pure spots
+ const isShove=correct[0]==='shove', is3=correct[0]==='raise'&&t.mode==='defense';
+ if(correct[0]==='raise'||isShove){
+  const verb=isShove?'全下':'加注';
+  const why={
+   pair:`口袋对子本身有摊牌价值，${verb}能建立底池主动权。`,
+   axs:`同花 A 有坚果同花潜力，且手握 A 阻断对手的强 A 组合，${verb}价值很高。`,
+   axo:`A 高牌 + 偷盲价值，在 ${p} ${verb}长期有利可图。`,
+   bws:`两张高张且同花，牌力强又好打后续，标准${verb}。`,
+   bwo:`两张高张牌力够强，${verb}建立价值。`,
+   sc:`同花连子有顺子+同花潜力，${verb}兼顾价值与可玩性。`,
+   sg:`同花有一定潜力，${p} 位置靠后可以${verb}施压。`,
+   off:`在 ${p} 这手有足够的偷盲/价值，${verb}为正期望。`
+  }[k];
+  return `<b>${hand}</b> 在 ${p} 应当${verb}：${why}`;
+ }
+ if(is3){
+  return `<b>${hand}</b> 适合<b>反加 3-bet</b>：要么价值够强压制开局者，要么用阻断牌做诈唬。平跟会让强牌少赚、也让范围失衡。`;
+ }
+ if(correct[0]==='call'){
+  return `<b>${hand}</b> 适合<b>跟注</b>防守：牌力/潜力够入池，但不强到反加。平跟能保留对手的诈唬范围、压低方差，又能看翻牌。`;
+ }
+ // fold
+ const whyFold={
+  off:`不同花、缺乏顺花潜力，容易被同名更强的牌支配。`,
+  axo:`不同花的弱 A 在 ${p} 易被压制，入池价值不足。`,
+  sg:`同花但太散，在 ${p} 实现率不够。`,
+  sc:`潜力虽有，但 ${p} 身后人数多，长期入池仍为负。`,
+ }[k] || `在 ${p} 这手牌力/潜力不足，身后还有人能反打，长期入池为负期望。`;
+ return `<b>${hand}</b> 应当<b>弃牌</b>：${whyFold}干净放掉、等更好的位置或牌。`;
+}
+
+function isTrash(hand){ // crude: offsuit, unpaired, both ranks ≤ 8, gap≥2
+ if(hand.length===2)return false; if(hand.endsWith('s'))return false;
+ const a=RIDX[hand[0]],b=RIDX[hand[1]];return a>=6&&b>=6&&Math.abs(a-b)>=2;
+}
+
+function floatScore(txt,x,y){const e=document.createElement('div');e.className='float';e.textContent=txt;
+ e.style.left=x+'px';e.style.top=y+'px';e.style.transform='translateX(-50%)';document.body.appendChild(e);
+ setTimeout(()=>e.remove(),900);}
+
+function showBanner(lv){const b=document.getElementById('banner');document.getElementById('bannerLv').textContent=lv;
+ b.className='banner';void b.offsetWidth;b.className='banner show';}
+
+/* ============ achievements ============ */
+const ACH_DEFS={
+ '首杀':'😺','连击大师':'🔥','火力全开':'💥','钢铁神经':'🧊','百手老手':'🎯','GTO 机器':'🤖','完美关卡':'🏆','巨牌漏着':'😱'
+};
+function award(name,emoji){if(G.ach.has(name))return;G.ach.add(name);toast(name,emoji||ACH_DEFS[name]||'⭐');}
+function checkAch(){
+ if(G.correct===1)award('首杀');
+ if(G.best>=10)award('连击大师');
+ if(G.best>=20)award('火力全开');
+ if(G.fastCorrect>=5)award('钢铁神经');
+ if(G.hands>=100)award('百手老手');
+ if(G.hands>=40 && G.correct/G.hands>=0.9)award('GTO 机器');
+}
+let toastT=null;
+function toast(name,emoji,plain){const e=document.getElementById('toastEl')||(()=>{const d=document.createElement('div');d.className='toast';d.id='toastEl';document.body.appendChild(d);return d;})();
+ e.innerHTML=`<span class="em">${emoji}</span> ${plain?'':'成就达成 · '}${name}`;e.classList.add('show');
+ clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2200);}
+
+/* ============ game over ============ */
+function gameOver(){
+ G.over=true;stopTimer();SFX.over();
+ const acc=G.hands?Math.round(G.correct/G.hands*100):0;
+ // lifetime stats
+ const st=STORE.stats||{best:0,hands:0,correct:0,games:0};
+ const isRecord=G.score>(st.best||0);
+ st.best=Math.max(st.best||0,G.score);
+ st.hands=(st.hands||0)+G.hands; st.correct=(st.correct||0)+G.correct; st.games=(st.games||0)+1;
+ STORE.stats=st; persist();
+ document.getElementById('overTitle').innerHTML=`得分 <b style="color:var(--gold)">${G.score.toLocaleString()}</b>`+(isRecord&&G.score>0?` <span style="font-size:13px;color:var(--best)">🏅新纪录!</span>`:'');
+ const s=document.getElementById('overStats');
+ s.innerHTML=`
+  <div class="stat"><div class="v">${acc}%</div><div class="k">GTO 准确率</div></div>
+  <div class="stat"><div class="v">${G.best}</div><div class="k">最高连击</div></div>
+  <div class="stat"><div class="v">${G.hands}</div><div class="k">总手数</div></div>
+  <div class="stat"><div class="v">LV.${G.level}</div><div class="k">到达关卡</div></div>
+  <div class="stat"><div class="v" style="color:var(--best)">${G.q.best+G.q.good}</div><div class="k">最佳+好棋</div></div>
+  <div class="stat"><div class="v" style="color:var(--gold)">${(st.best||0).toLocaleString()}</div><div class="k">历史最高</div></div>`;
+ const a=document.getElementById('overAch');a.innerHTML='';
+ [...G.ach].forEach(n=>{const e=document.createElement('span');e.className='ach';e.textContent=(ACH_DEFS[n]||'⭐')+' '+n;a.appendChild(e);});
+ updateReviewBtns();
+ document.getElementById('overScreen').classList.remove('hide');
+}
+
+/* ============ boot ============ */
+function defVariant(f){return f==='cash'?'6':f==='mtt'?'d40':f==='face3b'?'btn':f==='face4b'?'ip':f==='squeeze'?'bb':f==='coldcall'?'btn':'btn';}
+function buildVariants(varBoxId,varLabelId,format,current,pick){
+ document.getElementById(varLabelId).textContent=VARIANT_LABEL[format];
+ const box=document.getElementById(varBoxId);box.innerHTML='';
+ Object.entries(VARIANTS[format]).forEach(([k,v])=>{
+  const b=document.createElement('button');b.className='opt';b.dataset.v=k;
+  b.innerHTML=`${v.label}<small>${v.sub}</small>`;
+  b.setAttribute('aria-selected',k===String(current));
+  b.onclick=()=>{aInit();SFX.click();pick(k);
+   [...box.children].forEach(x=>x.setAttribute('aria-selected',x===b));};
+  box.appendChild(b);
+ });
+}
+
+let selFormat='cash', selVariant='6', selDeal='all', selGame='cash';
+function buildOpts(boxId,cfg,current,pick){
+ const box=document.getElementById(boxId);box.innerHTML='';
+ Object.entries(cfg).forEach(([k,v])=>{
+  const b=document.createElement('button');b.className='opt';b.dataset.v=k;
+  b.innerHTML=`${v.label}<small>${v.sub}</small>`;
+  b.setAttribute('aria-selected',k===current);
+  b.onclick=()=>{aInit();SFX.click();pick(k);
+   [...box.children].forEach(x=>x.setAttribute('aria-selected',x===b));};
+  box.appendChild(b);
+ });
+}
+function startFmtPick(f,wantVar){
+ selFormat=f; selVariant=(wantVar && VARIANTS[f][wantVar])?wantVar:defVariant(f);
+ [...document.getElementById('selFormat').children].forEach(x=>x.setAttribute('aria-selected',x.dataset.v===f));
+ buildVariants('selVariant','selVarLabel',f,selVariant,k=>selVariant=k);
+}
+function applyGame(g,keepFmt,wantVar){
+ selGame=g;
+ [...document.getElementById('selGame').children].forEach(x=>x.setAttribute('aria-selected',x.dataset.g===g));
+ const fmts=GAMETYPES[g].formats;
+ [...document.getElementById('selFormat').children].forEach(b=>{b.style.display=fmts.includes(b.dataset.v)?'':'none';});
+ if(!keepFmt || !fmts.includes(selFormat)) selFormat=fmts[0];
+ startFmtPick(selFormat,wantVar);
+}
+[...document.getElementById('selFormat').children].forEach(b=>b.onclick=()=>{aInit();SFX.click();startFmtPick(b.dataset.v);});
+[...document.getElementById('selGame').children].forEach(b=>b.onclick=()=>{aInit();SFX.click();applyGame(b.dataset.g,false);});
+
+// restore saved preferences + mistake pile
+const _p=STORE.prefs||{};
+selDeal = (_p.deal && HANDFILTERS[_p.deal]) ? _p.deal : 'all';
+const _savedFmt = (_p.format && VARIANTS[_p.format]) ? _p.format : 'cash';
+const _savedVar = (_p.variant && VARIANTS[_savedFmt][_p.variant]) ? _p.variant : null;
+selFormat=_savedFmt;
+applyGame(gameOf(_savedFmt),true,_savedVar);
+buildOpts('selDeal',HANDFILTERS,selDeal,k=>selDeal=k);
+reviveReview(STORE.review);
+updateReviewBtns();
+
+function launch(){
+ aInit();SFX.click();
+ G.format=selFormat;G.variant=selVariant;G.handFilter=selDeal;
+ persistPrefs();
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('overScreen').classList.add('hide');
+ newGame();
+}
+document.getElementById('startBtn').onclick=launch;
+document.getElementById('againBtn').onclick=()=>{document.getElementById('startScreen').classList.remove('hide');document.getElementById('overScreen').classList.add('hide');updateReviewBtns();SFX.click();};
+
+/* ---- review detail page ---- */
+function openReviewDetail(){aInit();SFX.click();
+ renderReviewDetail();
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('overScreen').classList.add('hide');
+ document.getElementById('reviewScreen').classList.remove('hide');
+}
+function renderReviewDetail(){
+ const allBtn=document.getElementById('reviewAllBtn');
+ allBtn.textContent=`▶ 开始复习全部 (${reviewPile.length})`;
+ allBtn.style.opacity=reviewPile.length?'1':'.45';
+ const box=document.getElementById('reviewList');box.innerHTML='';
+ if(!reviewPile.length){box.innerHTML='<p class="cnote" style="margin-top:20px">错题堆是空的——去训练答错的牌会自动收进来喵 🐿</p>';return;}
+ // group by label (spot)
+ const groups={};
+ reviewPile.forEach(r=>{(groups[r.label]=groups[r.label]||[]).push(r);});
+ Object.keys(groups).forEach(label=>{
+  const arr=groups[label];
+  const g=document.createElement('div');g.className='rv-group';
+  const head=document.createElement('div');head.className='rv-head';
+  head.innerHTML=`<b>${label||'其他'}</b>`;
+  const mini=document.createElement('button');mini.className='rv-mini';mini.textContent=`练这组 (${arr.length}) ▶`;
+  mini.onclick=()=>startReview(label);
+  head.appendChild(mini);g.appendChild(head);
+  const chips=document.createElement('div');chips.className='rv-chips';
+  arr.forEach(r=>{
+   const c=document.createElement('span');c.className='rv-chip';
+   c.innerHTML=`${r.hand}${r.wrong>1?` <span class="wn">×${r.wrong}</span>`:''} <span class="del">✕</span>`;
+   c.querySelector('.del').onclick=()=>{removeFromPile(r);renderReviewDetail();updateReviewBtns();SFX.click();};
+   chips.appendChild(c);
+  });
+  g.appendChild(chips);box.appendChild(g);
+ });
+}
+document.getElementById('reviewBtn').onclick=openReviewDetail;
+document.getElementById('overReviewBtn').onclick=openReviewDetail;
+document.getElementById('reviewAllBtn').onclick=()=>{ if(!reviewPile.length){toast('错题堆是空的','📕',true);return;} startReview(); };
+document.getElementById('reviewBack').onclick=()=>{SFX.click();
+ document.getElementById('reviewScreen').classList.add('hide');
+ document.getElementById('startScreen').classList.remove('hide');};
+
+/* ---- career stats page ---- */
+function openStats(){aInit();SFX.click();
+ renderStats();
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('statsScreen').classList.remove('hide');
+}
+function renderStats(){
+ const st=STORE.stats||{};const bySpot=STORE.statsBySpot||{};
+ let th=0,tc=0;Object.values(bySpot).forEach(e=>{th+=e.h;tc+=e.c;});
+ const acc=th?Math.round(tc/th*100):0;
+ document.getElementById('statsTiles').innerHTML=`
+  <div class="stat"><div class="v" style="color:var(--gold)">${(st.best||0).toLocaleString()}</div><div class="k">历史最高分</div></div>
+  <div class="stat"><div class="v">${th}</div><div class="k">累计手数</div></div>
+  <div class="stat"><div class="v">${acc}%</div><div class="k">总体准确率</div></div>
+  <div class="stat"><div class="v">${st.games||0}</div><div class="k">总局数</div></div>`;
+ const bars=document.getElementById('statsBars');bars.innerHTML='';
+ const keys=Object.keys(bySpot).sort((a,b)=>(bySpot[b].c/bySpot[b].h)-(bySpot[a].c/bySpot[a].h));
+ if(!keys.length){bars.innerHTML='<p class="cnote">还没有数据——先去训练几手喵</p>';return;}
+ keys.forEach(k=>{const e=bySpot[k];const p=e.h?Math.round(e.c/e.h*100):0;
+  const row=document.createElement('div');row.className='sbar';
+  row.innerHTML=`<span class="nm" title="${k}">${k}</span><span class="trk"><span class="fil" style="width:${p}%"></span></span><span class="pct">${p}% · ${e.h}手</span>`;
+  bars.appendChild(row);});
+}
+document.getElementById('statsBack').onclick=()=>{SFX.click();
+ document.getElementById('statsScreen').classList.add('hide');
+ document.getElementById('startScreen').classList.remove('hide');};
+document.getElementById('statsBtn').onclick=openStats;
+updateReviewBtns();
+
+/* ============ charts page ============ */
+let cFormat='cash', cVariant='6', cIdx=0, cSel=null, cGame='cash';
+/* 图表分类 / 名称 / 图例 全部读取顶部 MODES（CAT_NAME 为基础名，catName 处理模式覆盖） */
+function cellCat(t,hand){
+ const isR=t.R.has(hand),isC=t.C.has(hand),isM=t.M.has(hand);
+ return MODES[t.mode].cell(isR,isC,isM);
+}
+function catName(cat,mode){
+ const o=MODES[mode].catName;
+ return (o&&o[cat])||CAT_NAME[cat];
+}
+function renderCChips(){
+ const box=document.getElementById('cChips');box.innerHTML='';
+ const pack=PACKS[cFormat][cVariant];
+ if(cIdx>=pack.length)cIdx=0;
+ pack.forEach((t,i)=>{
+  const b=document.createElement('button');b.className='cchip';
+  b.textContent=t.name;b.setAttribute('aria-selected',i===cIdx);
+  b.onclick=()=>{cIdx=i;cSel=null;SFX.click();renderCChips();renderMatrix();};
+  box.appendChild(b);
+ });
+}
+function renderMatrix(){
+ const t=PACKS[cFormat][cVariant][cIdx];
+ document.getElementById('cName').textContent=t.name;
+ document.getElementById('cWho').textContent=t.who||'';
+ const m=document.getElementById('cMatrix');m.innerHTML='';
+ let inC=0;
+ for(let r=0;r<13;r++)for(let c=0;c<13;c++){
+  const hand=handLabel(r,c),cat=cellCat(t,hand);
+  const cell=document.createElement('div');cell.className='ccell '+cat+(r===c?' pair':'');
+  cell.innerHTML=`<span>${hand}</span>`;
+  if(cat!=='fold')inC+= cat.startsWith('edge') ? combosOf(hand)/2 : combosOf(hand);
+  cell.onclick=()=>{cSel=hand;
+    document.querySelectorAll('.ccell.sel').forEach(x=>x.classList.remove('sel'));cell.classList.add('sel');
+    document.getElementById('cInfo').innerHTML=`<b>${hand}</b> · ${catName(cat,t.mode)}`;};
+  m.appendChild(cell);
+ }
+ document.getElementById('cStat').innerHTML=`入池 <b>${(inC/1326*100).toFixed(0)}%</b>`;
+ // legend
+ const leg=document.getElementById('cLegend');leg.innerHTML='';
+ const solid={raise:'var(--raise)',shove:'var(--raise)',threebet:'var(--threebet)',call:'var(--call)',fold:'var(--fold)'};
+ const edgeBg={'edge-raise':'var(--raise)','edge-shove':'var(--raise)','edge-call':'var(--call)'};
+ MODES[t.mode].legend.forEach(([cls,lab])=>{
+  const it=document.createElement('div');it.className='it';
+  let bg;
+  if(cls==='mix') bg='linear-gradient(118deg,var(--threebet) 0 50%,var(--call) 50% 100%)';
+  else if(cls.startsWith('edge')) bg=`linear-gradient(118deg,${edgeBg[cls]} 0 50%,var(--fold) 50% 100%)`;
+  else bg=solid[cls];
+  it.innerHTML=`<span class="sw" style="background:${bg};${cls==='fold'?'box-shadow:inset 0 0 0 1px var(--line)':''}"></span>${lab}`;
+  leg.appendChild(it);
+ });
+ document.getElementById('cInfo').innerHTML=cSel?document.getElementById('cInfo').innerHTML:'点格子查看每手牌的建议';
+}
+function chartFmtPick(f){
+ cFormat=f; cVariant=defVariant(f); cIdx=0; cSel=null;
+ [...document.getElementById('cSelFormat').children].forEach(x=>x.setAttribute('aria-selected',x.dataset.v===f));
+ buildVariants('cSelVariant','cSelVarLabel',f,cVariant,k=>{cVariant=k;cIdx=0;cSel=null;renderCChips();renderMatrix();});
+ renderCChips();renderMatrix();
+}
+function applyCGame(g){
+ cGame=g;
+ [...document.getElementById('cSelGame').children].forEach(x=>x.setAttribute('aria-selected',x.dataset.g===g));
+ const fmts=GAMETYPES[g].formats;
+ [...document.getElementById('cSelFormat').children].forEach(b=>{b.style.display=fmts.includes(b.dataset.v)?'':'none';});
+ if(!fmts.includes(cFormat))cFormat=fmts[0];
+ chartFmtPick(cFormat);
+}
+[...document.getElementById('cSelFormat').children].forEach(b=>b.onclick=()=>{aInit();SFX.click();chartFmtPick(b.dataset.v);});
+[...document.getElementById('cSelGame').children].forEach(b=>b.onclick=()=>{aInit();SFX.click();applyCGame(b.dataset.g);});
+
+document.getElementById('chartsBtn').onclick=()=>{aInit();SFX.click();
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('chartScreen').classList.remove('hide');
+ applyCGame(gameOf(cFormat));};
+document.getElementById('chartBack').onclick=()=>{SFX.click();
+ document.getElementById('chartScreen').classList.add('hide');
+ document.getElementById('startScreen').classList.remove('hide');};
+document.getElementById('aboutBtn').onclick=()=>{aInit();SFX.click();
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('aboutScreen').classList.remove('hide');};
+document.getElementById('aboutBack').onclick=()=>{SFX.click();
+ document.getElementById('aboutScreen').classList.add('hide');
+ document.getElementById('startScreen').classList.remove('hide');};
+document.getElementById('guideBtn').onclick=()=>{aInit();SFX.click();
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('guideScreen').classList.remove('hide');};
+document.getElementById('guideBack').onclick=()=>{SFX.click();
+ document.getElementById('guideScreen').classList.add('hide');
+ document.getElementById('startScreen').classList.remove('hide');};
+function guideLaunch(fmt,variant){
+ selFormat=fmt;
+ applyGame(gameOf(fmt),true,variant);
+ document.getElementById('guideScreen').classList.add('hide');
+ launch();
+}
+document.querySelectorAll('#guideScreen .gd-node').forEach(node=>{
+ node.querySelector('.gd-go').onclick=()=>guideLaunch(node.dataset.fmt,node.dataset.var);
+});
+document.getElementById('clearDataBtn').onclick=()=>{SFX.click();
+ clearStore();reviewPile=[];updateReviewBtns();
+ toast('本地存档已清除','🗑',true);
+};
+</script>
+</body>
+</html>

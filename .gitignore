@@ -1,0 +1,12 @@
+# dependencies (none currently, but in case any are ever added)
+node_modules/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+
+# scratch
+/tmp/
+*.log
