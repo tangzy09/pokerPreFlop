@@ -6,7 +6,11 @@ const { loadApp } = require('./load-app');
 const { buildSnapshot, SNAP_PATH } = require('./snapshot');
 
 const app = loadApp();
-const { MODES, PACKS, expand, handLabel, combosOf, catName } = app;
+const { MODES, PACKS, expand, handLabel, combosOf, catName, handFreq } = app;
+
+const approx1 = (s) => Math.abs(s - 1) < 1e-9;
+const sumFreq = (f) => Object.values(f).reduce((a, b) => a + b, 0);
+const support = (f) => Object.keys(f).filter((k) => f[k] > 0).sort();
 
 // ---------- contract invariants (robust to intended range tweaks) ----------
 
@@ -40,6 +44,38 @@ test('MODES entries are well-formed and self-consistent', () => {
     }
     assert.ok(Array.isArray(M.legend) && M.legend.length >= 2, `${mode}: legend`);
   }
+});
+
+test('MODES.freq is a valid distribution and matches correct() support', () => {
+  for (const [mode, M] of Object.entries(MODES)) {
+    for (let b = 0; b < 8; b++) {
+      const isR = !!(b & 1), isC = !!(b & 2), isM = !!(b & 4);
+      const f = M.freq(isR, isC, isM);
+      assert.ok(approx1(sumFreq(f)), `${mode}@${b}: freq sums to ${sumFreq(f)}`);
+      for (const k in f) assert.ok(f[k] > 0 && f[k] <= 1, `${mode}@${b}: weight ${k}=${f[k]}`);
+      // the safety lock: which actions have weight must equal which are "correct"
+      assert.deepEqual(support(f), [...M.correct(isR, isC, isM)].sort(),
+        `${mode}@${b}: freq support != correct()`);
+    }
+  }
+});
+
+test('handFreq returns a valid distribution for every spot x 169 hands', () => {
+  for (const fmt of Object.keys(PACKS))
+    for (const v of Object.keys(PACKS[fmt]))
+      for (const t of PACKS[fmt][v])
+        for (let r = 0; r < 13; r++) for (let c = 0; c < 13; c++) {
+          const f = handFreq(t, handLabel(r, c));
+          assert.ok(approx1(sumFreq(f)), `${fmt}/${v}/${t.name}: sum != 1`);
+        }
+});
+
+test('every spot has a confidence tag', () => {
+  for (const fmt of Object.keys(PACKS))
+    for (const v of Object.keys(PACKS[fmt]))
+      for (const t of PACKS[fmt][v])
+        assert.ok(['precise', 'curated', 'approx'].includes(t.confidence),
+          `${fmt}/${v}/${t.name}: bad confidence "${t.confidence}"`);
 });
 
 test('range DSL expand() parses representative tokens', () => {

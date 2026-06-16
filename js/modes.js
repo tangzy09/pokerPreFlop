@@ -29,29 +29,43 @@ const CELL={
  raiseCall:(isR,isC,isM)=>(isR&&isC)?'mix'   :isR?'threebet':isC?'call':isM?'edge-call':'fold',
  shoveCall:(isR,isC,isM)=>(isR&&isC)?'mixjam':isR?'shove'   :isC?'call':isM?'edge-call':'fold',
 };
+/* FREQ — per-action frequency weights derived from the curated R/C/M bands.
+   These mirror CORRECT exactly (same action support) but as weights summing to
+   1, so the engine/charts can show "70% 加注 / 30% 跟注".  MIX is the honest
+   placeholder for a curated mixed/edge hand until a real frequency replaces it
+   via a spot's freqTable.  Keep FREQ in lockstep with CORRECT (a test enforces
+   that their action supports match). */
+const MIX = 0.5;
+const FREQ={
+ raiseFold:(isR,isC,isM)=>isR?{raise:1}:isM?{raise:MIX,fold:MIX}:{fold:1},
+ shoveFold:(isR,isC,isM)=>isR?{shove:1}:isM?{shove:MIX,fold:MIX}:{fold:1},
+ callFold :(isR,isC,isM)=>isC?{call:1} :isM?{call:MIX,fold:MIX} :{fold:1},
+ raiseCall:(isR,isC,isM)=>(isR&&isC)?{raise:MIX,call:MIX}:isR?{raise:1}:isC?{call:1}:isM?{call:MIX,fold:MIX}:{fold:1},
+ shoveCall:(isR,isC,isM)=>(isR&&isC)?{shove:MIX,call:MIX}:isR?{shove:1}:isC?{call:1}:isM?{call:MIX,fold:MIX}:{fold:1},
+};
 const MODES={
  open:{actions:[['fold',ACT_LABEL.fold],['raise',ACT_LABEL.raise]],
-  names:{fold:'弃牌',raise:'加注'},correct:CORRECT.raiseFold,cell:CELL.raiseFold,
+  names:{fold:'弃牌',raise:'加注'},correct:CORRECT.raiseFold,cell:CELL.raiseFold,freq:FREQ.raiseFold,
   legend:[['raise','加注'],['edge-raise','边缘'],['fold','弃牌']]},
  push:{actions:[['fold',ACT_LABEL.fold],['shove',ACT_LABEL.shove]],
-  names:{fold:'弃牌',shove:'全下'},correct:CORRECT.shoveFold,cell:CELL.shoveFold,
+  names:{fold:'弃牌',shove:'全下'},correct:CORRECT.shoveFold,cell:CELL.shoveFold,freq:FREQ.shoveFold,
   legend:[['shove','全下'],['edge-shove','边缘'],['fold','弃牌']]},
  callshove:{actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.callshove]],
-  names:{fold:'弃牌',call:'跟注全下'},correct:CORRECT.callFold,cell:CELL.callFold,
+  names:{fold:'弃牌',call:'跟注全下'},correct:CORRECT.callFold,cell:CELL.callFold,freq:FREQ.callFold,
   legend:[['call','跟注全下'],['edge-call','边缘'],['fold','弃牌']]},
  defense:{actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.call],['raise',ACT_LABEL.raise3]],
-  names:{fold:'弃牌',call:'跟注',raise:'3-bet'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,
+  names:{fold:'弃牌',call:'跟注',raise:'3-bet'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,freq:FREQ.raiseCall,
   legend:[['threebet','3-bet'],['call','跟注'],['mix','混合'],['edge-call','边缘'],['fold','弃牌']]},
  face3b:{actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.call],['raise',ACT_LABEL.raise4]],
-  names:{fold:'弃牌',call:'跟注',raise:'4-bet'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,
+  names:{fold:'弃牌',call:'跟注',raise:'4-bet'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,freq:FREQ.raiseCall,
   catName:{threebet:'4-bet',mix:'4-bet / 跟注（混合）'},
   legend:[['threebet','4-bet'],['call','跟注'],['mix','混合'],['edge-call','边缘'],['fold','弃牌']]},
  squeeze:{actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.call],['raise',ACT_LABEL.squeeze]],
-  names:{fold:'弃牌',call:'跟注',raise:'挤压'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,
+  names:{fold:'弃牌',call:'跟注',raise:'挤压'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,freq:FREQ.raiseCall,
   catName:{threebet:'挤压 3-bet',mix:'挤压 / 跟注（混合）'},
   legend:[['threebet','挤压'],['call','跟注'],['mix','混合'],['edge-call','边缘'],['fold','弃牌']]},
  face4b:{actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.call],['shove',ACT_LABEL.shove5]],
-  names:{fold:'弃牌',call:'跟注',shove:'5-bet 全下'},correct:CORRECT.shoveCall,cell:CELL.shoveCall,
+  names:{fold:'弃牌',call:'跟注',shove:'5-bet 全下'},correct:CORRECT.shoveCall,cell:CELL.shoveCall,freq:FREQ.shoveCall,
   catName:{shove:'5-bet 全下',mixjam:'5-bet全下 / 跟注（混合）'},
   legend:[['shove','5-bet 全下'],['call','跟注'],['fold','弃牌']]},
 };
@@ -64,4 +78,20 @@ function cellCat(t,hand){
 function catName(cat,mode){
  const o=MODES[mode].catName;
  return (o&&o[cat])||CAT_NAME[cat];
+}
+
+/* normalise a raw frequency object so weights are non-negative and sum to 1 */
+function normFreq(f){
+ let s=0; for(const k in f){const v=f[k]>0?f[k]:0; s+=v;}
+ if(!s) return {fold:1};
+ const o={}; for(const k in f){ if(f[k]>0) o[k]=f[k]/s; }
+ return o;
+}
+/* handFreq(t,hand) → {action: weight} summing to 1.
+   Uses a spot's imported real frequencies (t.freqTable) when present, else
+   derives the honest placeholder weights from the curated R/C/M bands. */
+function handFreq(t,hand){
+ if(t.freqTable && t.freqTable[hand]) return normFreq(t.freqTable[hand]);
+ const isR=t.R.has(hand),isC=t.C.has(hand),isM=t.M.has(hand);
+ return MODES[t.mode].freq(isR,isC,isM);
 }

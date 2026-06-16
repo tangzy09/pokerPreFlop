@@ -28,12 +28,13 @@ function buildSnapshot(app) {
   for (const mode of Object.keys(MODES)) {
     const M = MODES[mode];
     const e = { actions: M.actions.map((a) => a[0]), names: M.names,
-      decision: {}, cell: {}, catName: {} };
+      decision: {}, cell: {}, freq: {}, catName: {} };
     for (let b = 0; b < 8; b++) {
       const isR = !!(b & 1), isC = !!(b & 2), isM = !!(b & 4);
       const k = `R${+isR}C${+isC}M${+isM}`;
       e.decision[k] = M.correct(isR, isC, isM);
       e.cell[k] = M.cell(isR, isC, isM);
+      e.freq[k] = M.freq(isR, isC, isM);
     }
     // only record categories this mode actually names (skip undefined so the
     // snapshot is JSON-stable — JSON.stringify drops undefined values)

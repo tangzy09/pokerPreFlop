@@ -47,6 +47,34 @@
         "R0C1M1": "edge-raise",
         "R1C1M1": "raise"
       },
+      "freq": {
+        "R0C0M0": {
+          "fold": 1
+        },
+        "R1C0M0": {
+          "raise": 1
+        },
+        "R0C1M0": {
+          "fold": 1
+        },
+        "R1C1M0": {
+          "raise": 1
+        },
+        "R0C0M1": {
+          "raise": 0.5,
+          "fold": 0.5
+        },
+        "R1C0M1": {
+          "raise": 1
+        },
+        "R0C1M1": {
+          "raise": 0.5,
+          "fold": 0.5
+        },
+        "R1C1M1": {
+          "raise": 1
+        }
+      },
       "catName": {
         "raise": "加注",
         "shove": "全下",
@@ -106,6 +134,34 @@
         "R0C1M1": "edge-shove",
         "R1C1M1": "shove"
       },
+      "freq": {
+        "R0C0M0": {
+          "fold": 1
+        },
+        "R1C0M0": {
+          "shove": 1
+        },
+        "R0C1M0": {
+          "fold": 1
+        },
+        "R1C1M0": {
+          "shove": 1
+        },
+        "R0C0M1": {
+          "shove": 0.5,
+          "fold": 0.5
+        },
+        "R1C0M1": {
+          "shove": 1
+        },
+        "R0C1M1": {
+          "shove": 0.5,
+          "fold": 0.5
+        },
+        "R1C1M1": {
+          "shove": 1
+        }
+      },
       "catName": {
         "raise": "加注",
         "shove": "全下",
@@ -164,6 +220,34 @@
         "R1C0M1": "edge-call",
         "R0C1M1": "call",
         "R1C1M1": "call"
+      },
+      "freq": {
+        "R0C0M0": {
+          "fold": 1
+        },
+        "R1C0M0": {
+          "fold": 1
+        },
+        "R0C1M0": {
+          "call": 1
+        },
+        "R1C1M0": {
+          "call": 1
+        },
+        "R0C0M1": {
+          "call": 0.5,
+          "fold": 0.5
+        },
+        "R1C0M1": {
+          "call": 0.5,
+          "fold": 0.5
+        },
+        "R0C1M1": {
+          "call": 1
+        },
+        "R1C1M1": {
+          "call": 1
+        }
       },
       "catName": {
         "raise": "加注",
@@ -227,6 +311,35 @@
         "R0C1M1": "call",
         "R1C1M1": "mix"
       },
+      "freq": {
+        "R0C0M0": {
+          "fold": 1
+        },
+        "R1C0M0": {
+          "raise": 1
+        },
+        "R0C1M0": {
+          "call": 1
+        },
+        "R1C1M0": {
+          "raise": 0.5,
+          "call": 0.5
+        },
+        "R0C0M1": {
+          "call": 0.5,
+          "fold": 0.5
+        },
+        "R1C0M1": {
+          "raise": 1
+        },
+        "R0C1M1": {
+          "call": 1
+        },
+        "R1C1M1": {
+          "raise": 0.5,
+          "call": 0.5
+        }
+      },
       "catName": {
         "raise": "加注",
         "shove": "全下",
@@ -288,6 +401,35 @@
         "R1C0M1": "threebet",
         "R0C1M1": "call",
         "R1C1M1": "mix"
+      },
+      "freq": {
+        "R0C0M0": {
+          "fold": 1
+        },
+        "R1C0M0": {
+          "raise": 1
+        },
+        "R0C1M0": {
+          "call": 1
+        },
+        "R1C1M0": {
+          "raise": 0.5,
+          "call": 0.5
+        },
+        "R0C0M1": {
+          "call": 0.5,
+          "fold": 0.5
+        },
+        "R1C0M1": {
+          "raise": 1
+        },
+        "R0C1M1": {
+          "call": 1
+        },
+        "R1C1M1": {
+          "raise": 0.5,
+          "call": 0.5
+        }
       },
       "catName": {
         "raise": "加注",
@@ -351,6 +493,35 @@
         "R0C1M1": "call",
         "R1C1M1": "mix"
       },
+      "freq": {
+        "R0C0M0": {
+          "fold": 1
+        },
+        "R1C0M0": {
+          "raise": 1
+        },
+        "R0C1M0": {
+          "call": 1
+        },
+        "R1C1M0": {
+          "raise": 0.5,
+          "call": 0.5
+        },
+        "R0C0M1": {
+          "call": 0.5,
+          "fold": 0.5
+        },
+        "R1C0M1": {
+          "raise": 1
+        },
+        "R0C1M1": {
+          "call": 1
+        },
+        "R1C1M1": {
+          "raise": 0.5,
+          "call": 0.5
+        }
+      },
       "catName": {
         "raise": "加注",
         "shove": "全下",
@@ -412,6 +583,35 @@
         "R1C0M1": "shove",
         "R0C1M1": "call",
         "R1C1M1": "mixjam"
+      },
+      "freq": {
+        "R0C0M0": {
+          "fold": 1
+        },
+        "R1C0M0": {
+          "shove": 1
+        },
+        "R0C1M0": {
+          "call": 1
+        },
+        "R1C1M0": {
+          "shove": 0.5,
+          "call": 0.5
+        },
+        "R0C0M1": {
+          "call": 0.5,
+          "fold": 0.5
+        },
+        "R1C0M1": {
+          "shove": 1
+        },
+        "R0C1M1": {
+          "call": 1
+        },
+        "R1C1M1": {
+          "shove": 0.5,
+          "call": 0.5
+        }
       },
       "catName": {
         "raise": "加注",

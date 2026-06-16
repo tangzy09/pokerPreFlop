@@ -39,8 +39,8 @@ function mkStub() {
 }
 
 const EXPORTS = [
-  'MODES', 'PACKS', 'CORRECT', 'CELL', 'ACT_LABEL', 'CAT_NAME',
-  'cellCat', 'catName', 'handLabel', 'expand', 'combosOf',
+  'MODES', 'PACKS', 'CORRECT', 'CELL', 'FREQ', 'ACT_LABEL', 'CAT_NAME',
+  'cellCat', 'catName', 'handFreq', 'normFreq', 'handLabel', 'expand', 'combosOf',
   'RANKS', 'RIDX', 'PREMIUM',
   'FORMATS', 'VARIANTS', 'GAMETYPES', 'gameOf', 'HANDFILTERS',
 ];

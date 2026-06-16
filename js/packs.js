@@ -142,6 +142,12 @@ const PACKS={
 Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
  t.R=expand(t.raise);t.C=expand(t.call);t.M=expand(t.mix);
  t.union=[...new Set([...t.R,...t.C,...t.M])];
+ // per-spot provenance / confidence (lets the app be honest spot-by-spot):
+ //  precise  = backed by a real freqTable import / solved Nash
+ //  curated  = hand-checked for magnitude+shape, mix freqs are ~placeholders
+ //  approx   = roughest (e.g. ICM / 6-max estimates)
+ t.confidence = t.confidence || (t.freqTable ? 'precise' : 'curated');
+ t.src = t.src || '';
 })));
 
 const PREMIUM=new Set(['AA','KK','QQ','JJ','AKs','AKo','AQs']);
