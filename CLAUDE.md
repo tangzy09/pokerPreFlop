@@ -4,7 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A single-file, self-contained web app: a **pre-flop poker GTO decision trainer** (Chinese UI). Everything — HTML, CSS, JS, range data, synth audio, canvas confetti — lives in [gto-trainer.html](gto-trainer.html). No build system, no dependencies, no framework, no package.json. The canonical/original copy also lives at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
+A zero-build, dependency-free web app: a **pre-flop poker GTO decision trainer** (Chinese UI). [gto-trainer.html](gto-trainer.html) holds the markup + CSS and loads four plain classic scripts (no ES modules, no bundler — still double-click-to-run from `file://`):
+
+```
+gto-trainer.html      markup + ~600 lines CSS, then 4 <script src> tags (order matters)
+js/ranges.js          range-string DSL (expand) + scenario taxonomy (FORMATS/GAMETYPES/VARIANTS)
+js/modes.js           MODES — single source of mode behaviour (+ cellCat/catName)
+js/packs.js           PACKS — the range database (highest-churn content) + PREMIUM
+js/app.js             persistence, audio, confetti, hand helpers, game engine, charts UI, boot
+```
+
+The four scripts share one global scope (browser behaviour for classic scripts); load order is `ranges → modes → packs → app` and is enforced by the `<script src>` order. An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
 
 ## Running & verifying (no build step)
 
@@ -14,18 +24,18 @@ A single-file, self-contained web app: a **pre-flop poker GTO decision trainer**
 - Node v24 is installed at `C:\Program Files\nodejs\`. Freshly-spawned tool shells may not have it on PATH until a terminal restart — use the full path (`& "C:\Program Files\nodejs\node.exe"` / `npm.cmd`).
 
 ### How the tests work (no DOM, no dependencies)
-`test/load-app.js` extracts the `<script>` block and runs it in a `vm` context where every browser global is a **bulletproof Proxy stub** (each trap returns another callable/iterable Proxy), so the top-level boot code that touches `document`/`window`/`localStorage` can't throw. It appends `;globalThis.__app={MODES,PACKS,cellCat,…}` to capture the internal `const`s for inspection. `test/regression.test.js` then runs **contract invariants** (every PACKS mode has a MODES entry; `correct`/`cell` outputs are well-formed; range-DSL + `handLabel`/`combosOf` sanity) plus a **golden snapshot** (`test/snapshot.js` builds the full decision matrix + every spot's chart categories across all 169 hands). This is the regression net for the MODES-centralized design.
+`test/load-app.js` reads the `<script src="js/...">` list from the HTML (in order), concatenates those files, and runs them in one `vm` context where every browser global is a **bulletproof Proxy stub** (each trap returns another callable/iterable Proxy), so the top-level boot code that touches `document`/`window`/`localStorage` can't throw. Concatenating reproduces the browser's shared global scope across classic scripts — so a load-order/reference error in `app.js` also throws here. It appends `;globalThis.__app={MODES,PACKS,cellCat,…}` to capture the internals. `test/regression.test.js` then runs **contract invariants** (every PACKS mode has a MODES entry; `correct`/`cell` outputs are well-formed; range-DSL + `handLabel`/`combosOf` sanity) plus a **golden snapshot** (`test/snapshot.js` builds the full decision matrix + every spot's chart categories across all 169 hands). This is the regression net for the MODES-centralized design. Note: the tests cover pure logic/data only — DOM rendering and the game loop still need a manual browser click-through.
 
-## Architecture (the parts that span multiple sections)
+## Architecture (the parts that span multiple files)
 
-The script is ~1000 lines in one `<script>`. Read these relationships before editing:
+Read these relationships before editing:
 
 ### Range data pipeline
 - `RANKS` / `RIDX` + `expand(str)` parse a **range-string DSL** (e.g. `"22+, A2s+, KTs+, AJo+, KQo"`) into a `Set` of canonical hand labels (`"AKs"`, `"TT"`, `"A2o"`). `handLabel(r,c)` is the canonical form (suited = upper-right, offsuit = lower-left).
 - `PACKS` is the range database, nested `format → variant → array of "tables"`. Each table (a "spot") has `{mode, name, who, tier, raise/call/mix}` strings. A post-load pass expands these into `t.R` (raise), `t.C` (call), `t.M` (mix/edge) Sets plus `t.union`. Shared range strings (`r_co`, `r_btn`, `m_btn`, …) are reused across packs.
 
 ### MODES — single source of truth for decision behavior
-`MODES` (top of script) is the **central config keyed by mode** (`open`, `push`, `callshove`, `defense`, `face3b`, `squeeze`, `face4b`). Each entry defines everything mode-specific:
+`MODES` (in [js/modes.js](js/modes.js)) is the **central config keyed by mode** (`open`, `push`, `callshove`, `defense`, `face3b`, `squeeze`, `face4b`). Each entry defines everything mode-specific:
 - `actions` — button list `[key, ACT_LABEL.x]` (grid columns derived from count)
 - `names` — action→Chinese display name (for the answer string)
 - `correct(isR,isC,isM)` — the GTO-correct action set (array; length > 1 ⇒ a mix point)

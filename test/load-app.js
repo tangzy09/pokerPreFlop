@@ -1,10 +1,12 @@
 'use strict';
 /*
- * Loads the single-file app (gto-trainer.html) inside Node by:
- *  1. extracting its <script> block,
- *  2. running it in a vm context where every browser/DOM global is a
- *     bulletproof Proxy stub (so the top-level boot code that touches
- *     document/window/localStorage can't throw), and
+ * Loads the app inside Node by:
+ *  1. reading gto-trainer.html and collecting its <script src="js/..."> files
+ *     in load order (the same order the browser uses),
+ *  2. concatenating them and running them in one vm context where every
+ *     browser/DOM global is a bulletproof Proxy stub (so the top-level boot
+ *     code that touches document/window/localStorage can't throw) — this
+ *     reproduces the browser's shared global scope across classic scripts, and
  *  3. capturing the internal consts/functions we want to test.
  *
  * This is what lets us unit-test the pure logic (MODES, range DSL, charts)
@@ -48,8 +50,21 @@ function loadApp(htmlPath) {
     || process.env.APP_HTML
     || path.join(__dirname, '..', 'gto-trainer.html');
   const html = fs.readFileSync(file, 'utf8');
-  const m = html.match(/<script>([\s\S]*)<\/script>/);
-  if (!m) throw new Error(`no <script> block found in ${file}`);
+  const baseDir = path.dirname(file);
+
+  // collect external scripts in order; fall back to a legacy inline block
+  const srcs = [...html.matchAll(/<script\s+src=["']([^"']+)["']/g)].map((x) => x[1]);
+  let code;
+  if (srcs.length) {
+    code = srcs.map((src) => {
+      const p = path.resolve(baseDir, src);
+      return `\n// ===== ${src} =====\n` + fs.readFileSync(p, 'utf8');
+    }).join('\n');
+  } else {
+    const m = html.match(/<script>([\s\S]*)<\/script>/);
+    if (!m) throw new Error(`no <script src> tags or inline <script> in ${file}`);
+    code = m[1];
+  }
 
   const stub = mkStub();
   const ctx = {
@@ -67,7 +82,7 @@ function loadApp(htmlPath) {
   vm.createContext(ctx);
 
   const capture = `;globalThis.__app={${EXPORTS.join(',')}};`;
-  vm.runInContext(m[1] + capture, ctx, { filename: 'gto-trainer.inline.js' });
+  vm.runInContext(code + capture, ctx, { filename: 'gto-trainer.bundle.js' });
   return ctx.__app;
 }
 
