@@ -42,6 +42,8 @@ const VARIANTS={
   d25:{label:'25bb 中码',sub:'9人·缩尺度',short:'9人25bb'},
   d15:{label:'15bb 浅码',sub:'9人·转推弃前',short:'9人15bb'},
   d10:{label:'10bb 推弃',sub:'9人·全下/弃',short:'9人推弃'},
+  d15p:{label:'15bb 推弃',sub:'9人·全下/弃·计算',short:'9人15bb推'},
+  d20p:{label:'20bb 推弃',sub:'9人·全下/弃·计算',short:'9人20bb推'},
   icm:{label:'泡沫 ICM',sub:'9人·保命',short:'9人ICM'},
   d40_6:{label:'40bb · 6人',sub:'终桌/短手',short:'6人40bb'},
   d20_6:{label:'20bb · 6人',sub:'终桌浅码',short:'6人20bb'},

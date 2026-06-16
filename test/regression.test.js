@@ -78,16 +78,22 @@ test('every spot has a confidence tag', () => {
           `${fmt}/${v}/${t.name}: bad confidence "${t.confidence}"`);
 });
 
-test('10bb push spots use the computed Nash data (precise + freqTable)', () => {
-  const d10 = PACKS.mtt.d10;
-  const byPf = {}; d10.forEach((t) => { if (t.pf) byPf[t.pf] = t; });
-  for (const t of d10) {
-    assert.equal(t.confidence, 'precise', `${t.name}: computed data should have loaded`);
-    assert.ok(t.freqTable && Object.keys(t.freqTable).length > 0, `${t.name}: has freqTable`);
+test('computed push spots (10/15/20bb) loaded as precise with freqTable', () => {
+  for (const v of ['d10', 'd15p', 'd20p']) {
+    const arr = PACKS.mtt[v];
+    assert.ok(arr && arr.length === 5, `${v} should have 5 spots`);
+    for (const t of arr) {
+      assert.equal(t.confidence, 'precise', `${v}/${t.name}: computed data should have loaded`);
+      assert.ok(t.freqTable && Object.keys(t.freqTable).length > 0, `${v}/${t.name}: has freqTable`);
+    }
   }
-  // computed shape: UTG tight (premiums only), SB much wider
-  assert.ok(byPf.UTG.R.has('AA') && !byPf.UTG.R.has('72o'), 'UTG jams AA not 72o');
-  assert.ok(byPf.SB.union.length > byPf.UTG.union.length, 'SB jams wider than UTG');
+  const sb = (v) => PACKS.mtt[v].find((t) => t.pf === 'SB');
+  const utg = (v) => PACKS.mtt[v].find((t) => t.pf === 'UTG');
+  // within a stack: SB jams wider than UTG; premiums in, trash out
+  assert.ok(sb('d10').union.length > utg('d10').union.length, 'SB wider than UTG');
+  assert.ok(utg('d10').R.has('AA') && !utg('d10').R.has('72o'), 'UTG jams AA not 72o');
+  // deeper stacks jam tighter (pure jam/fold)
+  assert.ok(sb('d10').union.length > sb('d20p').union.length, 'SB tighter at 20bb than 10bb');
 });
 
 test('range DSL expand() parses representative tokens', () => {

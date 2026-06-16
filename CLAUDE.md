@@ -12,13 +12,13 @@ A zero-build, dependency-free web app: a **pre-flop poker GTO decision trainer**
 gto-trainer.html         markup + ~600 lines CSS, then 5 <script src> tags (order matters)
 js/ranges.js             range-string DSL (expand) + scenario taxonomy (FORMATS/GAMETYPES/VARIANTS)
 js/modes.js              MODES — single source of mode behaviour (+ FREQ/handFreq, cellCat/catName)
-js/data/pushfold-10bb.js AUTO-GENERATED computed 10bb Nash (global PUSHFOLD_10BB); loads before packs
+js/data/pushfold.js      AUTO-GENERATED computed 10/15/20bb Nash (global PUSHFOLD); loads before packs
 js/packs.js              PACKS range database (+ PREMIUM); overrides d10 spots with the computed data
 js/app.js                persistence, audio, confetti, hand helpers, game engine, charts UI, boot
 tools/                   offline (Node) data computation — NOT shipped to the browser:
   equity.js              exact + Monte-Carlo all-in equity engine (evaluate7, equityExact, classEquity)
   pushfold.js            HU + multiway push/fold Nash solvers (buildEqMatrix, solveHU, solveRing)
-  gen-pushfold.js        runs the solver and writes js/data/pushfold-10bb.js
+  gen-pushfold.js        runs the solver and writes js/data/pushfold.js (10/15/20bb)
 ```
 
 The four scripts share one global scope (browser behaviour for classic scripts); load order is `ranges → modes → packs → app` and is enforced by the `<script src>` order. An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
@@ -28,7 +28,7 @@ The four scripts share one global scope (browser behaviour for classic scripts);
 - **Run:** open `gto-trainer.html` in any browser. State persists to `localStorage` (`STORE_KEY = 'gtoTrainer_v1'`); it silently no-ops in sandboxed previews.
 - **Test:** `npm test` (= `node --test "test/*.test.js"`). Run a single test with `node --test --test-name-pattern="snapshot" "test/*.test.js"`.
 - **After an INTENTIONAL change to `MODES` or the ranges**, the snapshot test will fail by design — regenerate the golden with `npm run test:update`, then review the diff in `test/__snapshots__/regression.snap.json` before committing.
-- **Recompute the 10bb push/fold Nash data** with `node tools/gen-pushfold.js` (~40s; writes `js/data/pushfold-10bb.js`). Then regenerate the snapshot. The d10 ranges are computed, not hand-curated — edit the model in `tools/`, not the data file.
+- **Recompute the push/fold Nash data** with `node tools/gen-pushfold.js` (~40s; writes `js/data/pushfold.js` for 10/15/20bb). Then regenerate the snapshot. The d10/d15p/d20p ranges are computed, not hand-curated — edit the model in `tools/`, not the data file.
 - Node v24 is installed at `C:\Program Files\nodejs\`. Freshly-spawned tool shells may not have it on PATH until a terminal restart — use the full path (`& "C:\Program Files\nodejs\node.exe"` / `npm.cmd`).
 
 ### How the tests work (no DOM, no dependencies)

@@ -33,7 +33,7 @@
 - 训练器：开局/防守/面对 3bet·4bet/挤压/冷跟/推弃 等模式（`MODES` 单一来源驱动）。
 - 范围图表（13×13 矩阵）、错题复习堆、生涯统计（`statsBySpot`）。
 - **频率地基（Phase 1）**：`handFreq(t,hand)` → 每手动作权重；`freqTable` 可被真数据覆盖；`src/confidence` 标签；测试锁死「频率支持集 == 判定支持集」。
-- **自算 Nash 数据（Phase 7 起步）**：`tools/` 下自建 all-in equity 引擎 + HU/多人 push/fold Nash 求解器；**10bb 9 人推弃 5 个位置已用自算 Nash 替换手搓范围**（`confidence:'precise'`，数据在 `js/data/pushfold-10bb.js`，离线 `node tools/gen-pushfold.js` 重算）。
+- **自算 Nash 数据（Phase 7 起步）**：`tools/` 下自建 all-in equity 引擎 + HU/多人 push/fold Nash 求解器；**10 / 15 / 20bb 9 人推弃各 5 个位置已用自算 Nash 替换手搓范围**（`confidence:'precise'`，数据在 `js/data/pushfold.js`，离线 `node tools/gen-pushfold.js` 重算）。
 - 工程：多文件拆分、零依赖 Node 回归测试（契约不变量 + 金快照 + equity/Nash 验证，20 项）、git。
 
 ---
@@ -115,7 +115,7 @@
 | **Phase 4** | **Range vs Range 胜率计算器**（纯数学钥匙）→ 顺带推弃 EV | 零数据风险 |
 | **Phase 5** | **Leak Analyzer + 错误分类**（最独特价值） | 吃频率数据 + `statsBySpot` |
 | **Phase 6** | 个人画像 + 训练计划（成长系统外壳） | 纯本地 |
-| **Phase 7** | 自算/导入真数据 → `freqTable`。✅ **10bb 9 人推弃已自算 Nash**（`tools/equity.js`+`pushfold.js`+`gen-pushfold.js`）；待办：多 stack（15/20bb）、GTO Wizard/CSV 导入器 | 逐 spot 升 `confidence:precise` |
+| **Phase 7** | 自算/导入真数据 → `freqTable`。✅ **10/15/20bb 9 人推弃已自算 Nash**（`tools/equity.js`+`pushfold.js`+`gen-pushfold.js`）；待办：现金推弃/更多 stack、GTO Wizard/CSV 导入器 | 逐 spot 升 `confidence:precise` |
 | **后续** | ICM 引擎、手牌历史导入、Speed Training 统计 | 🟡 较大 |
 
 ---

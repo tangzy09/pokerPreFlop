@@ -59,14 +59,29 @@ const PACKS={
    {mode:'open',name:'BTN · 按钮位',who:'9人桌 · 15bb 浅码 · 你先开局',tier:2,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T9s, A8o+, A5o, KTo+, QJo"},
    {mode:'open',name:'SB · 小盲位',who:'9人桌 · 15bb 浅码 · 仅剩大盲',tier:3,raise:"33+, A5s+, A2s, K9s+, QTs+, JTs, A9o+, KTo+, QJo"},
   ],
-  // d10 ranges are COMPUTED (10bb Nash, see js/data/pushfold-10bb.js); the raise
-  // strings below are only a fallback if that data file fails to load. pf = seat key.
+  // d10/d15p/d20p push ranges are COMPUTED (Nash, see js/data/pushfold.js); the
+  // raise strings are only a fallback if that data file fails to load.
+  // pf = seat key, pfStack = stack depth to look up in PUSHFOLD.stacks.
   d10:[
-   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',raise:"44+, A8s+, A5s, KJs+, QJs, JTs, AJo+, KQo"},
-   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',raise:"22+, A7s+, A5s-A4s, K9s+, QTs+, JTs, T9s, ATo+, KQo"},
-   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',raise:"22+, A2s+, K7s+, Q9s+, J9s+, T8s+, 98s, A8o+, A5o, KTo+, QJo"},
-   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',raise:"22+, A2s+, K3s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, A2o+, K7o+, Q9o+, J9o+, T9o, 98o"},
-   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~10bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',raise:"22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 95s+, 85s+, 74s+, 64s+, 54s, A2o+, K5o+, Q8o+, J8o+, T8o+, 97o+, 87o, 76o"},
+   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:10,raise:"44+, A8s+, A5s, KJs+, QJs, JTs, AJo+, KQo"},
+   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:10,raise:"22+, A7s+, A5s-A4s, K9s+, QTs+, JTs, T9s, ATo+, KQo"},
+   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:10,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T8s+, 98s, A8o+, A5o, KTo+, QJo"},
+   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:10,raise:"22+, A2s+, K3s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, A2o+, K7o+, Q9o+, J9o+, T9o, 98o"},
+   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~10bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:10,raise:"22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 95s+, 85s+, 74s+, 64s+, 54s, A2o+, K5o+, Q8o+, J8o+, T8o+, 97o+, 87o, 76o"},
+  ],
+  d15p:[
+   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~15bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:15},
+   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~15bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:15},
+   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~15bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:15},
+   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~15bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:15},
+   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~15bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:15},
+  ],
+  d20p:[
+   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~20bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:20},
+   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~20bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:20},
+   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~20bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:20},
+   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~20bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:20},
+   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~20bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:20},
   ],
   icm:[
    {mode:'open',name:'UTG · 枪口位',who:'9人桌 · 泡沫期 ~20bb · 保命收紧',tier:1,raise:"88+, AJs+, AKo"},
@@ -152,24 +167,26 @@ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
  t.src = t.src || '';
 })));
 
-/* Override the 10bb push spots with the COMPUTED Nash data when present
-   (js/data/pushfold-10bb.js loads before this file). shove freq -> R (pure,
-   >=0.995), M (mixed) + a precise freqTable; the rest fold. */
+/* Override every push spot tagged with {pf, pfStack} using the COMPUTED Nash
+   data when present (js/data/pushfold.js loads before this file). shove freq ->
+   R (pure, >=0.995), M (mixed) + a precise freqTable; the rest fold. */
 (function applyComputedPushfold(){
- if(typeof PUSHFOLD_10BB==='undefined')return;
+ if(typeof PUSHFOLD==='undefined')return;
  const rnd=x=>Math.round(x*1000)/1000;
- (PACKS.mtt.d10||[]).forEach(t=>{
-  const tbl=t.pf && PUSHFOLD_10BB.seats[t.pf];
+ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
+  if(!t.pf || t.pfStack==null)return;
+  const stack=PUSHFOLD.stacks[t.pfStack];
+  const tbl=stack && stack.seats[t.pf];
   if(!tbl)return;
   const R=new Set(), M=new Set(), freqTable={};
-  for(const hand in tbl){ const f=tbl[hand];
-   if(f>=0.995){ R.add(hand); freqTable[hand]={shove:1}; }
-   else if(f>0.005){ M.add(hand); freqTable[hand]={shove:rnd(f),fold:rnd(1-f)}; }
+  for(const hand in tbl){ const fr=tbl[hand];
+   if(fr>=0.995){ R.add(hand); freqTable[hand]={shove:1}; }
+   else if(fr>0.005){ M.add(hand); freqTable[hand]={shove:rnd(fr),fold:rnd(1-fr)}; }
   }
   t.R=R; t.C=new Set(); t.M=M; t.union=[...new Set([...R,...M])];
   t.freqTable=freqTable; t.confidence='precise';
-  t.src=`computed ${PUSHFOLD_10BB.meta.stack}bb Nash (${PUSHFOLD_10BB.meta.model})`;
- });
+  t.src=`computed ${t.pfStack}bb Nash (${PUSHFOLD.meta.model})`;
+ })));
 })();
 
 const PREMIUM=new Set(['AA','KK','QQ','JJ','AKs','AKo','AQs']);
