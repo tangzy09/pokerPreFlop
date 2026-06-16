@@ -271,6 +271,9 @@ function resolve(choice,btn,timedOut){
  const fmap=handFreq(t,hand);
  const topAct=Object.keys(fmap).sort((a,b)=>fmap[b]-fmap[a])[0];
  const freqGraded = t.confidence==='precise' && G.isMix;
+ // "played the majority line" — only a real, non-timed-out choice earns 最佳 (a
+ // timeout auto-folds and must never be celebrated as the best play).
+ const hitTop = freqGraded && choice===topAct && !timedOut;
  const elapsed=performance.now()-handStart;
  const speedFrac=Math.max(0,1-elapsed/handDur);
  G.hands++;
@@ -289,7 +292,7 @@ function resolve(choice,btn,timedOut){
   if(G.combo>=2 && elapsed<1500 && !timedOut)G.fastCorrect++;
   const mult=Math.min(3,1+G.combo*0.1);
   const spd=timedOut?1:1+speedFrac*0.6;
-  if(G.isMix && !(freqGraded && choice===topAct)){grade='好棋';gcolor='var(--good)';G.q.good++;pts=Math.round(85*mult*spd);}
+  if(G.isMix && !hitTop){grade='好棋';gcolor='var(--good)';G.q.good++;pts=Math.round(85*mult*spd);}
   else{grade='最佳';gcolor='var(--best)';G.q.best++;pts=Math.round(100*mult*spd);big=true;}
   G.score+=pts;
   SFX[G.combo>=5?'great':'correct']();buzz(G.combo>=5?[20,40,20]:30);
@@ -321,7 +324,7 @@ function resolve(choice,btn,timedOut){
  const v=document.getElementById('verdict');
  document.getElementById('grade').textContent=(timedOut?'超时 · ':'')+grade;
  document.getElementById('grade').style.color=gcolor;
- const mixTip = (freqGraded && choice===topAct) ? `主频线 ${MODES[t.mode].names[topAct]||topAct} ${Math.round(fmap[topAct]*100)}%` : '边缘混合点';
+ const mixTip = hitTop ? `主频线 ${MODES[t.mode].names[topAct]||topAct} ${Math.round(fmap[topAct]*100)}%` : '边缘混合点';
  document.getElementById('tip').innerHTML= ok ? (G.isMix?mixTip:'打得漂亮！') : `应 <b>${corrStr}</b>`;
  v.className='verdict show';
 
