@@ -80,18 +80,19 @@ function unlocked(){const u=G.pack.filter(t=>t.tier<=G.level);return u.length?u:
 
 /* ---- mistake review pile (session memory) ---- */
 let reviewPile=[];
+const MASTER_STREAK=2; // consecutive corrects in review needed before a spot leaves the pile
 function pileKey(fmt,v,tname,hand){return fmt+'|'+v+'|'+tname+'|'+hand;}
 function addMistake(){
  const key=pileKey(G.format,G.variant,G.table.name,G.hand);
  const ex=reviewPile.find(r=>r.key===key);
- if(ex){ex.wrong++;}
+ if(ex){ex.wrong++;ex.streak=0;} // a fresh miss resets mastery progress
  else reviewPile.push({key,t:G.table,hand:G.hand,fmt:G.format,variant:G.variant,
-  label:FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short,wrong:1});
+  label:FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short,wrong:1,streak:0});
  persistReview();
 }
 function removeFromPile(rec){const i=reviewPile.indexOf(rec);if(i>=0)reviewPile.splice(i,1);persistReview();}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function serializeReview(){return reviewPile.map(r=>({tn:r.t.name,hand:r.hand,fmt:r.fmt,variant:r.variant,label:r.label,wrong:r.wrong}));}
+function serializeReview(){return reviewPile.map(r=>({tn:r.t.name,hand:r.hand,fmt:r.fmt,variant:r.variant,label:r.label,wrong:r.wrong,streak:r.streak}));}
 function persistReview(){STORE.review=serializeReview();persist();}
 function reviveReview(arr){
  if(!Array.isArray(arr))return;
@@ -99,7 +100,7 @@ function reviveReview(arr){
   const pack=PACKS[r.fmt]&&PACKS[r.fmt][r.variant];
   const t=pack&&pack.find(x=>x.name===r.tn);
   if(!t)return null;
-  return {key:pileKey(r.fmt,r.variant,r.tn,r.hand),t,hand:r.hand,fmt:r.fmt,variant:r.variant,label:r.label||'',wrong:r.wrong||1};
+  return {key:pileKey(r.fmt,r.variant,r.tn,r.hand),t,hand:r.hand,fmt:r.fmt,variant:r.variant,label:r.label||'',wrong:r.wrong||1,streak:r.streak||0};
  }).filter(Boolean);
 }
 function updateReviewBtns(){
@@ -313,8 +314,12 @@ function resolve(choice,btn,timedOut){
 
  // mistake pile bookkeeping
  if(G.reviewMode){
-  if(ok){removeFromPile(G.reviewRec);G.reviewCleared++;}
-  else {G.reviewQueue.push(G.reviewRec);} // drill again this session
+  const rec=G.reviewRec;
+  if(ok){
+   rec.streak=(rec.streak||0)+1;
+   if(rec.streak>=MASTER_STREAK){removeFromPile(rec);G.reviewCleared++;} // 连续答对 → 掌握，移出错题堆
+   else {persistReview();G.reviewQueue.push(rec);}                       // 答对但未掌握 → 留堆，本轮再练一遍
+  } else {rec.streak=0;persistReview();G.reviewQueue.push(rec);}          // 答错 → 清零重练
   updateReviewBtns();
  } else if(!ok){ addMistake(); updateReviewBtns(); }
 
@@ -632,7 +637,7 @@ function renderReviewDetail(){
   const chips=document.createElement('div');chips.className='rv-chips';
   arr.forEach(r=>{
    const c=document.createElement('span');c.className='rv-chip';
-   c.innerHTML=`${r.hand}${r.wrong>1?` <span class="wn">×${r.wrong}</span>`:''} <span class="del">✕</span>`;
+   c.innerHTML=`${r.hand}${r.wrong>1?` <span class="wn">×${r.wrong}</span>`:''}${r.streak>0?` <span class="st">✓${r.streak}/${MASTER_STREAK}</span>`:''} <span class="del">✕</span>`;
    c.querySelector('.del').onclick=()=>{removeFromPile(r);renderReviewDetail();updateReviewBtns();SFX.click();};
    chips.appendChild(c);
   });

@@ -66,7 +66,7 @@ Read these relationships before editing:
 - 这套逻辑只在运行期的 `resolve()`，**不动 `MODES` 也不影响金快照**；反馈面板与图表 `cInfo` 仅对 `precise` 局面显示真实百分比，其余维持定性。
 
 ### Persistence & review
-`localStorage` holds prefs, lifetime stats (`statsBySpot`), and the **mistake review pile** (`reviewPile`) — a lightweight spaced-repetition queue (a spot leaves the pile once answered correctly). Review mode replays the pile without affecting HP/stats.
+`localStorage` holds prefs, lifetime stats (`statsBySpot`), and the **mistake review pile** (`reviewPile`) — a lightweight spaced-repetition queue. Each record tracks a `streak` of consecutive correct answers in review; a spot leaves the pile only after `MASTER_STREAK` (=2) consecutive corrects (a miss resets it to 0), or via the manual 🗑 in the review-detail page — so errors stay drillable across sessions. Review mode replays the pile without affecting HP/stats.
 
 ## Domain caveat (do not misrepresent)
 
