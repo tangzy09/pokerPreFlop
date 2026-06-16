@@ -176,7 +176,7 @@ function stopTimer(){if(timerRAF)cancelAnimationFrame(timerRAF);timerRAF=null;}
 
 /* ---- data-confidence labelling (honest per-spot provenance in the UI) ---- */
 const CONF={
- precise:{mark:'✓',txt:'自算 Nash',cls:'conf-precise',desc:'由本工具的 equity + Nash 求解器计算所得（推弃 no-overcall 模型）——非手搓'},
+ precise:{mark:'✓',txt:'自算 Nash',cls:'conf-precise',desc:'本工具 equity+Nash 求解器计算所得（非手搓）；属简化模型（无前注 / no-overcall / 类级 equity）的近似解，非真实牌桌精确——可剥削度见来源'},
  curated:{mark:'≈',txt:'手搓参考',cls:'conf-curated',desc:'参考公开图表手工整理，核对过量级/形状；混合频率为占位，非 solver 精确'},
  approx :{mark:'~',txt:'粗略估计',cls:'conf-approx', desc:'最粗的一档（如 ICM / 6人估计）'},
 };
