@@ -94,4 +94,62 @@ function equityExact(hero, villain) {
   return (win + tie / 2) / total;
 }
 
-module.exports = { card, cardRank, cardSuit, cardStr, parseCard, evaluate7, comboCards, equityExact, RV, SV, RC, SC };
+// ---- seeded RNG (deterministic, reproducible Monte-Carlo) ----
+function mulberry32(seed) {
+  let a = seed | 0;
+  return function () {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---- Monte-Carlo equity of hero[2] vs villain[2] over n random boards ----
+function equityMC(hero, villain, n, rng) {
+  const dead = new Set([...hero, ...villain]);
+  const deck = []; for (let c = 0; c < 52; c++) if (!dead.has(c)) deck.push(c);
+  const m = deck.length;
+  const h7 = [hero[0], hero[1], 0, 0, 0, 0, 0];
+  const v7 = [villain[0], villain[1], 0, 0, 0, 0, 0];
+  let win = 0, tie = 0;
+  for (let it = 0; it < n; it++) {
+    for (let k = 0; k < 5; k++) {                  // partial Fisher-Yates: first 5 = board
+      const j = k + ((rng() * (m - k)) | 0);
+      const tmp = deck[k]; deck[k] = deck[j]; deck[j] = tmp;
+      h7[2 + k] = v7[2 + k] = deck[k];
+    }
+    const hs = evaluate7(h7), vs = evaluate7(v7);
+    if (hs > vs) win++; else if (hs === vs) tie++;
+  }
+  return (win + tie / 2) / n;
+}
+
+// ---- equity of hand-class label1 vs label2, averaged over combos + boards ----
+// (naturally includes cross-blockers between the two specific hands)
+function classEquity(label1, label2, n, rng) {
+  const c1 = comboCards(label1), c2 = comboCards(label2);
+  const h7 = [0, 0, 0, 0, 0, 0, 0], v7 = [0, 0, 0, 0, 0, 0, 0];
+  let win = 0, tie = 0, done = 0;
+  while (done < n) {
+    const a = c1[(rng() * c1.length) | 0];
+    const b = c2[(rng() * c2.length) | 0];
+    if (a[0] === b[0] || a[0] === b[1] || a[1] === b[0] || a[1] === b[1]) continue; // conflict
+    const dead = new Set([a[0], a[1], b[0], b[1]]);
+    const deck = []; for (let c = 0; c < 52; c++) if (!dead.has(c)) deck.push(c);
+    const m = deck.length;
+    h7[0] = a[0]; h7[1] = a[1]; v7[0] = b[0]; v7[1] = b[1];
+    for (let k = 0; k < 5; k++) {
+      const j = k + ((rng() * (m - k)) | 0);
+      const tmp = deck[k]; deck[k] = deck[j]; deck[j] = tmp;
+      h7[2 + k] = v7[2 + k] = deck[k];
+    }
+    const hs = evaluate7(h7), vs = evaluate7(v7);
+    if (hs > vs) win++; else if (hs === vs) tie++;
+    done++;
+  }
+  return (win + tie / 2) / n;
+}
+
+module.exports = { card, cardRank, cardSuit, cardStr, parseCard, evaluate7, comboCards,
+  equityExact, equityMC, classEquity, mulberry32, RV, SV, RC, SC };
