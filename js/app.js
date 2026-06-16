@@ -590,6 +590,18 @@ function launch(){
 document.getElementById('startBtn').onclick=launch;
 document.getElementById('againBtn').onclick=()=>{document.getElementById('startScreen').classList.remove('hide');document.getElementById('overScreen').classList.add('hide');updateReviewBtns();SFX.click();};
 
+// exit mid-game back to the start menu — no resume, so confirm only when a live
+// run would be abandoned (matches game-over → 再来一局 behaviour).
+function exitToMenu(){
+ if(!G.over && G.hands>0 && !confirm('退出当前训练？本局进度不会保存喵～'))return;
+ SFX.click();stopTimer();G.busy=true;G.over=true;
+ document.getElementById('feedback').classList.add('hide');
+ document.getElementById('verdict').className='verdict';
+ document.getElementById('startScreen').classList.remove('hide');
+ updateReviewBtns();
+}
+document.getElementById('exitBtn').onclick=exitToMenu;
+
 /* ---- review detail page ---- */
 function openReviewDetail(){aInit();SFX.click();
  renderReviewDetail();

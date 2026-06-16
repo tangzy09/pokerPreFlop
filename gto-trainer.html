@@ -33,6 +33,9 @@
 
   /* ---------- top HUD ---------- */
   .hud{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;gap:10px}
+  .hud-left{display:flex;align-items:center;gap:9px}
+  .exit-btn{appearance:none;border:1px solid var(--line);background:transparent;cursor:pointer;color:var(--gold);font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:9px;padding:5px 9px}
+  .exit-btn:hover{background:rgba(232,198,106,.12)}
   .hp{display:flex;gap:5px;font-size:19px;line-height:1}
   .hp i{filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));transition:.25s}
   .hp i.dead{filter:grayscale(1) brightness(.5);transform:scale(.8)}
@@ -286,7 +289,10 @@
 <div id="app">
   <!-- HUD -->
   <div class="hud">
-    <div class="hp" id="hp"></div>
+    <div class="hud-left">
+      <button class="exit-btn" id="exitBtn" title="退出训练" aria-label="退出训练">←</button>
+      <div class="hp" id="hp"></div>
+    </div>
     <div class="combo-wrap"><span class="combo" id="combo"></span></div>
     <div class="hud-right">
       <div class="score" id="score">0</div>
