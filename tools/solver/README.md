@@ -53,8 +53,21 @@ known answer before trusting it on a real spot, and measure exploitability.
    large ranges. `test_vector.py` GREEN (11/11): matches the scalar solver
    exactly on the toy, half-pot MDF, scale (MDF holds with many combos),
    determinism. ~50×38 combos solve in ~0.2s. (numpy absent -> suite skips.)
-8. ⬜ Next: vectorize the MULTI-STREET solver (chance nodes); raises in postflop
-   trees; flop-range iteration (the real chicken-and-egg joint solve).
+8. ✅ **Vectorized multi-street (turn+river)** — `vturn.py` (needs numpy): vector
+   CFR with a CHANCE node (per-river showdown matrices + per-hand card-removal).
+   `test_vturn.py` GREEN (11/11): matches the scalar multi-street solver
+   (value within 0.01, exploitability ~0.005), chance averaging (nuts-vs-air
+   +0.5), scale (MDF holds with many combos), determinism, convergence. A bug
+   worth noting: river infosets must be keyed by the TURN line too (different pot
+   sizes reach the same river card+history) — without that, mixed multi-hand
+   spots plateaued at ~0.1 exploitability. EXPENSIVE (48-card chance fan-out,
+   ~2min) -> standalone, not in run_all. Run: `python tools/solver/test_vturn.py`.
+9. ⬜ Next: raises in the postflop trees; vectorized 2-chance (flop) solve;
+   flop-range iteration (the real chicken-and-egg joint solve).
+
+## Heavier standalone suites (not in run_all)
+- `python tools/solver/endtoend.py` — preflop fed by the real postflop solver (~45s)
+- `python tools/solver/test_vturn.py` — vectorized turn+river (~2min)
 
 ## Why HU only
 CFR provably converges to Nash only in 2-player zero-sum games. Multiway
