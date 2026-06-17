@@ -97,6 +97,26 @@ test('computed push spots (10/15/20bb) loaded as precise with freqTable', () => 
   assert.ok(sb('d10').union.length > sb('d20p').union.length, 'SB tighter at 20bb than 10bb');
 });
 
+test('HU push/fold spots (jam + call) loaded as precise from computed Nash', () => {
+  for (const v of ['hu10', 'hu15', 'hu20']) {
+    const arr = PACKS.mtt[v];
+    assert.ok(arr && arr.length === 2, `${v} should have 2 spots (SB jam + BB call)`);
+    for (const t of arr) {
+      assert.equal(t.confidence, 'precise', `${v}/${t.name}: computed`);
+      assert.ok(t.freqTable && Object.keys(t.freqTable).length > 0, `${v}/${t.name}: freqTable`);
+      assert.match(t.src, /HU Nash/, `${v}/${t.name}: src says HU`);
+    }
+    const jam = arr.find((t) => t.huSide === 'jam');     // push mode -> R = shove range
+    const call = arr.find((t) => t.huSide === 'call');   // callshove mode -> C = call range
+    assert.equal(jam.mode, 'push'); assert.equal(call.mode, 'callshove');
+    assert.ok(jam.R.has('AA') && call.C.has('AA'), 'AA both jams and calls');
+    assert.ok(jam.union.length > call.union.length, 'SB jams wider than BB calls');
+  }
+  // deeper stacks: both jam and call tighter
+  assert.ok(PACKS.mtt.hu10.find((t) => t.huSide === 'jam').union.length
+          > PACKS.mtt.hu20.find((t) => t.huSide === 'jam').union.length, 'HU jam tighter at 20bb');
+});
+
 test('UI labels computed spots as precise (real freq) and curated as placeholder', () => {
   const precise = PACKS.mtt.d10.find((t) => t.pf === 'UTG');
   const curated = PACKS.cash['6'][0];

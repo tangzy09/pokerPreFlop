@@ -83,6 +83,20 @@ const PACKS={
    {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~20bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:20},
    {mode:'push',name:'SB 推/弃',who:'9人桌 · ~20bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:20},
   ],
+  // hu* = heads-up SB-vs-BB push/fold, COMPUTED (js/data/hu-pushfold.js). Two spots:
+  // SB jam (push mode) + BB call-off facing a jam (callshove mode). huSide picks side.
+  hu10:[
+   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~10bb · SB 全下或弃 · 计算 Nash',tier:1,huStack:10,huSide:'jam'},
+   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~10bb · 面对 SB 全下 · 计算 Nash',tier:1,huStack:10,huSide:'call'},
+  ],
+  hu15:[
+   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~15bb · SB 全下或弃 · 计算 Nash',tier:1,huStack:15,huSide:'jam'},
+   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~15bb · 面对 SB 全下 · 计算 Nash',tier:1,huStack:15,huSide:'call'},
+  ],
+  hu20:[
+   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~20bb · SB 全下或弃 · 计算 Nash',tier:1,huStack:20,huSide:'jam'},
+   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~20bb · 面对 SB 全下 · 计算 Nash',tier:1,huStack:20,huSide:'call'},
+  ],
   icm:[
    {mode:'open',name:'UTG · 枪口位',who:'9人桌 · 泡沫期 ~20bb · 保命收紧',tier:1,raise:"88+, AJs+, AKo"},
    {mode:'open',name:'MP · 中位',who:'9人桌 · 泡沫期 ~20bb · 保命收紧',tier:1,raise:"77+, ATs+, KQs, AJo+"},
@@ -187,6 +201,29 @@ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
   t.freqTable=freqTable; t.confidence='precise';
   const reg=PUSHFOLD.meta.exploitability && PUSHFOLD.meta.exploitability[t.pfStack];
   t.src=`computed ${t.pfStack}bb Nash (${PUSHFOLD.meta.model}`+(reg!=null?` · 可剥削度~${reg}bb/手`:'')+')';
+ })));
+})();
+
+/* Override the heads-up spots tagged with {huStack, huSide} from the computed
+   HU Nash (js/data/hu-pushfold.js). jam side -> push mode (R=shove), call side
+   -> callshove mode (C=call); both get a precise freqTable. */
+(function applyComputedHU(){
+ if(typeof HU_PUSHFOLD==='undefined')return;
+ const rnd=x=>Math.round(x*1000)/1000;
+ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
+  if(t.huStack==null)return;
+  const st=HU_PUSHFOLD.stacks[t.huStack]; if(!st)return;
+  const jam=t.huSide==='jam';
+  const tbl=jam?st.jam:st.call, act=jam?'shove':'call';
+  const R=new Set(), C=new Set(), M=new Set(), freqTable={};
+  for(const hand in tbl){ const fr=tbl[hand];
+   if(fr>=0.995){ (jam?R:C).add(hand); freqTable[hand]={[act]:1}; }
+   else if(fr>0.005){ M.add(hand); freqTable[hand]={[act]:rnd(fr),fold:rnd(1-fr)}; }
+  }
+  t.R=R; t.C=C; t.M=M; t.union=[...new Set([...R,...C,...M])];
+  t.freqTable=freqTable; t.confidence='precise';
+  const reg=HU_PUSHFOLD.meta.exploitability && HU_PUSHFOLD.meta.exploitability[t.huStack];
+  t.src=`computed ${t.huStack}bb HU Nash`+(reg!=null?` · 可剥削度~${reg}bb/手`:'');
  })));
 })();
 

@@ -14,12 +14,14 @@ js/equity.js             dual-loaded all-in equity engine (evaluate7, equityExac
                          rangeEquity); also require()d by tools/ — module.exports is guarded
 js/ranges.js             range-string DSL (expand) + scenario taxonomy (FORMATS/GAMETYPES/VARIANTS)
 js/modes.js              MODES — single source of mode behaviour (+ FREQ/handFreq, cellCat/catName)
-js/data/pushfold.js      AUTO-GENERATED computed 10/15/20bb Nash (global PUSHFOLD); loads before packs
+js/data/pushfold.js      AUTO-GENERATED computed 9-max 10/15/20bb Nash (global PUSHFOLD); loads before packs
+js/data/hu-pushfold.js   AUTO-GENERATED computed HU SB-vs-BB push/fold, jam + call (global HU_PUSHFOLD)
 js/packs.js              PACKS range database (+ PREMIUM); overrides d10 spots with the computed data
 js/app.js                persistence, audio, confetti, hand helpers, game engine, charts + 胜率计算器 UI, boot
 tools/                   offline (Node) data computation — NOT shipped to the browser:
   pushfold.js            HU + multiway push/fold Nash solvers (buildEqMatrix, solveHU, solveRing); require()s ../js/equity
-  gen-pushfold.js        runs the solver and writes js/data/pushfold.js (10/15/20bb)
+  gen-pushfold.js        runs the solver and writes js/data/pushfold.js (10/15/20bb 9-max)
+  gen-hu-pushfold.js     writes js/data/hu-pushfold.js (HU SB jam + BB call-off, 10/15/20bb)
 ```
 
 The scripts share one global scope (browser behaviour for classic scripts); load order is `equity → ranges → modes → packs → app` and is enforced by the `<script src>` order. `js/equity.js` is the one file used both in the browser (plain globals) and by Node tools (`require`, via the guarded `module.exports`). An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
