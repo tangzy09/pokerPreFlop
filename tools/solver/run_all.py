@@ -19,6 +19,7 @@ SUITES = [
     ("Multi-street (turn/river)", "test_streets.py"),
     ("Preflop + leaf_ev", "test_preflop.py"),
     ("Preflop raises (v2)", "test_preflop_raise.py"),
+    ("Vectorized river CFR", "test_vector.py"),
 ]
 
 def summary_line(out):

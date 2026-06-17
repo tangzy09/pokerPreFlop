@@ -47,8 +47,14 @@ known answer before trusting it on a real spot, and measure exploitability.
    existing (leaf_ev=None still reduces to push/fold, matching the plain
    jam/fold value exactly). `test_preflop_raise.py` GREEN (10/10): reduction,
    raise/limp offered, exploitability ~0, determinism, convergence.
-7. ⬜ Next (all heavy): raises in the POSTFLOP trees; bigger ranges (needs
-   vectorised CFR); flop-range iteration (the real chicken-and-egg joint solve).
+7. ✅ **Vectorized river CFR (full-range)** — `vriver.py` (needs numpy):
+   propagates per-hand reach VECTORS through the public tree, evaluates
+   showdowns as matrix-vector products (SHARE/VALID matrices), so it scales to
+   large ranges. `test_vector.py` GREEN (11/11): matches the scalar solver
+   exactly on the toy, half-pot MDF, scale (MDF holds with many combos),
+   determinism. ~50×38 combos solve in ~0.2s. (numpy absent -> suite skips.)
+8. ⬜ Next: vectorize the MULTI-STREET solver (chance nodes); raises in postflop
+   trees; flop-range iteration (the real chicken-and-egg joint solve).
 
 ## Why HU only
 CFR provably converges to Nash only in 2-player zero-sum games. Multiway
