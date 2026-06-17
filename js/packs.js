@@ -59,15 +59,29 @@ const PACKS={
    {mode:'open',name:'BTN · 按钮位',who:'9人桌 · 15bb 浅码 · 你先开局',tier:2,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T9s, A8o+, A5o, KTo+, QJo"},
    {mode:'open',name:'SB · 小盲位',who:'9人桌 · 15bb 浅码 · 仅剩大盲',tier:3,raise:"33+, A5s+, A2s, K9s+, QTs+, JTs, A9o+, KTo+, QJo"},
   ],
-  // d10/d15p/d20p push ranges are COMPUTED (Nash, see js/data/pushfold.js); the
-  // raise strings are only a fallback if that data file fails to load.
+  // d8p/d10/d12p/d15p/d20p push ranges are COMPUTED (Nash, see js/data/pushfold.js); the
+  // raise strings (only on d10) are a fallback if that data file fails to load.
   // pf = seat key, pfStack = stack depth to look up in PUSHFOLD.stacks.
+  d8p:[
+   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~8bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:8},
+   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~8bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:8},
+   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~8bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:8},
+   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~8bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:8},
+   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~8bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:8},
+  ],
   d10:[
    {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:10,raise:"44+, A8s+, A5s, KJs+, QJs, JTs, AJo+, KQo"},
    {mode:'push',name:'MP 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:10,raise:"22+, A7s+, A5s-A4s, K9s+, QTs+, JTs, T9s, ATo+, KQo"},
    {mode:'push',name:'CO 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:10,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T8s+, 98s, A8o+, A5o, KTo+, QJo"},
    {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:10,raise:"22+, A2s+, K3s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, A2o+, K7o+, Q9o+, J9o+, T9o, 98o"},
    {mode:'push',name:'SB 推/弃',who:'9人桌 · ~10bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:10,raise:"22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 95s+, 85s+, 74s+, 64s+, 54s, A2o+, K5o+, Q8o+, J8o+, T8o+, 97o+, 87o, 76o"},
+  ],
+  d12p:[
+   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~12bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:12},
+   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~12bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:12},
+   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~12bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:12},
+   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~12bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:12},
+   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~12bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:12},
   ],
   d15p:[
    {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~15bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:15},

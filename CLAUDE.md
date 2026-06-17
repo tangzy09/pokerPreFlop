@@ -17,7 +17,7 @@ js/equity.js             dual-loaded equity engine (evaluate7, equityExact, clas
                          also require()d by tools/ — module.exports is guarded
 js/ranges.js             range-string DSL (expand) + scenario taxonomy (FORMATS/GAMETYPES/VARIANTS)
 js/modes.js              MODES — single source of mode behaviour (+ FREQ/handFreq, cellCat/catName)
-js/data/pushfold.js      AUTO-GENERATED computed 9-max 10/15/20bb Nash (global PUSHFOLD); loads before packs
+js/data/pushfold.js      AUTO-GENERATED computed 9-max 8/10/12/15/20bb Nash (global PUSHFOLD); loads before packs
 js/data/hu-pushfold.js   AUTO-GENERATED computed HU SB-vs-BB push/fold, jam + call (global HU_PUSHFOLD)
 js/packs.js              PACKS range database (+ PREMIUM); overrides d10 spots with the computed data
 js/app.js                persistence, audio, confetti, hand helpers, game engine, charts +
@@ -26,7 +26,7 @@ js/app.js                persistence, audio, confetti, hand helpers, game engine
                          js/data/postflop-spots.js are kept, but that file is no longer <script>-loaded
 tools/                   offline data computation — NOT shipped to the browser:
   pushfold.js            (Node) HU + multiway push/fold Nash solvers (buildEqMatrix, solveHU, solveRing); require()s ../js/equity
-  gen-pushfold.js        (Node) runs the solver and writes js/data/pushfold.js (10/15/20bb 9-max)
+  gen-pushfold.js        (Node) runs the solver and writes js/data/pushfold.js (8/10/12/15/20bb 9-max)
   gen-hu-pushfold.js     (Node) writes js/data/hu-pushfold.js (HU SB jam + BB call-off, 10/15/20bb)
   gen-postflop-spots.py  (Python) solves canonical HU postflop spots with tools/solver (vectorized CFR+)
                          and writes js/data/postflop-spots.js (validated by test/solver-spots.test.js) —
@@ -42,7 +42,7 @@ The scripts share one global scope (browser behaviour for classic scripts); load
 - **Test:** `npm test` (app JS, = `node --test "test/*.test.js"`). Run a single test with `node --test --test-name-pattern="snapshot" "test/*.test.js"`.
 - **Solver tests (Python):** `npm run test:solver` (= `python tools/solver/run_all.py`, runs the 4 CFR/equity suites in `tools/solver/`). `npm run test:all` runs JS + solver together.
 - **After an INTENTIONAL change to `MODES` or the ranges**, the snapshot test will fail by design — regenerate the golden with `npm run test:update`, then review the diff in `test/__snapshots__/regression.snap.json` before committing.
-- **Recompute the push/fold Nash data** with `node tools/gen-pushfold.js` (~2min; writes `js/data/pushfold.js` for 10/15/20bb). Then regenerate the snapshot. The d10/d15p/d20p ranges are computed, not hand-curated — edit the model in `tools/`, not the data file.
+- **Recompute the push/fold Nash data** with `node tools/gen-pushfold.js` (~3-4min; writes `js/data/pushfold.js` for 8/10/12/15/20bb). Then regenerate the snapshot. The d8p/d10/d12p/d15p/d20p ranges are computed, not hand-curated — edit `STACKS` / the model in `tools/`, not the data file.
 - **The offline 翻后GTO solver** lives in `tools/solver/` (+ `gen-postflop-spots.py`, `npm run test:solver`). It still produces/validates `js/data/postflop-spots.js`, but the **in-app 翻后GTO screen was removed** (product decision) — the data file is no longer `<script>`-loaded by `gto-trainer.html`. The solver chain is kept for the offline pipeline + its tests; honest scope if revived: HU, single bet size, no raises (MDF / polarization / indifference demos).
 - **Accuracy is measured, not assumed:** `ringRegret()` computes the solution's exploitability (max bb/hand a best-responder could gain; 0 = exact Nash within the model). gen-pushfold records it per stack in `PUSHFOLD.meta.exploitability` and packs.js surfaces it in each spot's `src` / confidence tooltip. The data is a *computed approximation of a simplified model* (chip-EV, no antes, no-overcall, class-level equity, Monte-Carlo) — not real-table truth.
 - Node v24 is installed at `C:\Program Files\nodejs\`. Freshly-spawned tool shells may not have it on PATH until a terminal restart — use the full path (`& "C:\Program Files\nodejs\node.exe"` / `npm.cmd`).
@@ -83,7 +83,7 @@ Read these relationships before editing:
 ### Persistence & review
 `localStorage` holds prefs, lifetime stats (`statsBySpot`), and the **mistake review pile** (`reviewPile`) — a lightweight spaced-repetition queue. Each record tracks a `streak` of consecutive correct answers in review; a spot leaves the pile only after `MASTER_STREAK` (=2) consecutive corrects (a miss resets it to 0), or via the manual 🗑 in the review-detail page — so errors stay drillable across sessions. Review mode replays the pile without affecting HP/stats.
 
-**Leak Analyzer (Phase 5)** lives on the 统计 (stats) screen: `renderLeak()` aggregates the `reviewPile`, bucketing each miss via `classifyMiss(rec)` — which decides purely from the spot+hand (no stored choice): ICM spot → `icm`, mix point (`correct.length>1`) → `mix`, pure-fold hand misplayed → `loose` (太松), pure-play hand misplayed → `tight` (太紧). It shows the biggest leak, the type breakdown, and the most-missed hands with 去练 buttons (→ `startReview(label)`). Honest framing: it's all **vs 参考范围**, not solver-exact.
+**Leak Analyzer + 画像/计划 (Phase 5–6)** live on the 统计 (stats) screen. `addMistake(choice)` records the player's actual action on each miss. `classifyMiss(rec)` buckets a miss: ICM spot → `icm`, mix point (`correct.length>1`) → `mix`; otherwise by the real choice vs the single correct action — folded a play-hand → `tight` (太紧), played a fold-hand → `loose` (太松), called-not-raised → `passive` (被动), raised-not-called → `aggro` (过激); old records lacking `choice` fall back to a hand-type heuristic. `renderLeak()` ranks the buckets (init from `LEAK_TYPES` so all buckets count) + most-missed hands (→ `startReview(label)`); `renderProfile()` derives 风格倾向(松/紧) + 打法倾向(被动/激进) + 强弱档位; `renderPlan()` ranks spots by 需练度(错得多+准确率低). Honest framing: all **vs 参考范围**, not solver-exact, no fabricated TAG/LAG.
 
 ## Domain caveat (do not misrepresent)
 

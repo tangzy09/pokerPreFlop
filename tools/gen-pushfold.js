@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { buildEqMatrix, solveRing, ringRegret, CLASSES } = require('./pushfold');
 
-const SAMPLES = 4000, SEED = 1234, NSEATS = 9, STACKS = [10, 15, 20];
+const SAMPLES = 4000, SEED = 1234, NSEATS = 9, STACKS = [8, 10, 12, 15, 20];
 const SOLVE = { iters: 8000, damp: 0.02 };          // well-converged (deep stacks need it)
 // which 9-max seats back our 5 displayed positions (0=UTG .. 6=BTN,7=SB)
 const SEAT_OF = { UTG: 0, MP: 3, CO: 5, BTN: 6, SB: 7 };
