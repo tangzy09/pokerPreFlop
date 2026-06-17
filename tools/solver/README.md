@@ -42,8 +42,13 @@ known answer before trusting it on a real spot, and measure exploitability.
    −EV postflop, preflop converges (expl ~0.008). EXPENSIVE (~45s for 3 flops,
    tiny ranges, shallow stacks) — a standalone demo, NOT in run_all.
    Run: `python tools/solver/endtoend.py`.
-6. ⬜ Next (all heavy): raises in the trees; bigger ranges (needs vectorised
-   CFR); flop-range iteration (the real chicken-and-egg joint solve).
+6. ✅ **Preflop raises (v2)** — `PreflopGame(..., open_size=R)` adds an
+   open-raise (and re-raise = jam) on top of fold/limp/jam; gated on a flop
+   existing (leaf_ev=None still reduces to push/fold, matching the plain
+   jam/fold value exactly). `test_preflop_raise.py` GREEN (10/10): reduction,
+   raise/limp offered, exploitability ~0, determinism, convergence.
+7. ⬜ Next (all heavy): raises in the POSTFLOP trees; bigger ranges (needs
+   vectorised CFR); flop-range iteration (the real chicken-and-egg joint solve).
 
 ## Why HU only
 CFR provably converges to Nash only in 2-player zero-sum games. Multiway

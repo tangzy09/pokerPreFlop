@@ -17,8 +17,7 @@ import random
 from postflop import evaluate7, hand_cards
 
 SBP, BBP = 0.5, 1.0                      # blinds
-TERMINAL = {"f", "lx", "jf", "jc", "ljf", "ljc"}
-LABEL = {"f": "fold", "l": "limp", "j": "jam", "x": "check", "c": "call"}
+LABEL = {"f": "fold", "l": "limp", "r": "raise", "j": "jam", "x": "check", "c": "call"}
 def actor(hist):
     return len(hist) % 2                 # 0 = SB, 1 = BB
 
@@ -39,9 +38,10 @@ def _mc_equity(sbc, bbc, rng, n):
     return (win + 0.5 * tie) / n
 
 class PreflopGame:
-    def __init__(self, sb, bb, stack, leaf_ev=None, eq_samples=20000, eq_seed=99):
+    def __init__(self, sb, bb, stack, leaf_ev=None, open_size=None, eq_samples=20000, eq_seed=99):
         self.stack = float(stack)
         self.leaf_ev = leaf_ev
+        self.open_size = float(open_size) if open_size else None   # None => v1 fold/limp/jam
         def mk(rng):
             return [(h, float(w), hand_cards(h)) for h, w in rng]
         self.sb = mk(sb); self.bb = mk(bb)
@@ -61,29 +61,44 @@ class PreflopGame:
         for d in self.deals:
             d[4] /= Z
 
+    def is_terminal(self, hist):
+        # decisions end with '' / l / r / j; terminals end with x (check->flop),
+        # f (fold) or c (call: ->flop if it closed a raise, showdown if a jam)
+        return hist != "" and hist[-1] in "xfc"
+
     def legal(self, hist):
         if hist == "":
-            return ["f", "l", "j"] if self.leaf_ev is not None else ["f", "j"]
-        if hist == "l":
-            return ["x", "j"]
-        return ["f", "c"]                # facing a jam ("j" or "lj")
+            if self.leaf_ev is None:
+                return ["f", "j"]                          # no flop -> push/fold
+            return ["f", "l", "r", "j"] if self.open_size else ["f", "l", "j"]
+        if hist == "l":                                    # BB facing a limp
+            return ["x", "r", "j"] if self.open_size else ["x", "j"]
+        if hist in ("r", "lr"):                            # facing a (non-all-in) raise
+            return ["f", "c", "j"]
+        return ["f", "c"]                                  # facing a jam: j / lj / rj / lrj
 
     def apply(self, a, pl, o, i, hist):
         if a in ("f", "x"):
             return o, i, hist + a
         if a == "l":
-            return BBP, i, hist + "l"     # SB completes to 1bb
+            return BBP, i, hist + "l"                      # SB completes to 1bb
+        if a == "r":                                       # raise TO open_size
+            return (self.open_size, i, hist + "r") if pl == 0 else (o, self.open_size, hist + "r")
         if a == "j":
             return (self.stack, i, hist + "j") if pl == 0 else (o, self.stack, hist + "j")
-        return (self.stack, i, hist + "c") if pl == 0 else (o, self.stack, hist + "c")  # call all-in
+        diff = abs(o - i)                                  # call: match the outstanding bet
+        return (o + diff, i, hist + "c") if pl == 0 else (o, i + diff, hist + "c")
 
     def util_sb(self, hist, o, i, sb_str, bb_str, eq):
-        if hist == "lx":
+        last = hist[-1]
+        if last == "x":                                    # limp-check -> see a flop
             return self.leaf_ev(sb_str, bb_str, o + i)
-        if hist[-1] == "f":
+        if last == "f":                                    # a fold
             folder = actor(hist[:-1])
-            return -o if folder == 0 else i      # SB folds -> -o ; BB folds -> SB wins pot-o = i
-        return (o + i) * eq - o                  # showdown
+            return -o if folder == 0 else i                # SB folds -> -o ; BB folds -> +i
+        if hist[-2] == "r":                                # call closed a raise -> see a flop
+            return self.leaf_ev(sb_str, bb_str, o + i)
+        return (o + i) * eq - o                            # call closed a jam -> showdown
 
 def RiverGame(*a, **k):
     raise RuntimeError("RiverGame lives in postflop.py")
@@ -111,7 +126,7 @@ def solve(game, iters=8000, seed=0):
         return nd
     def cfr(d, hist, o, i, p_sb, p_bb):
         ss, bs, sc, bc, w, e = d
-        if hist in TERMINAL:
+        if g.is_terminal(hist):
             return g.util_sb(hist, o, i, ss, bs, e)
         pl = actor(hist); acts = g.legal(hist)
         hs = ss if pl == 0 else bs
@@ -152,7 +167,7 @@ class Solution:
     # exact value under the average strategy
     def _ev(self, d, hist, o, i):
         ss, bs, sc, bc, w, e = d
-        if hist in TERMINAL:
+        if self.g.is_terminal(hist):
             return self.g.util_sb(hist, o, i, ss, bs, e)
         pl = actor(hist); hs = ss if pl == 0 else bs
         strat = self._avg_at(hs, hist)
@@ -174,7 +189,7 @@ class Solution:
             u_sb = g.util_sb(hist, o, i, sbs, bbs, e)
             return u_sb if hero == 0 else -u_sb
         def rec(hhs, hist, o, i, reach):
-            if hist in TERMINAL:
+            if g.is_terminal(hist):
                 return sum(p * util_hero(hist, o, i, hhs, ostr) for ostr, p in reach.items())
             pl = actor(hist); acts = g.legal(hist)
             if pl == hero:
