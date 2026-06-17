@@ -538,12 +538,17 @@ function defVariant(f){return f==='cash'?'6':f==='mtt'?'d40':f==='face3b'?'btn':
 function buildVariants(varBoxId,varLabelId,format,current,pick){
  document.getElementById(varLabelId).textContent=VARIANT_LABEL[format];
  const box=document.getElementById(varBoxId);box.innerHTML='';
+ let lastGroup=null;
  Object.entries(VARIANTS[format]).forEach(([k,v])=>{
+  if(v.group && v.group!==lastGroup){                 // full-width sub-header before each group
+   const h=document.createElement('div');h.className='opt-group';h.textContent=v.group;
+   box.appendChild(h);lastGroup=v.group;
+  }
   const b=document.createElement('button');b.className='opt';b.dataset.v=k;
   b.innerHTML=`${v.label}<small>${v.sub}</small>`;
   b.setAttribute('aria-selected',k===String(current));
   b.onclick=()=>{aInit();SFX.click();pick(k);
-   [...box.children].forEach(x=>x.setAttribute('aria-selected',x===b));};
+   [...box.children].forEach(x=>{if(x.classList.contains('opt'))x.setAttribute('aria-selected',x===b);});};
   box.appendChild(b);
  });
 }

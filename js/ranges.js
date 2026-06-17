@@ -66,4 +66,4 @@ const VARIANTS={
   co:{label:'你在 CO',sub:'身后有人·偏紧',short:'CO跟'},
  },
 };
-const VARIANT_LABEL={cash:'牌桌人数',mtt:'深度 / 人数 / 阶段',face3b:'你的开局位置',face4b:'你 3-bet 的位置',squeeze:'你挤压的位置',coldcall:'你的位置'};
+const VARIANT_LABEL={cash:'牌桌人数',mtt:'盲数 / 阶段',face3b:'你的开局位置',face4b:'你 3-bet 的位置',squeeze:'你挤压的位置',coldcall:'你的位置'};
