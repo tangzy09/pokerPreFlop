@@ -105,6 +105,22 @@ def run():
     # --- 4. value sanity: polarized bettor (OOP) has positive EV from dead money + bluffs ---
     check("polarized OOP value > 0", sol.game_value > 0, f"value={sol.game_value:+.4f}")
 
+    # --- 5. HALF-pot bet has different closed-form targets: MDF=1-0.5/1.5=2/3, bluff=1/3 ---
+    solh = pf.solve(pf.RiverGame(**dict(POLAR, bet_sizes=[0.5])), iters=20000, seed=4)
+    callh = solh.ip_strategy("AdAc", "bet").get("call", 0)
+    bluffh = solh.oop_strategy("QdTh").get("bet", 0)
+    check("half-pot: bluff-catcher calls ~ 2/3 (MDF)", near(callh, 2 / 3), f"call(AA)={callh:.3f}")
+    check("half-pot: air bluffs ~ 1/3", near(bluffh, 1 / 3), f"bet(QT)={bluffh:.3f}")
+
+    # --- 6. board plays for everyone (royal flush on board) -> always a tie -> value 0 ---
+    royal = pf.solve(pf.RiverGame(board=["Ah", "Kh", "Qh", "Jh", "Th"], oop=[("2c3c", 1.0)],
+                     ip=[("2d3d", 1.0)], pot=1.0, stack=1.0, bet_sizes=[1.0]), iters=4000, seed=5)
+    check("board-plays tie -> value ~ 0", abs(royal.game_value) < 0.02, f"value={royal.game_value:+.4f}")
+
+    # --- 7. convergence: exploitability shrinks with more iterations ---
+    coarse = pf.solve(pf.RiverGame(**POLAR), iters=150, seed=6).exploitability()
+    check("convergence: more iters -> less exploitable", expl < coarse, f"coarse={coarse:.4f} fine={expl:.4f}")
+
     passed = sum(1 for _, ok, _ in results if ok)
     print(f"\n{passed}/{len(results)} checks passed")
     return 0 if passed == len(results) else 1

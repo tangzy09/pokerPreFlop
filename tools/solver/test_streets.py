@@ -85,6 +85,20 @@ def run():
     check("turn spot: exploitability ~ 0", psol.exploitability() < 0.05,
           f"expl={psol.exploitability():.4f}")
 
+    # --- T4: nuts-vs-air value is +P/2 regardless of stack depth (chance handling robust) ---
+    v_shallow = pf.solve(pf.PostflopGame(**dict(NUTS_AIR_TURN, stack=2.0)), iters=6000, seed=4).game_value
+    v_deep = pf.solve(pf.PostflopGame(**dict(NUTS_AIR_TURN, stack=8.0)), iters=6000, seed=4).game_value
+    check("nuts-vs-air: value +P/2 at stack 2", near(v_shallow, 0.5), f"value={v_shallow:+.3f}")
+    check("nuts-vs-air: value +P/2 at stack 8", near(v_deep, 0.5), f"value={v_deep:+.3f}")
+
+    # --- T5: polarized turn bettor (OOP) profits multi-street ---
+    check("turn polarized: OOP value > 0", psol.game_value > 0, f"value={psol.game_value:+.3f}")
+
+    # --- T6: board plays for everyone (royal) through the general solver -> tie -> value ~0 ---
+    royal = pf.solve(pf.PostflopGame(board=["Ah", "Kh", "Qh", "Jh", "Th"], oop=[("2c3c", 1.0)],
+                     ip=[("2d3d", 1.0)], pot=1.0, stack=1.0, bet_sizes=[1.0]), iters=4000, seed=5)
+    check("board-plays tie -> value ~ 0", abs(royal.game_value) < 0.02, f"value={royal.game_value:+.4f}")
+
     passed = sum(results)
     print(f"\n{passed}/{len(results)} checks passed")
     return 0 if passed == len(results) else 1

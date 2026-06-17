@@ -154,6 +154,23 @@ def main():
     if bet("0") > 0.02:
         chk("bluff ratio K=3J", bet("2"), 3 * bet("0"), 0.08)
 
+    def ok_(name, cond, detail=""):
+        nonlocal ok
+        ok = ok and bool(cond)
+        if not cond:
+            print(f"  FAIL {name}: {detail}")
+    # (1) structure: Kuhn has exactly 12 information sets
+    ok_("exactly 12 infosets", len(nodes) == 12, f"got {len(nodes)}")
+    # (2) every average strategy is a valid probability distribution
+    valid = all(abs(sum(a) - 1) < 1e-9 and all(p >= -1e-12 for p in a)
+                for a in avg.values())
+    ok_("avg strategies are valid distributions", valid)
+    # (3) P1's Q-vs-bet call sits in the parameter band [1/3, 2/3] (= alpha + 1/3)
+    ok_("P1 Q-call in [1/3,2/3]", 1/3 - 0.05 <= bet("1pb") <= 2/3 + 0.05, f"{bet('1pb'):.3f}")
+    # (4) neither player's best response beats its equilibrium value by more than eps
+    ok_("BR value bounds (br >= equilibrium)", br0 >= value - 0.03 and br1 >= -value - 0.03,
+        f"br0={br0:.3f}>=v={value:.3f}; br1={br1:.3f}>=-v={-value:.3f}")
+
     print("\n" + ("PASS — CFR converged to the known Kuhn equilibrium" if ok
                   else "FAIL — CFR did not match the known equilibrium"))
     return 0 if ok else 1

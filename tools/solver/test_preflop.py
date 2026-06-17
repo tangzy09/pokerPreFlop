@@ -76,6 +76,25 @@ def run():
     check("deep + flop: exploitability ~ 0", s3.exploitability() < 0.04, f"expl={s3.exploitability():.4f}")
     check("deep + flop: game value is finite", abs(s3.game_value) < 100, f"value={s3.game_value:+.3f}")
 
+    # --- T4: leaf_ev=None means the limp action is not even offered (structural) ---
+    check("no leaf_ev -> no 'limp' action", "limp" not in s1.sb_strategy("AhAc"),
+          f"actions={list(s1.sb_strategy('AhAc'))}")
+
+    # --- T5: a terrible flop (leaf_ev very negative) -> SB never limps into it ---
+    sbad = pf.solve(pf.PreflopGame(SB, BB, stack=10.0, leaf_ev=lambda a, b, p: -50.0), iters=6000, seed=4)
+    limp_bad = max(sbad.sb_strategy(h).get("limp", 0) for h in ("AhAc", "7h2d"))
+    check("awful flop -> SB never limps", limp_bad < 0.05, f"max limp={limp_bad:.3f}")
+
+    # --- T6: solver is deterministic (same seed -> identical value) ---
+    a = pf.solve(pf.PreflopGame(SB, BB, stack=10.0, leaf_ev=None), iters=4000, seed=7).game_value
+    b = pf.solve(pf.PreflopGame(SB, BB, stack=10.0, leaf_ev=None), iters=4000, seed=7).game_value
+    check("deterministic: same seed -> same value", a == b, f"{a:.6f} vs {b:.6f}")
+
+    # --- T7: convergence: exploitability shrinks with more iterations ---
+    coarse = pf.solve(pf.PreflopGame(SB, BB, stack=10.0, leaf_ev=None), iters=150, seed=8).exploitability()
+    check("convergence: more iters -> less exploitable", s1.exploitability() < coarse,
+          f"coarse={coarse:.4f} fine={s1.exploitability():.4f}")
+
     passed = sum(results)
     print(f"\n{passed}/{len(results)} checks passed")
     return 0 if passed == len(results) else 1
