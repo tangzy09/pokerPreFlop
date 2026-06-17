@@ -1,8 +1,13 @@
 # tools/solver — experimental CFR solver (Python, offline)
 
-Exploratory work toward a **heads-up postflop CFR solver**. Separate from the
-shipped app (which stays zero-build JS); this is offline Python that, if it pans
-out, would *produce data* (freqTables) like the push/fold tools already do.
+A verified **heads-up postflop CFR/CFR+ solver chain**. Separate from the shipped
+app (which stays zero-build JS); this is offline Python. It now **ships app-visible
+data**: `tools/gen-postflop-spots.py` runs the vectorized CFR+ solver on a handful of
+canonical river spots and writes `js/data/postflop-spots.js`, which the app's
+**🧠 翻后GTO** screen displays read-only (real GTO frequencies + measured
+exploitability) — the same generate→ship pattern the push/fold tools use. Honest
+limit: a full end-to-end *preflop* chart fed by real postflop EV needs the joint
+full-range solve (the open frontier, step 14) and is not shippable yet.
 
 **Honesty rule (same as the rest of the project):** prove the engine against a
 known answer before trusting it on a real spot, and measure exploitability.
@@ -71,13 +76,63 @@ known answer before trusting it on a real spot, and measure exploitability.
    ~2300 runouts per iteration, so it's only tractable at low iters here.
    **The real next step for practical flop solving is card/board ABSTRACTION
    (bucketing), a different technique than vectorization.** ~6min -> standalone.
-10. ⬜ Next: card/turn-river abstraction (the actual enabler for fast flop); raises
-    in postflop trees; flop-range iteration (the chicken-and-egg joint solve).
+10. ✅ **Board (card) abstraction** — `vturn.VTurn(..., bucket=True)`: where
+    vectorization shrinks the RANGE dimension, abstraction shrinks the BOARD
+    dimension. The chance node buckets river runouts by RANK (the 4 suits of a
+    rank → one representative + a count weight), so cfv_o[a] = Σ_b w_b·co_b·mo_b /
+    Σ_b w_b·mo_b. On a FLUSH-PROOF board (rainbow turn: a 5th card can't make a
+    flush) the suit only matters through blockers, so rank-bucketing is
+    near-lossless. `test_abstraction.py` GREEN (8/8): 48 cards → 13 buckets,
+    value identical (+0.500), exploitability 0.008, ~4× faster (8s vs 30s),
+    nuts-vs-air still +P/2, determinism. Full mode (weights 1) reduces to the
+    old `vturn` behavior exactly. Run: `python tools/solver/test_abstraction.py`.
+    Caveat: lossy on flush-possible boards (suits then matter beyond blockers);
+    a full solver suit-isomorphism-buckets per board texture.
+11. ✅ **Board abstraction on the two-chance flop** — `vflop.VFlop(..., bucket=True)`:
+    rank-buckets BOTH chance nodes (flop→turn and turn→river), exposing `g.tset` and
+    `g.rset[ti]`. The NESTED fan-out (~48×47 ≈ 2256 runouts/iteration on the
+    check-down line) is the practical flop wall; bucketing each node ~4× drops the
+    nested cost ~13×. `test_abstraction_flop.py` GREEN (8/8): 49→13 and 48→13
+    buckets, ~13× faster (4s vs 50s same iters), flopped-quads converges to the
+    analytic +P/2 (bucketing is *exactly* lossless when the winner is
+    runout-independent), valid low-exploitability solves, determinism. Losslessness
+    is anchored on the analytic +P/2 (not an unconverged full solve — full
+    convergence IS the wall bucketing breaks). Run: `python tools/solver/test_abstraction_flop.py` (~3min).
+12. ✅ **CFR+ (faster convergence)** — `vriver`/`vturn`/`vflop` `solve(..., plus=True)`
+    (default). Three ingredients: regret-matching+ (floor cumulative regret at 0 each
+    update, so a line that turned out bad doesn't climb back from deep-negative
+    regret), linear averaging (weight iteration t's strategy by t), and ALTERNATING
+    updates (each traversal updates one player vs the other's current strategy).
+    Together they give ~O(1/t) convergence vs vanilla's ~O(1/sqrt(t)) — same Nash,
+    far fewer iterations. `test_cfrplus.py` GREEN (7/7, in run_all): on the verified
+    polarized river toy, CFR+ at 300 iters is ~7× less exploitable than vanilla and
+    already hits MDF; the ratio GROWS with iters (the rate change). Measured speedups
+    at moderate iters: vriver ~25×, vturn ~35×, vflop ~70×. `plus=False` recovers
+    vanilla. NOTE: CFR+ cuts the iteration COUNT; it does NOT touch the per-iteration
+    board fan-out (that's what ABSTRACTION addresses) — the two are orthogonal and a
+    practical flop solve needs both. Run: `python tools/solver/test_cfrplus.py`.
+13. ✅ **CFR+ for the scalar solvers** — `postflop.solve(..., plus=True)` and
+    `preflop.solve(..., plus=True)` (default). Same regret-matching+ & linear
+    averaging, but SIMULTANEOUS (no alternating): the per-deal scalar traversal visits
+    each infoset once *per deal* per iteration, and alternating + RM+ then plateaus
+    multi-street exploitability (a scalar-only failure mode — the vectorized solvers
+    visit each infoset once per iteration, so they alternate fine). Simultaneous CFR+
+    is stable and wins big where it matters: ~40-70× on the multi-street turn solve.
+    `test_cfrplus_scalar.py` GREEN (10/10, in run_all). End-to-end (`endtoend.py`)
+    exploitability improved to ~0.003 (was ~0.008). Honest caveat: on a degenerate
+    near-indifferent spot (deep stack + neutral leaf_ev=0) simultaneous CFR+ lags
+    vanilla slightly — CFR+ is not uniformly faster, but the postflop multi-street win
+    is what end-to-end needs. Run: `python tools/solver/test_cfrplus_scalar.py`.
+14. ⬜ Next: raises in postflop trees (multi-bet-size); flop-range iteration (the
+    chicken-and-egg joint solve); a real end-to-end run producing preflop freqTables
+    to import into the app (the original data-pipeline goal).
 
 ## Heavier standalone suites (not in run_all)
-- `python tools/solver/endtoend.py` — preflop fed by the real postflop solver (~45s)
+- `python tools/solver/endtoend.py` — preflop fed by the real postflop solver; also exercises scalar CFR+ (~45s)
 - `python tools/solver/test_vturn.py` — vectorized turn+river (~2min)
+- `python tools/solver/test_abstraction.py` — board/rank bucketing on vturn (~40s)
 - `python tools/solver/test_vflop.py` — vectorized flop (two chance nodes, ~6min)
+- `python tools/solver/test_abstraction_flop.py` — rank bucketing on both flop chance nodes (~3min)
 
 ## Why HU only
 CFR provably converges to Nash only in 2-player zero-sum games. Multiway

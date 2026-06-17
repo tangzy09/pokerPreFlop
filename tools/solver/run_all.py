@@ -20,6 +20,8 @@ SUITES = [
     ("Preflop + leaf_ev", "test_preflop.py"),
     ("Preflop raises (v2)", "test_preflop_raise.py"),
     ("Vectorized river CFR", "test_vector.py"),
+    ("CFR+ (vectorized)", "test_cfrplus.py"),
+    ("CFR+ (scalar postflop/preflop)", "test_cfrplus_scalar.py"),
 ]
 
 def summary_line(out):

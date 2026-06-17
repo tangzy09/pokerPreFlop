@@ -71,8 +71,12 @@ def run():
     check("with-flop: exploitability ~ 0", s2.exploitability() < 0.03, f"expl={s2.exploitability():.4f}")
 
     # --- T3: deeper stack, neutral flop -> still converges ---
+    # A neutral leaf (leaf_ev=0) makes the limp->flop line highly indifferent, so this
+    # spot converges slowly; CFR+ (the default) actually lags vanilla slightly here
+    # (linear averaging on a near-indifferent tree), so we give it more iters. CFR+'s
+    # win is on the multi-street POSTFLOP solves, not this degenerate preflop spot.
     g3 = pf.PreflopGame(SB, BB, stack=25.0, leaf_ev=lambda a, b, p: 0.0)
-    s3 = pf.solve(g3, iters=6000, seed=3)
+    s3 = pf.solve(g3, iters=12000, seed=3)
     check("deep + flop: exploitability ~ 0", s3.exploitability() < 0.04, f"expl={s3.exploitability():.4f}")
     check("deep + flop: game value is finite", abs(s3.game_value) < 100, f"value={s3.game_value:+.3f}")
 

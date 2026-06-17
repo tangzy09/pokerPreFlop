@@ -75,9 +75,15 @@ class VRiver:
         d = abs(o - i)
         return (o + d, i, h + "c") if pl == 0 else (o, i + d, h + "c")
 
-def solve(game, iters=20000, seed=0):
+def solve(game, iters=20000, seed=0, plus=True):
+    # plus=True -> CFR+: (1) regret-matching+ (floor cumulative regret at 0 each
+    # update), (2) linear averaging (weight iteration t's strategy by t), and (3)
+    # ALTERNATING updates (each traversal updates one player vs the other's current
+    # strategy). Together these give ~O(1/t) convergence vs vanilla's ~O(1/sqrt(t)),
+    # so the same Nash is reached in far fewer iterations. plus=False = vanilla.
     g = game; No, Ni = len(g.oop), len(g.ip)
     regret, strat_sum = {}, {}
+    aw = [1.0]                                       # averaging weight for the current iteration
     def node(h):
         if h not in regret:
             n = No if actor(h) == 0 else Ni
@@ -88,7 +94,7 @@ def solve(game, iters=20000, seed=0):
         pos = np.maximum(r, 0.0); s = pos.sum(1, keepdims=True)
         out = np.where(s > 0, pos / np.where(s > 0, s, 1), 0.5)
         return out
-    def cfr(h, o, i, oor, ipr):
+    def cfr(h, o, i, oor, ipr, up):                      # up = player to update (None -> both)
         if h in CLOSED_FOLD:
             return g.fold_cfv(actor(h[:-1]), o, i, oor, ipr)
         if h in CLOSED_PROCEED:
@@ -98,25 +104,30 @@ def solve(game, iters=20000, seed=0):
             cfv_i = np.zeros(Ni); child = []
             for k, a in enumerate(acts):
                 no, ni, nh = g.step(a, 0, o, i, h)
-                co, ci = cfr(nh, no, ni, oor * s[:, k], ipr)
+                co, ci = cfr(nh, no, ni, oor * s[:, k], ipr, up)
                 child.append(co); cfv_i = cfv_i + ci
             stacked = np.stack(child, 1)                 # (No, 2)
             cfv_o = (s * stacked).sum(1)
-            r += stacked - cfv_o[:, None]
-            ss += oor[:, None] * s
+            if up is None or up == 0:
+                r += stacked - cfv_o[:, None]
+                if plus: np.maximum(r, 0.0, out=r)       # regret-matching+
+                ss += aw[0] * oor[:, None] * s
             return cfv_o, cfv_i
         cfv_o = np.zeros(No); child = []
         for k, a in enumerate(acts):
             no, ni, nh = g.step(a, 1, o, i, h)
-            co, ci = cfr(nh, no, ni, oor, ipr * s[:, k])
+            co, ci = cfr(nh, no, ni, oor, ipr * s[:, k], up)
             child.append(ci); cfv_o = cfv_o + co
         stacked = np.stack(child, 1)                     # (Ni, 2)
         cfv_i = (s * stacked).sum(1)
-        r += stacked - cfv_i[:, None]
-        ss += ipr[:, None] * s
+        if up is None or up == 1:
+            r += stacked - cfv_i[:, None]
+            if plus: np.maximum(r, 0.0, out=r)           # regret-matching+
+            ss += aw[0] * ipr[:, None] * s
         return cfv_o, cfv_i
-    for _ in range(iters):
-        cfr("", 0.0, 0.0, g.ow.copy(), g.iw.copy())
+    for t in range(iters):
+        aw[0] = float(t + 1) if plus else 1.0            # linear averaging
+        cfr("", 0.0, 0.0, g.ow.copy(), g.iw.copy(), (t % 2) if plus else None)
     return Solution(g, strat_sum)
 
 class Solution:

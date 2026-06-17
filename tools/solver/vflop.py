@@ -22,7 +22,7 @@ def legal(h):
     return "fc" if h.endswith("b") else "xb"
 
 class VFlop:
-    def __init__(self, board, oop, ip, pot, stack, bet_sizes):
+    def __init__(self, board, oop, ip, pot, stack, bet_sizes, bucket=False):
         flop = [parse_card(c) for c in board]
         assert len(flop) == 3, "VFlop expects a 3-card (flop) board"
         self.flop = flop
@@ -59,8 +59,26 @@ class VFlop:
                 for b in range(Ni):
                     if rcd in ics[b]: mri[rj, b] = 0.0
             self.MR_O.append(mro); self.MR_I.append(mri)
-        self.cnt_T_o = self.MT_O.sum(0); self.cnt_T_i = self.MT_I.sum(0)
-        self.cnt_R_o = [m.sum(0) for m in self.MR_O]; self.cnt_R_i = [m.sum(0) for m in self.MR_I]
+        # cset per chance node: list of (runout index, weight). full mode: every
+        # card, weight 1. bucket mode: group runouts by RANK (c>>2) -> one
+        # representative + count weight, shrinking each fan-out ~4x (and the nested
+        # flop fan-out ~16x). Near-lossless on flush-proof spots (suit -> blockers only).
+        nT = len(self.tcands)
+        if bucket:
+            def by_rank(cards):
+                br = {}
+                for idx, c in enumerate(cards): br.setdefault(c >> 2, []).append(idx)
+                return [(grp[0], float(len(grp))) for grp in br.values()]
+            self.tset = by_rank(self.tcands)
+            self.rset = [by_rank(self.rc[ti]) for ti in range(nT)]
+        else:
+            self.tset = [(ti, 1.0) for ti in range(nT)]
+            self.rset = [[(rj, 1.0) for rj in range(len(self.rc[ti]))] for ti in range(nT)]
+        # weighted runout counts (denominators of the chance averages)
+        self.cnt_T_o = sum(w * self.MT_O[ti] for ti, w in self.tset)
+        self.cnt_T_i = sum(w * self.MT_I[ti] for ti, w in self.tset)
+        self.cnt_R_o = [sum(w * self.MR_O[ti][rj] for rj, w in self.rset[ti]) for ti in range(nT)]
+        self.cnt_R_i = [sum(w * self.MR_I[ti][rj] for rj, w in self.rset[ti]) for ti in range(nT)]
         for arr in [self.cnt_T_o, self.cnt_T_i] + self.cnt_R_o + self.cnt_R_i:
             arr[arr == 0] = 1
         self._precompute_runouts()
@@ -126,17 +144,18 @@ class VFlop:
         d = abs(o - i)
         return (o + d, i, h + "c") if pl == 0 else (o, i + d, h + "c")
 
-    def chance(self, oor, ipr, MO, MI, cnt_o, cnt_i, subfn):
+    def chance(self, oor, ipr, MO, MI, cnt_o, cnt_i, cset, subfn):
         No, Ni = len(self.oop), len(self.ip)
         acc_o = np.zeros(No); acc_i = np.zeros(Ni)
-        for idx in range(len(MO)):
+        for idx, w in cset:
             mo, mi = MO[idx], MI[idx]
             co, ci = subfn(idx, oor * mo, ipr * mi)
-            acc_o += co * mo; acc_i += ci * mi
+            acc_o += w * co * mo; acc_i += w * ci * mi
         return acc_o / cnt_o, acc_i / cnt_i
 
-def _decider(g, strat_fn, node_fn):
-    """returns decide(key,h,o,i,oor,ipr,child) -> (cfv_o,cfv_i) with regret update."""
+def _decider(g, strat_fn, node_fn, plus, aw, up):
+    """returns decide(key,h,o,i,oor,ipr,child) -> (cfv_o,cfv_i) with regret update.
+    CFR+ (plus): floor regret at 0, weight strategy by aw[0], update only player up[0]."""
     No, Ni = len(g.oop), len(g.ip)
     def decide(key, h, o, i, oor, ipr, child):
         pl = actor(h); acts = legal(h); pn = No if pl == 0 else Ni
@@ -148,7 +167,10 @@ def _decider(g, strat_fn, node_fn):
                 co, ci = child(no, ni, nh, oor * s[:, k], ipr)
                 kids.append(co); cfv_i = cfv_i + ci
             st = np.stack(kids, 1); cfv_o = (s * st).sum(1)
-            r += st - cfv_o[:, None]; ss += oor[:, None] * s
+            if up[0] is None or up[0] == 0:
+                r += st - cfv_o[:, None]
+                if plus: np.maximum(r, 0.0, out=r)
+                ss += aw[0] * oor[:, None] * s
             return cfv_o, cfv_i
         cfv_o = np.zeros(No); kids = []
         for k, a in enumerate(acts):
@@ -156,13 +178,19 @@ def _decider(g, strat_fn, node_fn):
             co, ci = child(no, ni, nh, oor, ipr * s[:, k])
             kids.append(ci); cfv_o = cfv_o + co
         st = np.stack(kids, 1); cfv_i = (s * st).sum(1)
-        r += st - cfv_i[:, None]; ss += ipr[:, None] * s
+        if up[0] is None or up[0] == 1:
+            r += st - cfv_i[:, None]
+            if plus: np.maximum(r, 0.0, out=r)
+            ss += aw[0] * ipr[:, None] * s
         return cfv_o, cfv_i
     return decide
 
-def solve(game, iters=300, seed=0):
+def solve(game, iters=300, seed=0, plus=True):
+    # plus=True -> CFR+ (regret-matching+, linear averaging, alternating updates):
+    # ~O(1/t) convergence vs vanilla ~O(1/sqrt(t)). plus=False = vanilla CFR.
     g = game; No, Ni = len(g.oop), len(g.ip)
     regret, strat_sum = {}, {}
+    aw = [1.0]; up = [None]                           # iteration averaging weight; player to update
     def node(key, pn):
         if key not in regret:
             regret[key] = np.zeros((pn, 2)); strat_sum[key] = np.zeros((pn, 2))
@@ -170,7 +198,7 @@ def solve(game, iters=300, seed=0):
     def strat(key, pn):
         r, _ = node(key, pn); pos = np.maximum(r, 0.0); s = pos.sum(1, keepdims=True)
         return np.where(s > 0, pos / np.where(s > 0, s, 1), 0.5)
-    decide = _decider(g, strat, node)
+    decide = _decider(g, strat, node, plus, aw, up)
 
     def river(fh, ti, rj, h, o, i, oor, ipr):
         if h in CLOSED_FOLD:
@@ -185,7 +213,7 @@ def solve(game, iters=300, seed=0):
         if h in CLOSED_PROCEED:
             if o >= g.stack - 1e-9 or i >= g.stack - 1e-9:
                 return g.turn_runout(ti, o, i, oor, ipr)
-            return g.chance(oor, ipr, g.MR_O[ti], g.MR_I[ti], g.cnt_R_o[ti], g.cnt_R_i[ti],
+            return g.chance(oor, ipr, g.MR_O[ti], g.MR_I[ti], g.cnt_R_o[ti], g.cnt_R_i[ti], g.rset[ti],
                             lambda rj, oo, ii: river(fh, ti, rj, "", o, i, oo, ii))
         return decide(f"T|{fh}|{ti}|{h}", h, o, i, oor, ipr,
                       lambda no, ni, nh, oo, ii: turn(fh, ti, nh, no, ni, oo, ii))
@@ -195,11 +223,13 @@ def solve(game, iters=300, seed=0):
         if h in CLOSED_PROCEED:
             if o >= g.stack - 1e-9 or i >= g.stack - 1e-9:
                 return g.flop_runout(o, i, oor, ipr)
-            return g.chance(oor, ipr, g.MT_O, g.MT_I, g.cnt_T_o, g.cnt_T_i,
+            return g.chance(oor, ipr, g.MT_O, g.MT_I, g.cnt_T_o, g.cnt_T_i, g.tset,
                             lambda ti, oo, ii: turn(h, ti, "", o, i, oo, ii))
         return decide(f"F|{h}", h, o, i, oor, ipr,
                       lambda no, ni, nh, oo, ii: flop(nh, no, ni, oo, ii))
-    for _ in range(iters):
+    for t in range(iters):
+        aw[0] = float(t + 1) if plus else 1.0
+        up[0] = (t % 2) if plus else None
         flop("", 0.0, 0.0, g.ow.copy(), g.iw.copy())
     return Solution(g, strat_sum)
 
@@ -248,7 +278,7 @@ class Solution:
             if h in CLOSED_PROCEED:
                 if o >= g.stack - 1e-9 or i >= g.stack - 1e-9:
                     return g.turn_runout(ti, o, i, oor, ipr)
-                return g.chance(oor, ipr, g.MR_O[ti], g.MR_I[ti], g.cnt_R_o[ti], g.cnt_R_i[ti],
+                return g.chance(oor, ipr, g.MR_O[ti], g.MR_I[ti], g.cnt_R_o[ti], g.cnt_R_i[ti], g.rset[ti],
                                 lambda rj, oo, ii: river(fh, ti, rj, "", o, i, oo, ii))
             return combine(f"T|{fh}|{ti}|{h}", h, o, i, oor, ipr,
                            lambda no, ni, nh, oo, ii: turn(fh, ti, nh, no, ni, oo, ii))
@@ -258,7 +288,7 @@ class Solution:
             if h in CLOSED_PROCEED:
                 if o >= g.stack - 1e-9 or i >= g.stack - 1e-9:
                     return g.flop_runout(o, i, oor, ipr)
-                return g.chance(oor, ipr, g.MT_O, g.MT_I, g.cnt_T_o, g.cnt_T_i,
+                return g.chance(oor, ipr, g.MT_O, g.MT_I, g.cnt_T_o, g.cnt_T_i, g.tset,
                                 lambda ti, oo, ii: turn(h, ti, "", o, i, oo, ii))
             return combine(f"F|{h}", h, o, i, oor, ipr,
                            lambda no, ni, nh, oo, ii: flop(nh, no, ni, oo, ii))

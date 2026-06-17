@@ -117,8 +117,14 @@ class _Node:
         n = sum(self.strat_sum.values())
         return {a: (self.strat_sum[a] / n if n > 0 else 1.0 / len(self.acts)) for a in self.acts}
 
-def solve(game, iters=8000, seed=0):
+def solve(game, iters=8000, seed=0, plus=True):
+    # plus=True -> CFR+: regret-matching+ (floor cumulative regret at 0 each
+    # iteration) + linear averaging (weight iteration t's strategy by t).
+    # ~O(1/t) vs vanilla ~O(1/sqrt(t)); same Nash. plus=False = vanilla.
+    # SIMULTANEOUS updates (no alternating) — see the note in postflop.solve: the
+    # per-deal traversal makes alternating + RM+ unstable; simultaneous CFR+ is stable.
     g = game; nodes = {}
+    aw = [1.0]                                       # iteration averaging weight (linear)
     def node(key, acts):
         nd = nodes.get(key)
         if nd is None:
@@ -144,11 +150,17 @@ def solve(game, iters=8000, seed=0):
         rs = p_sb if pl == 0 else p_bb
         for a in acts:
             nd.regret[a] += d[4] * ro * (s * util[a] - s * nu)
-            nd.strat_sum[a] += rs * strat[a]
+            nd.strat_sum[a] += aw[0] * rs * strat[a]
         return nu
-    for _ in range(iters):
+    for t in range(iters):
+        aw[0] = float(t + 1) if plus else 1.0
         for d in g.deals:
             cfr(d, "", SBP, BBP, 1.0, 1.0)
+        if plus:                                     # regret-matching+: floor cumulative regret at 0
+            for nd in nodes.values():
+                for a in nd.acts:
+                    if nd.regret[a] < 0.0:
+                        nd.regret[a] = 0.0
     return Solution(g, nodes)
 
 class Solution:

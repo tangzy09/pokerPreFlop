@@ -21,7 +21,7 @@ def legal(h):
     return "fc" if h.endswith("b") else "xb"
 
 class VTurn:
-    def __init__(self, board, oop, ip, pot, stack, bet_sizes):
+    def __init__(self, board, oop, ip, pot, stack, bet_sizes, bucket=False):
         bd = [parse_card(c) for c in board]
         assert len(bd) == 4, "VTurn expects a 4-card (turn) board"
         self.board = bd
@@ -49,7 +49,20 @@ class VTurn:
             for b, (_, _, cards) in enumerate(self.ip):
                 if c in cards: self.NOTI[ci, b] = 0.0
                 self.IS[ci, b] = evaluate7(list(cards) + full)
-        self.cnt_o = self.NOTO.sum(0); self.cnt_i = self.NOTI.sum(0)
+        # cset = list of (river-card index, weight). full mode: every card, weight 1.
+        # bucket mode: group cands by RANK (c>>2) -> one representative + count weight.
+        # On a flush-proof board the suit of the 5th card only matters through
+        # blockers, so rank-bucketing is near-lossless and shrinks the fan-out ~4x.
+        if bucket:
+            by_rank = {}
+            for ci, c in enumerate(self.cands):
+                by_rank.setdefault(c >> 2, []).append(ci)
+            self.cset = [(g[0], float(len(g))) for g in by_rank.values()]
+        else:
+            self.cset = [(ci, 1.0) for ci in range(Nc)]
+        # weighted runout counts per hand (denominator of the chance average)
+        self.cnt_o = sum(w * self.NOTO[ci] for ci, w in self.cset)
+        self.cnt_i = sum(w * self.NOTI[ci] for ci, w in self.cset)
         self.cnt_o[self.cnt_o == 0] = 1; self.cnt_i[self.cnt_i == 0] = 1
         self.ow = self._norm([w for _, w, _ in self.oop])
         self.iw = self._norm([w for _, w, _ in self.ip])
@@ -88,15 +101,18 @@ class VTurn:
     def chance(self, oor, ipr, subfn):
         No, Ni = len(self.oop), len(self.ip)
         acc_o = np.zeros(No); acc_i = np.zeros(Ni)
-        for ci in range(len(self.cands)):
+        for ci, w in self.cset:
             mo, mi = self.NOTO[ci], self.NOTI[ci]
             co, ci_ = subfn(ci, oor * mo, ipr * mi)
-            acc_o += co * mo; acc_i += ci_ * mi
+            acc_o += w * co * mo; acc_i += w * ci_ * mi
         return acc_o / self.cnt_o, acc_i / self.cnt_i
 
-def solve(game, iters=4000, seed=0):
+def solve(game, iters=4000, seed=0, plus=True):
+    # plus=True -> CFR+ (regret-matching+, linear averaging, alternating updates):
+    # ~O(1/t) convergence vs vanilla ~O(1/sqrt(t)). plus=False = vanilla CFR.
     g = game; No, Ni = len(g.oop), len(g.ip)
     regret, strat_sum = {}, {}
+    aw = [1.0]; up = [None]                           # iteration averaging weight; player to update
     def node(key, pn):
         if key not in regret:
             regret[key] = np.zeros((pn, 2)); strat_sum[key] = np.zeros((pn, 2))
@@ -116,7 +132,10 @@ def solve(game, iters=4000, seed=0):
                 co, ci = child(a, no, ni, nh, oor * s[:, k], ipr)
                 kids.append(co); cfv_i = cfv_i + ci
             st = np.stack(kids, 1); cfv_o = (s * st).sum(1)
-            r += st - cfv_o[:, None]; ss += oor[:, None] * s
+            if up[0] is None or up[0] == 0:
+                r += st - cfv_o[:, None]
+                if plus: np.maximum(r, 0.0, out=r)
+                ss += aw[0] * oor[:, None] * s
             return cfv_o, cfv_i
         cfv_o = np.zeros(No); kids = []
         for k, a in enumerate(acts):
@@ -124,7 +143,10 @@ def solve(game, iters=4000, seed=0):
             co, ci = child(a, no, ni, nh, oor, ipr * s[:, k])
             kids.append(ci); cfv_o = cfv_o + co
         st = np.stack(kids, 1); cfv_i = (s * st).sum(1)
-        r += st - cfv_i[:, None]; ss += ipr[:, None] * s
+        if up[0] is None or up[0] == 1:
+            r += st - cfv_i[:, None]
+            if plus: np.maximum(r, 0.0, out=r)
+            ss += aw[0] * ipr[:, None] * s
         return cfv_o, cfv_i
 
     def river_cfr(th, ci, h, o, i, oor, ipr):
@@ -147,7 +169,9 @@ def solve(game, iters=4000, seed=0):
         return decide(f"T|{h}", h, o, i, oor, ipr,
                       lambda a, no, ni, nh, oo, ii: turn_cfr(nh, no, ni, oo, ii))
 
-    for _ in range(iters):
+    for t in range(iters):
+        aw[0] = float(t + 1) if plus else 1.0
+        up[0] = (t % 2) if plus else None
         turn_cfr("", 0.0, 0.0, g.ow.copy(), g.iw.copy())
     return Solution(g, strat_sum)
 
