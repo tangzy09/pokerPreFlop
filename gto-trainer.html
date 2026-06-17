@@ -281,6 +281,9 @@
   .sel-label{font-family:"Space Mono";font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 8px;text-align:left}
   .opts{display:flex;gap:8px;margin-bottom:14px}
   .opts-wrap{flex-wrap:wrap}
+  /* 场景选择：固定 3 列网格，各按钮等宽等高（避免最后一行被 flex 拉宽，更整齐） */
+  #selFormat{display:grid;grid-template-columns:repeat(3,1fr);align-items:stretch}
+  #selFormat .opt{min-width:0}
   .opt-group{flex-basis:100%;width:100%;text-align:left;font-family:"Space Mono";font-size:9.5px;letter-spacing:.14em;
     text-transform:uppercase;color:var(--gold-dim,#9c8240);margin:4px 0 -4px;opacity:.85}
   /* leak analyzer */
@@ -374,12 +377,12 @@
     <div class="sel-group" id="fmtGroup">
       <div class="sel-label">场景</div>
       <div class="opts opts-wrap" id="selFormat">
-        <button class="opt" data-v="cash">开局 + 防守<small>RFI / 大盲防守</small></button>
+        <button class="opt" data-v="cash">开局 + 防守<small>开局加注 · 大盲防守</small></button>
         <button class="opt" data-v="mtt">开局范围<small>按深度 / 人数</small></button>
-        <button class="opt" data-v="face3b">面对 3-bet<small>4bet/跟/弃 · 最高频</small></button>
-        <button class="opt" data-v="face4b">面对 4-bet<small>5bet全下/跟/弃</small></button>
-        <button class="opt" data-v="squeeze">挤压 Squeeze<small>开+跟后你反加</small></button>
-        <button class="opt" data-v="coldcall">冷跟 · 非盲位<small>3bet/平跟/弃</small></button>
+        <button class="opt" data-v="face3b">面对 3-bet<small>你开局被反加</small></button>
+        <button class="opt" data-v="face4b">面对 4-bet<small>你 3bet 被 4bet</small></button>
+        <button class="opt" data-v="squeeze">挤压<small>有人开+跟 · 你反加</small></button>
+        <button class="opt" data-v="coldcall">冷跟<small>非盲位平跟入池</small></button>
       </div>
     </div>
     <div class="sel-group">
