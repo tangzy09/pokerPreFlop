@@ -751,15 +751,11 @@ document.getElementById('chartsBtn').onclick=()=>{aInit();SFX.click();
 document.getElementById('chartBack').onclick=()=>{SFX.click();
  document.getElementById('chartScreen').classList.add('hide');
  document.getElementById('startScreen').classList.remove('hide');};
-document.getElementById('aboutBtn').onclick=()=>{aInit();SFX.click();
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('aboutScreen').classList.remove('hide');};
+// 导览 / 关于 入口已从首页移除（用户要求精简）。屏幕标记仍保留在 HTML 中（含数据假设说明），
+// 只是暂无入口；下面只保留各自的「返回」按钮接线，避免引用已删除的入口按钮导致 null.onclick 崩溃。
 document.getElementById('aboutBack').onclick=()=>{SFX.click();
  document.getElementById('aboutScreen').classList.add('hide');
  document.getElementById('startScreen').classList.remove('hide');};
-document.getElementById('guideBtn').onclick=()=>{aInit();SFX.click();
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('guideScreen').classList.remove('hide');};
 document.getElementById('guideBack').onclick=()=>{SFX.click();
  document.getElementById('guideScreen').classList.add('hide');
  document.getElementById('startScreen').classList.remove('hide');};
