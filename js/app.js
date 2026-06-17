@@ -56,6 +56,7 @@ function combosOf(h){return h.length===2?6:h.endsWith('s')?4:12;}
 
 /* deal-filter: which class of hands to drill */
 const HANDFILTERS={
+ smart:{label:'智能',sub:'弱项优先·系统覆盖',short:'智能'},
  all:{label:'全部',sub:'真实随机',short:'全部'},
  good:{label:'好牌',sub:'价值/标准',short:'好牌'},
  edge:{label:'边缘',sub:'难点·混合',short:'边缘'},
@@ -118,6 +119,7 @@ function newGame(){
  G.score=0;G.level=1;G.hp=5;G.maxhp=5;G.combo=0;G.best=0;
  G.hands=0;G.correct=0;G.handNo=0;G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
  G.fastCorrect=0;G.levelMistakes=0;G.ach=new Set();G.busy=false;G.over=false;
+ G.queue=null;G.queueLevel=0;
  renderHUD();nextHand();
 }
 
@@ -190,6 +192,30 @@ function freqNote(t,hand,isMix,isEdge){
  return '（100%）';
 }
 
+// 智能出题：把已解锁局面的「范围内手牌（系统覆盖）」+约 50% 弃牌组成一副牌，
+// 你错过的手（错题堆）排到最前、且 2× 权重；无放回抽到一轮抽完再重建。
+function buildSmartQueue(){
+ const pool=unlocked();
+ const weakKeys=new Set(reviewPile
+  .filter(r=>r.fmt===G.format&&r.variant===G.variant)
+  .map(r=>r.t.name+'|'+r.hand));
+ const weak=[],rest=[];
+ pool.forEach(t=>{
+  const inrange=[...t.union];                 // 决策相关手：系统覆盖
+  const uni=new Set(t.union);
+  const folds=ALL169.filter(h=>!uni.has(h));
+  const nf=Math.max(2,Math.round(inrange.length*0.5));   // 掺约一半弃牌，保留弃牌纪律
+  const foldSample=shuffle(folds.slice()).slice(0,nf);
+  [...inrange,...foldSample].forEach(hand=>{
+   const item={t,hand};
+   if(weakKeys.has(t.name+'|'+hand))weak.push(item); else rest.push(item);
+  });
+ });
+ const weakBoost=[];weak.forEach(it=>{weakBoost.push(it,it);}); // 弱项 2× 权重
+ G.queue=shuffle(weakBoost).concat(shuffle(rest));            // 弱项排前，组内洗牌
+ G.queueLevel=G.level;
+}
+
 function nextHand(){
  if(G.over)return;
  G.busy=false;
@@ -199,6 +225,10 @@ function nextHand(){
   if(!G.reviewQueue.length){reviewComplete();return;}
   const rec=G.reviewQueue.shift();G.reviewRec=rec;
   t=rec.t;hand=rec.hand;G.format=rec.fmt;G.variant=rec.variant;
+ } else if(G.handFilter==='smart'){
+  if(!G.queue||!G.queue.length||G.queueLevel!==G.level)buildSmartQueue();
+  const it=G.queue.shift();
+  t=it.t;hand=it.hand;
  } else {
   const pool=unlocked();
   t=pool[Math.floor(Math.random()*pool.length)];
@@ -497,8 +527,13 @@ function toast(name,emoji,plain){const e=document.getElementById('toastEl')||(()
  clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2200);}
 
 /* ============ game over ============ */
+// mode: true = 完成 SESSION_HANDS 手（通关）, 'end' = 手动结束训练, 其它(false) = 出局(HP=0)
 function gameOver(win){
- G.over=true;stopTimer(); if(win){SFX.level();burst(innerWidth/2,innerHeight*0.4,['#e8c66a','#34b074','#fff','#7fc6ff'],50,9);} else SFX.over();
+ const manual = win==='end';
+ G.over=true;stopTimer();
+ if(win===true){SFX.level();burst(innerWidth/2,innerHeight*0.4,['#e8c66a','#34b074','#fff','#7fc6ff'],50,9);}
+ else if(manual){SFX.click();} else SFX.over();
+ document.getElementById('overKicker').textContent = win===true?'🎉 通关':manual?'训练结束':'OUT · 出局';
  const acc=G.hands?Math.round(G.correct/G.hands*100):0;
  // lifetime stats
  const st=STORE.stats||{best:0,hands:0,correct:0,games:0};
@@ -506,7 +541,7 @@ function gameOver(win){
  st.best=Math.max(st.best||0,G.score);
  st.hands=(st.hands||0)+G.hands; st.correct=(st.correct||0)+G.correct; st.games=(st.games||0)+1;
  STORE.stats=st; persist();
- const head = win ? `🎉 完成 ${SESSION_HANDS} 手 · ` : '';
+ const head = win===true ? `🎉 完成 ${SESSION_HANDS} 手 · ` : '';
  document.getElementById('overTitle').innerHTML=head+`得分 <b style="color:var(--gold)">${G.score.toLocaleString()}</b>`+(isRecord&&G.score>0?` <span style="font-size:13px;color:var(--best)">🏅新纪录!</span>`:'');
  const s=document.getElementById('overStats');
  s.innerHTML=`
@@ -596,7 +631,6 @@ document.getElementById('againBtn').onclick=()=>{document.getElementById('startS
 // exit mid-game back to the start menu — no resume, so confirm only when a live
 // run would be abandoned (matches game-over → 再来一局 behaviour).
 function exitToMenu(){
- if(!G.over && G.hands>0 && !confirm('退出当前训练？本局进度不会保存喵～'))return;
  SFX.click();stopTimer();G.busy=true;G.over=true;
  document.getElementById('feedback').classList.add('hide');
  document.getElementById('verdict').className='verdict';
@@ -604,6 +638,16 @@ function exitToMenu(){
  updateReviewBtns();
 }
 document.getElementById('exitBtn').onclick=exitToMenu;
+
+// 结束训练（右上角）：结束本局并显示战绩（区别于左上角 ← 直接退回菜单）
+function endTraining(){
+ if(G.over)return;
+ document.getElementById('feedback').classList.add('hide');
+ document.getElementById('verdict').className='verdict';
+ G.busy=true;
+ if(G.reviewMode) reviewComplete(); else gameOver('end');
+}
+document.getElementById('endBtn').onclick=endTraining;
 
 /* ---- review detail page ---- */
 function openReviewDetail(){aInit();SFX.click();

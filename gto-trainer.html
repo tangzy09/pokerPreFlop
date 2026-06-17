@@ -32,14 +32,18 @@
   #fx{position:fixed;inset:0;pointer-events:none;z-index:60}
 
   /* ---------- top HUD ---------- */
-  .hud{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;gap:10px}
+  .hud{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;gap:10px;overflow:hidden}
   .hud-left{display:flex;align-items:center;gap:9px}
   .exit-btn{appearance:none;border:1px solid var(--line);background:transparent;cursor:pointer;color:var(--gold);font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:9px;padding:5px 9px}
   .exit-btn:hover{background:rgba(232,198,106,.12)}
   .hp{display:flex;gap:5px;font-size:19px;line-height:1}
   .hp i{filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));transition:.25s}
   .hp i.dead{filter:grayscale(1) brightness(.5);transform:scale(.8)}
-  .hud-right{text-align:right}
+  .hud-right{display:flex;align-items:center;gap:9px;min-width:0}
+  .hud-score{text-align:right;min-width:0;overflow:hidden}
+  .hud-score .lvl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .end-btn{flex:none;appearance:none;border:1px solid var(--line);background:transparent;cursor:pointer;color:var(--gold);font-family:inherit;font-weight:700;font-size:12.5px;line-height:1;border-radius:9px;padding:6px 10px;white-space:nowrap}
+  .end-btn:hover{background:rgba(232,198,106,.12)}
   .score{font-family:"Space Grotesk";font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1}
   .lvl{font-family:"Space Mono";font-size:10px;letter-spacing:.2em;color:var(--gold);text-transform:uppercase}
   .combo-wrap{height:26px;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:2px}
@@ -335,8 +339,8 @@
     </div>
     <div class="combo-wrap"><span class="combo" id="combo"></span></div>
     <div class="hud-right">
-      <div class="score" id="score">0</div>
-      <div class="lvl" id="lvl">LV.1</div>
+      <div class="hud-score"><div class="score" id="score">0</div><div class="lvl" id="lvl">LV.1</div></div>
+      <button class="end-btn" id="endBtn" title="结束训练 · 查看战绩">结束</button>
     </div>
   </div>
 
@@ -408,7 +412,7 @@
 
   <!-- GAME OVER screen -->
   <div class="screen hide" id="overScreen">
-    <div class="lvl">OUT · 出局</div>
+    <div class="lvl" id="overKicker">OUT · 出局</div>
     <h1 id="overTitle">本局结束</h1>
     <div class="stats" id="overStats"></div>
     <div class="ach-list" id="overAch"></div>
