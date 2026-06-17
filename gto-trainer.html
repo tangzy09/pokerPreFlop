@@ -283,6 +283,20 @@
   .opts-wrap{flex-wrap:wrap}
   .opt-group{flex-basis:100%;width:100%;text-align:left;font-family:"Space Mono";font-size:9.5px;letter-spacing:.14em;
     text-transform:uppercase;color:var(--gold-dim,#9c8240);margin:4px 0 -4px;opacity:.85}
+  /* leak analyzer */
+  .leak-row{display:flex;align-items:center;gap:9px;margin:7px 0}
+  .leak-lab{font-size:12.5px;min-width:118px;color:var(--ink)}
+  .leak-trk{flex:1;height:12px;border-radius:6px;background:rgba(255,255,255,.06);overflow:hidden}
+  .leak-trk i{display:block;height:100%;border-radius:6px}
+  .leak-n{font-variant-numeric:tabular-nums;font-weight:700;font-size:12.5px;min-width:24px;text-align:right}
+  .leak-sub{font-family:"Space Mono";font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dim,#9c8240);margin:14px 0 6px}
+  .leak-hand{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}
+  .leak-hand .h{font-weight:700;color:var(--gold)}
+  .leak-hand .sp{font-size:12px;color:var(--muted);flex:1}
+  .leak-hand .x{font-variant-numeric:tabular-nums;font-size:12px;color:var(--mistake)}
+  .leak-drill{appearance:none;border:1px solid var(--line);background:transparent;color:var(--gold);cursor:pointer;
+    font-family:inherit;font-size:12px;font-weight:600;border-radius:8px;padding:4px 10px}
+  .leak-drill:hover{background:rgba(232,198,106,.12)}
   .opts-wrap .opt{flex:1 1 28%;min-width:92px}
   .opt{flex:1;appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px;color:var(--ink);
     background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 6px;transition:.15s;line-height:1.15}
@@ -387,6 +401,7 @@
       <button class="navbtn" id="reviewBtn"><span class="ic">📕</span><span class="lbl">错题</span></button>
       <button class="navbtn" id="chartsBtn"><span class="ic">📊</span><span class="lbl">图表</span></button>
       <button class="navbtn" id="calcBtn"><span class="ic">🧮</span><span class="lbl">算胜率</span></button>
+      <button class="navbtn" id="solverBtn"><span class="ic">🧠</span><span class="lbl">翻后GTO</span></button>
       <button class="navbtn" id="statsBtn"><span class="ic">📈</span><span class="lbl">统计</span></button>
     </div>
 
@@ -520,6 +535,19 @@
     </div>
   </div>
 
+  <!-- POSTFLOP GTO SOLVER spots screen (real computed, offline CFR+) -->
+  <div class="chart-screen hide" id="solverScreen">
+    <div class="chart-bar">
+      <button class="back-btn" id="solverBack">← 返回</button>
+      <div class="chart-title">翻后 GTO 范例</div>
+      <div class="back-btn" style="visibility:hidden">返回</div>
+    </div>
+    <div class="chart-body about">
+      <p class="cnote">这些是<b>我们自己的 HU 翻后 CFR+ solver 离线真算</b>的均衡解（非手编、非占位）。每个局面演示一个核心概念，并标出<b>实测可利用度</b>（越接近 0 越精确）。诚实范围：HU、单一下注尺寸、无加注。</p>
+      <div id="solverBody"></div>
+    </div>
+  </div>
+
   <div class="chart-screen hide" id="guideScreen">
     <div class="chart-bar">
       <button class="back-btn" id="guideBack">← 返回</button>
@@ -598,7 +626,10 @@
     </div>
     <div class="chart-body about">
       <div class="stats" id="statsTiles" style="width:100%;max-width:430px"></div>
-      <div class="ab-card" style="width:100%;max-width:430px"><h3>📊 各 spot 准确率</h3>
+      <div class="ab-card" id="leakCard" style="width:100%;max-width:430px"><h3>🔍 你的漏洞</h3>
+        <div id="leakBody"></div>
+      </div>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>📊 各档位准确率</h3>
         <div id="statsBars" style="display:flex;flex-direction:column;gap:9px;margin-top:4px"></div>
       </div>
       <p class="cnote">统计仅在正常训练时累计（复习模式不计入）。数据存在浏览器本地。</p>
@@ -611,6 +642,7 @@
 <script src="js/modes.js"></script>
 <script src="js/data/pushfold.js"></script>
 <script src="js/data/hu-pushfold.js"></script>
+<script src="js/data/postflop-spots.js"></script>
 <script src="js/packs.js"></script>
 <script src="js/app.js"></script>
 </body>

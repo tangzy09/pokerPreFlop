@@ -63,8 +63,8 @@
 |---|---|---|---|
 | **频率 + 动作显示** | 反馈与图表显示「70% 加注 / 30% 跟注」而非二元对错 | 读 `handFreq`；派生值标注为近似 | Phase 2/3 ✅ |
 | **Range vs Range 胜率计算器** | 两个范围/手牌算 equity、范围优势、坚果优势 | 纯蒙特卡洛/枚举，**零数据风险**；是「诚实 EV」的钥匙 | Phase 4 ✅ 翻前 equity + 范围优势（坚果优势/带公共牌待做） |
-| **Leak Analyzer 漏洞分析** | 对比玩家每个 spot 的实际动作频率 vs 参考频率，排出「最大长期损失点」 | 用 `statsBySpot` + `handFreq`；标签必须写「参考」而非「GTO」 | 计划（最高独特价值） |
-| **错误分类** | 把失误归类：范围错 / 频率错 / 风险错 / ICM错 | 由频率数据可计算；范围错=打了 0 频动作，频率错=偏离主频 | 计划（长在 Phase 1 上） |
+| **Leak Analyzer 漏洞分析** | 从错题堆排出「最大漏洞」+ 错误类型分布 + 最常踩的坑（可一键去练） | 用 `reviewPile`（按手×spot 的失误计数）；标签写「vs 参考范围」 | Phase 5 ✅（在「统计」页） |
+| **错误分类** | 把失误归类：太松（该弃却入池）/ 太紧（该入却弃·漏价值）/ 边缘混合 / ICM | `classifyMiss(rec)` 仅凭 spot+hand 判定（混合点→边缘，纯弃打错→太松，纯入打错→太紧，ICM 局→ICM），无需存下选择 | Phase 5 ✅ |
 | **个人画像 Poker Profile** | 类型（TAG 等）+ 优势/弱点位置清单 | 纯本地统计聚合 | 计划 |
 | **训练计划 Training Planner** | 按最大漏洞自动排 N 天练习（指定 spot 集合） | 复用错题堆 + 漏洞排序，无后端 | 计划 |
 
@@ -114,7 +114,7 @@
 | **Phase 2** ✅ | 引擎评级改读频率（精确局面最高频=最佳、次频=好棋；占位 50/50 不分高下）+ 反馈显示百分比 | 仅 `resolve()` 运行期行为，未动 `MODES`/快照 |
 | **Phase 3** ✅ | 图表叠加频率（`cInfo` 对精确局面显示「全下 78% / 弃牌 22%」） | 仅精确局面显示真频率，其余维持定性 |
 | **Phase 4** ✅ | **Range vs Range 胜率计算器**（纯数学钥匙）：浏览器端 `js/equity.js`（`rangeEquity` 蒙特卡洛）+「算胜率」界面，显示双方 equity 与范围优势 | 零数据风险；坚果优势/带公共牌/推弃 EV 待做 |
-| **Phase 5** | **Leak Analyzer + 错误分类**（最独特价值） | 吃频率数据 + `statsBySpot` |
+| **Phase 5** ✅ | **Leak Analyzer + 错误分类**（最独特价值）：「统计」页新增「🔍 你的漏洞」——错误类型分布（太松/太紧/边缘/ICM）+ 最常踩的坑 + 一键去练 | 吃 `reviewPile`；`classifyMiss` 仅凭 spot+hand 判定，旧数据也能分析；待办：动作级频率采集（更细的「偏离主频」） |
 | **Phase 6** | 个人画像 + 训练计划（成长系统外壳） | 纯本地 |
 | **Phase 7** | 自算/导入真数据 → `freqTable`。✅ **10/15/20bb 9 人推弃已自算 Nash**（`js/equity.js`+`tools/pushfold.js`+`gen-pushfold.js`）；待办：现金推弃/更多 stack、GTO Wizard/CSV 导入器 | 逐 spot 升 `confidence:precise` |
 | **后续** | ICM 引擎、手牌历史导入、Speed Training 统计 | 🟡 较大 |

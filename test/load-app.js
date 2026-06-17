@@ -43,6 +43,7 @@ const EXPORTS = [
   'cellCat', 'catName', 'handFreq', 'normFreq', 'freqNote', 'confOf', 'handLabel', 'expand', 'combosOf',
   'RANKS', 'RIDX', 'PREMIUM',
   'FORMATS', 'VARIANTS', 'GAMETYPES', 'gameOf', 'HANDFILTERS',
+  'classifyMiss', 'LEAK_TYPES',
 ];
 
 function loadApp(htmlPath) {

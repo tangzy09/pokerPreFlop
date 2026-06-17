@@ -658,8 +658,43 @@ document.getElementById('reviewBack').onclick=()=>{SFX.click();
  document.getElementById('startScreen').classList.remove('hide');};
 
 /* ---- career stats page ---- */
+/* ---- Phase 5: Leak Analyzer — classify the review-pile misses (all vs 参考范围) ---- */
+const LEAK_TYPES={
+ loose:{name:'太松',desc:'该弃却入池',color:'var(--mistake)'},
+ tight:{name:'太紧',desc:'该入却弃·漏价值',color:'var(--good)'},
+ mix:  {name:'边缘混合',desc:'难点·没把握',color:'var(--inacc)'},
+ icm:  {name:'ICM 保命',desc:'泡沫期收紧',color:'var(--threebet)'},
+};
+// classify a single miss from the spot + hand alone (no stored choice needed):
+//  ICM 局面 → icm · 混合点 → mix · 纯弃牌打错=入池太松 · 纯入池打错=太紧/漏价值
+function classifyMiss(rec){
+ const t=rec.t; if(!t||!MODES[t.mode])return 'mix';
+ if(rec.variant==='icm')return 'icm';
+ const isR=t.R.has(rec.hand),isC=t.C.has(rec.hand),isM=t.M.has(rec.hand);
+ const correct=MODES[t.mode].correct(isR,isC,isM);
+ if(correct.length>1)return 'mix';
+ return correct[0]==='fold'?'loose':'tight';
+}
+function leakDrill(label){SFX.click();document.getElementById('statsScreen').classList.add('hide');startReview(label);}
+function renderLeak(){
+ const body=document.getElementById('leakBody');
+ if(!reviewPile.length){body.innerHTML='<p class="cnote" style="margin:0">还没有漏洞数据——训练里答错的牌会自动收进来分析喵 🐿</p>';return;}
+ const types={loose:0,tight:0,mix:0,icm:0};let total=0;
+ reviewPile.forEach(r=>{types[classifyMiss(r)]+=r.wrong;total+=r.wrong;});
+ const order=Object.keys(types).filter(k=>types[k]>0).sort((a,b)=>types[b]-types[a]);
+ const max=Math.max(...order.map(k=>types[k]),1);
+ const top=LEAK_TYPES[order[0]];
+ let html=`<p class="cnote" style="margin:0 0 9px">最大漏洞：<b style="color:${top.color}">${top.name}</b>（共 ${total} 次失误 · vs 参考范围）</p>`;
+ html+=order.map(k=>{const T=LEAK_TYPES[k];
+  return `<div class="leak-row"><span class="leak-lab">${T.name} · ${T.desc}</span><span class="leak-trk"><i style="width:${Math.round(types[k]/max*100)}%;background:${T.color}"></i></span><span class="leak-n">${types[k]}</span></div>`;}).join('');
+ html+='<div class="leak-sub">最常踩的坑</div>';
+ [...reviewPile].sort((a,b)=>b.wrong-a.wrong).slice(0,5).forEach(r=>{
+  html+=`<div class="leak-hand"><span class="h">${r.hand}</span><span class="sp">${r.label}</span><span class="x">×${r.wrong}</span><button class="leak-drill" data-label="${r.label.replace(/"/g,'&quot;')}">去练</button></div>`;});
+ body.innerHTML=html;
+ [...body.querySelectorAll('.leak-drill')].forEach(b=>b.onclick=()=>leakDrill(b.dataset.label));
+}
 function openStats(){aInit();SFX.click();
- renderStats();
+ renderStats();renderLeak();
  document.getElementById('startScreen').classList.add('hide');
  document.getElementById('statsScreen').classList.remove('hide');
 }
@@ -807,6 +842,42 @@ document.getElementById('calcBack').onclick=()=>{SFX.click();
 document.getElementById('calcRun').onclick=runCalc;
 document.getElementById('calcHero').addEventListener('input',updateCalcCounts);
 document.getElementById('calcVill').addEventListener('input',updateCalcCounts);
+// ----- 翻后 GTO 范例（离线 CFR+ solver 真算，数据来自 js/data/postflop-spots.js）-----
+function renderSolvedSpots(){
+ var body=document.getElementById('solverBody'); if(!body) return;
+ var spots=window.SOLVED_SPOTS||[];
+ if(!spots.length){body.innerHTML='<div class="ab-card">（暂无数据——运行 tools/gen-postflop-spots.py 生成）</div>';return;}
+ var FL={check:'过牌',bet:'下注',fold:'弃牌',call:'跟注'};
+ var COL={bet:'var(--raise,#e0564a)',call:'var(--best,#39b178)',check:'#7c8c82',fold:'#7c8c82'};
+ body.innerHTML=spots.map(function(s){
+  var lines=s.lines.map(function(ln){
+   var segs=Object.keys(ln.freq).map(function(k){
+    var pct=Math.round(ln.freq[k]*100); if(pct<=0) return '';
+    return '<span style="display:inline-block;height:100%;width:'+pct+'%;background:'+(COL[k]||'#888')
+      +';color:#fff;font-size:11px;line-height:22px;text-align:center;white-space:nowrap;overflow:hidden">'
+      +(pct>=14?(FL[k]||k)+' '+pct+'%':'')+'</span>';
+   }).join('');
+   return '<div style="font-size:13px;margin-top:8px;opacity:.92">'+ln.who+' · '+ln.hand+'</div>'
+     +'<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:#0003">'+segs+'</div>';
+  }).join('');
+  return '<div class="ab-card"><h3>'+s.concept+'</h3>'
+   +'<div style="font-size:13px;margin:2px 0 6px;letter-spacing:.5px"><b>牌面</b> '+s.board
+   +' <span style="font-size:11px;opacity:.6">· 河牌 · 单街</span></div>'
+   +'<p style="margin:.3em 0">'+s.desc+'</p>'+lines
+   +'<p style="margin:.8em 0 .3em;font-size:13px;background:#0001;padding:.5em .7em;border-radius:8px">💡 '+s.note+'</p>'
+   +'<div style="font-size:11px;opacity:.62;margin-top:.4em">📐 OOP 期望 '+(s.value>=0?'+':'')+s.value
+   +'（底池=1，零和基线）｜'+s.src+'</div></div>';
+ }).join('');
+}
+function openSolver(){SFX.click();
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('solverScreen').classList.remove('hide');
+ renderSolvedSpots();
+}
+document.getElementById('solverBtn').onclick=openSolver;
+document.getElementById('solverBack').onclick=()=>{SFX.click();
+ document.getElementById('solverScreen').classList.add('hide');
+ document.getElementById('startScreen').classList.remove('hide');};
 function guideLaunch(fmt,variant){
  selFormat=fmt;
  applyGame(gameOf(fmt),true,variant);
