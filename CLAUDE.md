@@ -18,17 +18,17 @@ js/modes.js              MODES — single source of mode behaviour (+ FREQ/handF
 js/data/pushfold.js      AUTO-GENERATED computed 9-max 10/15/20bb Nash (global PUSHFOLD); loads before packs
 js/data/hu-pushfold.js   AUTO-GENERATED computed HU SB-vs-BB push/fold, jam + call (global HU_PUSHFOLD)
 js/packs.js              PACKS range database (+ PREMIUM); overrides d10 spots with the computed data
-js/data/postflop-spots.js AUTO-GENERATED HU postflop GTO solves (global SOLVED_SPOTS); displayed
-                         by the 翻后GTO range/screen — solved offline by the Python CFR+ solver
 js/app.js                persistence, audio, confetti, hand helpers, game engine, charts +
-                         胜率计算器 (翻前 + 翻后 board-equity, parseBoardStr) +
-                         翻后GTO范例 (renderSolvedSpots) UI, boot
+                         胜率计算器 (翻前 + 翻后 board-equity, parseBoardStr) + 漏洞分析(Leak Analyzer) UI, boot
+                         NOTE: the in-app 翻后GTO display was removed; the offline solver chain + its
+                         js/data/postflop-spots.js are kept, but that file is no longer <script>-loaded
 tools/                   offline data computation — NOT shipped to the browser:
   pushfold.js            (Node) HU + multiway push/fold Nash solvers (buildEqMatrix, solveHU, solveRing); require()s ../js/equity
   gen-pushfold.js        (Node) runs the solver and writes js/data/pushfold.js (10/15/20bb 9-max)
   gen-hu-pushfold.js     (Node) writes js/data/hu-pushfold.js (HU SB jam + BB call-off, 10/15/20bb)
   gen-postflop-spots.py  (Python) solves canonical HU postflop spots with tools/solver (vectorized CFR+)
-                         and writes js/data/postflop-spots.js — the postflop solver chain's app-visible output
+                         and writes js/data/postflop-spots.js (validated by test/solver-spots.test.js) —
+                         kept as an offline artifact; no longer <script>-loaded (the 翻后GTO screen was removed)
   solver/                (Python) the experimental HU postflop CFR/CFR+ solver chain; see solver/README.md
 ```
 
@@ -41,7 +41,7 @@ The scripts share one global scope (browser behaviour for classic scripts); load
 - **Solver tests (Python):** `npm run test:solver` (= `python tools/solver/run_all.py`, runs the 4 CFR/equity suites in `tools/solver/`). `npm run test:all` runs JS + solver together.
 - **After an INTENTIONAL change to `MODES` or the ranges**, the snapshot test will fail by design — regenerate the golden with `npm run test:update`, then review the diff in `test/__snapshots__/regression.snap.json` before committing.
 - **Recompute the push/fold Nash data** with `node tools/gen-pushfold.js` (~2min; writes `js/data/pushfold.js` for 10/15/20bb). Then regenerate the snapshot. The d10/d15p/d20p ranges are computed, not hand-curated — edit the model in `tools/`, not the data file.
-- **Recompute the 翻后GTO范例 data** with `python tools/gen-postflop-spots.py` (~1-2min, needs numpy; writes `js/data/postflop-spots.js`). These are real HU river GTO solves from the `tools/solver` CFR+ engine, displayed read-only in the 翻后GTO screen with measured exploitability. Not part of MODES/PACKS, so no snapshot impact. Honest scope: HU, single bet size, no raises — each spot illustrates one concept (MDF, polarization, indifference).
+- **The offline 翻后GTO solver** lives in `tools/solver/` (+ `gen-postflop-spots.py`, `npm run test:solver`). It still produces/validates `js/data/postflop-spots.js`, but the **in-app 翻后GTO screen was removed** (product decision) — the data file is no longer `<script>`-loaded by `gto-trainer.html`. The solver chain is kept for the offline pipeline + its tests; honest scope if revived: HU, single bet size, no raises (MDF / polarization / indifference demos).
 - **Accuracy is measured, not assumed:** `ringRegret()` computes the solution's exploitability (max bb/hand a best-responder could gain; 0 = exact Nash within the model). gen-pushfold records it per stack in `PUSHFOLD.meta.exploitability` and packs.js surfaces it in each spot's `src` / confidence tooltip. The data is a *computed approximation of a simplified model* (chip-EV, no antes, no-overcall, class-level equity, Monte-Carlo) — not real-table truth.
 - Node v24 is installed at `C:\Program Files\nodejs\`. Freshly-spawned tool shells may not have it on PATH until a terminal restart — use the full path (`& "C:\Program Files\nodejs\node.exe"` / `npm.cmd`).
 

@@ -1,13 +1,14 @@
 # tools/solver — experimental CFR solver (Python, offline)
 
 A verified **heads-up postflop CFR/CFR+ solver chain**. Separate from the shipped
-app (which stays zero-build JS); this is offline Python. It now **ships app-visible
-data**: `tools/gen-postflop-spots.py` runs the vectorized CFR+ solver on a handful of
-canonical river spots and writes `js/data/postflop-spots.js`, which the app's
-**🧠 翻后GTO** screen displays read-only (real GTO frequencies + measured
-exploitability) — the same generate→ship pattern the push/fold tools use. Honest
-limit: a full end-to-end *preflop* chart fed by real postflop EV needs the joint
-full-range solve (the open frontier, step 14) and is not shippable yet.
+app (which stays zero-build JS); this is offline Python. `tools/gen-postflop-spots.py`
+runs the vectorized CFR+ solver on a handful of canonical river spots and writes
+`js/data/postflop-spots.js` (real GTO frequencies + measured exploitability, validated
+by `test/solver-spots.test.js`). This is kept as an **offline artifact** — the in-app
+**🧠 翻后GTO** display screen was removed (product decision); the app keeps the
+interactive 翻后 board-equity calculator instead. Honest limit: a full end-to-end
+*preflop* chart fed by real postflop EV needs the joint full-range solve (the open
+frontier, step 14) and is not shippable yet.
 
 **Honesty rule (same as the rest of the project):** prove the engine against a
 known answer before trusting it on a real spot, and measure exploitability.
