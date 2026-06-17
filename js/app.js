@@ -84,17 +84,17 @@ let reviewPile=[];
 const MASTER_STREAK=2; // consecutive corrects in review needed before a spot leaves the pile
 const SESSION_HANDS=50; // a normal game = 50 hands (then 🎉 complete); HP=0 still ends it early
 function pileKey(fmt,v,tname,hand){return fmt+'|'+v+'|'+tname+'|'+hand;}
-function addMistake(){
+function addMistake(choice){
  const key=pileKey(G.format,G.variant,G.table.name,G.hand);
  const ex=reviewPile.find(r=>r.key===key);
- if(ex){ex.wrong++;ex.streak=0;} // a fresh miss resets mastery progress
+ if(ex){ex.wrong++;ex.streak=0;ex.choice=choice;} // a fresh miss resets mastery progress; record latest actual choice
  else reviewPile.push({key,t:G.table,hand:G.hand,fmt:G.format,variant:G.variant,
-  label:FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short,wrong:1,streak:0});
+  label:FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short,wrong:1,streak:0,choice:choice});
  persistReview();
 }
 function removeFromPile(rec){const i=reviewPile.indexOf(rec);if(i>=0)reviewPile.splice(i,1);persistReview();}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function serializeReview(){return reviewPile.map(r=>({tn:r.t.name,hand:r.hand,fmt:r.fmt,variant:r.variant,label:r.label,wrong:r.wrong,streak:r.streak}));}
+function serializeReview(){return reviewPile.map(r=>({tn:r.t.name,hand:r.hand,fmt:r.fmt,variant:r.variant,label:r.label,wrong:r.wrong,streak:r.streak,choice:r.choice}));}
 function persistReview(){STORE.review=serializeReview();persist();}
 function reviveReview(arr){
  if(!Array.isArray(arr))return;
@@ -102,7 +102,7 @@ function reviveReview(arr){
   const pack=PACKS[r.fmt]&&PACKS[r.fmt][r.variant];
   const t=pack&&pack.find(x=>x.name===r.tn);
   if(!t)return null;
-  return {key:pileKey(r.fmt,r.variant,r.tn,r.hand),t,hand:r.hand,fmt:r.fmt,variant:r.variant,label:r.label||'',wrong:r.wrong||1,streak:r.streak||0};
+  return {key:pileKey(r.fmt,r.variant,r.tn,r.hand),t,hand:r.hand,fmt:r.fmt,variant:r.variant,label:r.label||'',wrong:r.wrong||1,streak:r.streak||0,choice:r.choice};
  }).filter(Boolean);
 }
 function updateReviewBtns(){
@@ -342,7 +342,7 @@ function resolve(choice,btn,timedOut){
    else {persistReview();G.reviewQueue.push(rec);}                       // 答对但未掌握 → 留堆，本轮再练一遍
   } else {rec.streak=0;persistReview();G.reviewQueue.push(rec);}          // 答错 → 清零重练
   updateReviewBtns();
- } else if(!ok){ addMistake(); updateReviewBtns(); }
+ } else if(!ok){ addMistake(choice); updateReviewBtns(); }
 
  // GTO answer string
  const nameMap=MODES[t.mode].names;
@@ -697,26 +697,33 @@ document.getElementById('reviewBack').onclick=()=>{SFX.click();
 /* ---- career stats page ---- */
 /* ---- Phase 5: Leak Analyzer — classify the review-pile misses (all vs 参考范围) ---- */
 const LEAK_TYPES={
- loose:{name:'太松',desc:'该弃却入池',color:'var(--mistake)'},
- tight:{name:'太紧',desc:'该入却弃·漏价值',color:'var(--good)'},
- mix:  {name:'边缘混合',desc:'难点·没把握',color:'var(--inacc)'},
- icm:  {name:'ICM 保命',desc:'泡沫期收紧',color:'var(--threebet)'},
+ loose:  {name:'太松',  desc:'该弃却入池',      color:'var(--mistake)'},
+ tight:  {name:'太紧',  desc:'该入却弃·漏价值', color:'var(--good)'},
+ passive:{name:'被动',  desc:'该加注却只跟注',  color:'#7f9cff'},
+ aggro:  {name:'过激',  desc:'该跟注却加注/全下',color:'var(--raise)'},
+ mix:    {name:'边缘混合',desc:'难点·没把握',    color:'var(--inacc)'},
+ icm:    {name:'ICM 保命',desc:'泡沫期收紧',     color:'var(--threebet)'},
 };
-// classify a single miss from the spot + hand alone (no stored choice needed):
-//  ICM 局面 → icm · 混合点 → mix · 纯弃牌打错=入池太松 · 纯入池打错=太紧/漏价值
+// classify a single miss. 优先用真实选择 rec.choice（精确）；旧数据无 choice 时退回手型启发。
+//  ICM→icm · 混合点→mix · 纯弃打错=太松 · 纯入弃掉=太紧 · 同为入池但线路偏弱=被动 / 偏猛=过激
 function classifyMiss(rec){
  const t=rec.t; if(!t||!MODES[t.mode])return 'mix';
  if(rec.variant==='icm')return 'icm';
  const isR=t.R.has(rec.hand),isC=t.C.has(rec.hand),isM=t.M.has(rec.hand);
  const correct=MODES[t.mode].correct(isR,isC,isM);
  if(correct.length>1)return 'mix';
- return correct[0]==='fold'?'loose':'tight';
+ const right=correct[0], choice=rec.choice;
+ if(!choice)return right==='fold'?'loose':'tight';          // 旧数据：退回手型启发
+ if(right==='fold')return 'loose';                           // 该弃却入池
+ if(choice==='fold')return 'tight';                          // 该入却弃
+ const A={fold:0,call:1,raise:2,shove:3};                    // 同为入池、线路不同
+ return (A[choice]||0)<(A[right]||0)?'passive':'aggro';
 }
 function leakDrill(label){SFX.click();document.getElementById('statsScreen').classList.add('hide');startReview(label);}
 function renderLeak(){
  const body=document.getElementById('leakBody');
  if(!reviewPile.length){body.innerHTML='<p class="cnote" style="margin:0">还没有漏洞数据——训练里答错的牌会自动收进来分析喵 🐿</p>';return;}
- const types={loose:0,tight:0,mix:0,icm:0};let total=0;
+ const types={};Object.keys(LEAK_TYPES).forEach(k=>types[k]=0);let total=0; // 含 passive/aggro 等全部桶
  reviewPile.forEach(r=>{types[classifyMiss(r)]+=r.wrong;total+=r.wrong;});
  const order=Object.keys(types).filter(k=>types[k]>0).sort((a,b)=>types[b]-types[a]);
  const max=Math.max(...order.map(k=>types[k]),1);
@@ -737,14 +744,20 @@ function renderProfile(){
  let th=0,tc=0;Object.values(bySpot).forEach(e=>{th+=e.h;tc+=e.c;});
  if(th<10){body.innerHTML='<p class="cnote" style="margin:0">练够 10 手后这里生成你的画像喵 🐿</p>';return;}
  const acc=Math.round(tc/th*100);
- // 松/紧倾向：来自错题堆的 太松(loose) vs 太紧(tight) 计数
- let L=0,T=0;reviewPile.forEach(r=>{const c=classifyMiss(r);if(c==='loose')L+=r.wrong;else if(c==='tight')T+=r.wrong;});
+ // 两条倾向：松/紧（loose vs tight）+ 打法（被动 passive vs 过激 aggro）——都来自错题堆分类
+ let L=0,T=0,P=0,Ag=0;reviewPile.forEach(r=>{const c=classifyMiss(r);
+  if(c==='loose')L+=r.wrong;else if(c==='tight')T+=r.wrong;else if(c==='passive')P+=r.wrong;else if(c==='aggro')Ag+=r.wrong;});
  let tend,tdesc,tcolor;
  if(L+T<5){tend='待定';tdesc='松紧样本不足，多练些边界手';tcolor='var(--muted)';}
  else if(L>=T*1.6){tend='偏松';tdesc=`失误 ${Math.round(L/(L+T)*100)}% 是「该弃却入池」`;tcolor='var(--mistake)';}
  else if(T>=L*1.6){tend='偏紧';tdesc=`失误 ${Math.round(T/(L+T)*100)}% 是「该入却弃·漏价值」`;tcolor='var(--good)';}
  else {tend='较均衡';tdesc='松紧失误大致对半';tcolor='var(--gold)';}
  let html=`<div class="prof-row"><span class="prof-k">风格倾向</span><b style="color:${tcolor}">${tend}</b><span class="prof-d">${tdesc}</span></div>`;
+ if(P+Ag>=5){let pt,pd,pc;
+  if(P>=Ag*1.6){pt='偏被动';pd='常该加注却只跟注';pc='#7f9cff';}
+  else if(Ag>=P*1.6){pt='偏激进';pd='常该跟注却下重注';pc='var(--raise)';}
+  else {pt='打法均衡';pd='被动/激进失误对半';pc='var(--gold)';}
+  html+=`<div class="prof-row"><span class="prof-k">打法倾向</span><b style="color:${pc}">${pt}</b><span class="prof-d">${pd}</span></div>`;}
  html+=`<div class="prof-row"><span class="prof-k">准确率</span><b>${acc}%</b><span class="prof-d">累计 ${th} 手</span></div>`;
  const keys=Object.keys(bySpot).filter(k=>bySpot[k].h>=8);
  if(keys.length){const pa=k=>Math.round(bySpot[k].c/bySpot[k].h*100);
