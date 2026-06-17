@@ -35,7 +35,15 @@ known answer before trusting it on a real spot, and measure exploitability.
    game converges (expl 0.011 / 0.033 deep). Run: `python tools/solver/test_preflop.py`.
    NOTE: a *correct* leaf_ev needs the postflop solve of the arriving ranges
    (chicken-and-egg). v1 injects a cheap labelled model; raises are v2.
-5. ⬜ Output strategy as data; only then consider feeding preflop leaves.
+5. ✅ **End-to-end: preflop fed by the REAL postflop solver** — `endtoend.py`
+   wires the preflop `leaf_ev` to actual multi-street postflop solves (one per
+   sampled board; OOP=BB, IP=SB; `deal_values()` gives per-matchup EV; SB leaf
+   EV = −util_oop via the P/2-baseline bridge). Verified: AA realizes +EV / trash
+   −EV postflop, preflop converges (expl ~0.008). EXPENSIVE (~45s for 3 flops,
+   tiny ranges, shallow stacks) — a standalone demo, NOT in run_all.
+   Run: `python tools/solver/endtoend.py`.
+6. ⬜ Next (all heavy): raises in the trees; bigger ranges (needs vectorised
+   CFR); flop-range iteration (the real chicken-and-egg joint solve).
 
 ## Why HU only
 CFR provably converges to Nash only in 2-player zero-sum games. Multiway

@@ -247,6 +247,9 @@ class Solution:
         return tot
     def _tree_ev(self):
         return sum(d[4] * self._ev(d, self.g.board, "", 0.0, 0.0) for d in self.g.deals)
+    def deal_values(self):
+        """EV to OOP for each (oop_hand, ip_hand) matchup under the average strategy."""
+        return {(d[0], d[1]): self._ev(d, self.g.board, "", 0.0, 0.0) for d in self.g.deals}
 
     # ---- recursive best response -> exploitability ----
     def _br_value(self, hero):
