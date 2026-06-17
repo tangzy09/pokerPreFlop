@@ -116,7 +116,7 @@ function newGame(){
  G.reviewMode=false;
  G.pack=PACKS[G.format][G.variant];
  G.score=0;G.level=1;G.hp=5;G.maxhp=5;G.combo=0;G.best=0;
- G.hands=0;G.correct=0;G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
+ G.hands=0;G.correct=0;G.handNo=0;G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
  G.fastCorrect=0;G.levelMistakes=0;G.ach=new Set();G.busy=false;G.over=false;
  renderHUD();nextHand();
 }
@@ -155,25 +155,15 @@ function renderHUD(){
  document.getElementById('score').textContent=G.score.toLocaleString();
  document.getElementById('lvl').textContent = G.reviewMode
   ? '复习模式 · 待清 '+reviewPile.length
-  : FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short+' · LV.'+G.level;
+  : FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short+' · LV.'+G.level+' · '+(G.handNo||0)+'/'+SESSION_HANDS;
  const c=document.getElementById('combo');
  if(G.combo>=2){c.textContent='🔥 '+G.combo+' 连击';c.className='combo show'+(G.combo>=8?' big':'');}
  else c.className='combo';
 }
 
-let timerRAF=null,handStart=0,handDur=0;
-function startTimer(){
- handDur=Math.max(3500, 9000-(G.level-1)*700);
- handStart=performance.now();
- const bar=document.getElementById('timerBar'),wrap=document.getElementById('timer');
- wrap.classList.remove('warn');
- function tick(now){const el=now-handStart,frac=Math.max(0,1-el/handDur);
-  bar.style.width=(frac*100)+'%';
-  wrap.classList.toggle('warn',frac<.33);
-  if(frac<=0){timeOut();return;}
-  timerRAF=requestAnimationFrame(tick);}
- timerRAF=requestAnimationFrame(tick);
-}
+// 倒计时已移除：无时间压力、无超时自动弃牌。stopTimer 保留为空操作，
+// 因为 reviewComplete/gameOver/choose/exitToMenu 仍会调用它。
+let timerRAF=null;
 function stopTimer(){if(timerRAF)cancelAnimationFrame(timerRAF);timerRAF=null;}
 
 /* ---- data-confidence labelling (honest per-spot provenance in the UI) ---- */
@@ -203,6 +193,7 @@ function freqNote(t,hand,isMix,isEdge){
 function nextHand(){
  if(G.over)return;
  G.busy=false;
+ if(!G.reviewMode){G.handNo=(G.hands||0)+1;renderHUD();}   // advance the X/50 counter
  let t,hand;
  if(G.reviewMode){
   if(!G.reviewQueue.length){reviewComplete();return;}
@@ -243,8 +234,6 @@ function nextHand(){
  document.getElementById('feedback').classList.add('hide');
  // verdict reset
  document.getElementById('verdict').className='verdict';
- // timer
- setTimeout(startTimer,260);
 }
 
 function buildActions(mode){
@@ -258,8 +247,6 @@ function buildActions(mode){
   wrap.appendChild(b);
  });
 }
-
-function timeOut(){ if(G.busy)return; stopTimer(); resolve('fold',null,true); }
 
 function choose(choice,btn,e){
  if(G.busy)return;G.busy=true;stopTimer();SFX.click();
@@ -280,8 +267,6 @@ function resolve(choice,btn,timedOut){
  // "played the majority line" — only a real, non-timed-out choice earns 最佳 (a
  // timeout auto-folds and must never be celebrated as the best play).
  const hitTop = freqGraded && choice===topAct && !timedOut;
- const elapsed=performance.now()-handStart;
- const speedFrac=Math.max(0,1-elapsed/handDur);
  G.hands++;
  // per-spot lifetime accuracy (normal play only)
  if(!G.reviewMode){
@@ -295,9 +280,8 @@ function resolve(choice,btn,timedOut){
  let grade,gcolor,hpHit=0,pts=0,big=false;
  if(ok){
   G.correct++;G.combo++;G.best=Math.max(G.best,G.combo);
-  if(G.combo>=2 && elapsed<1500 && !timedOut)G.fastCorrect++;
   const mult=Math.min(3,1+G.combo*0.1);
-  const spd=timedOut?1:1+speedFrac*0.6;
+  const spd=1; // 倒计时已移除 → 无速度加成，得分只看正确性与连击
   if(G.isMix && !hitTop){grade='好棋';gcolor='var(--good)';G.q.good++;pts=Math.round(85*mult*spd);}
   else{grade='最佳';gcolor='var(--best)';G.q.best++;pts=Math.round(100*mult*spd);big=true;}
   G.score+=pts;
@@ -497,15 +481,14 @@ function showBanner(lv){const b=document.getElementById('banner');document.getEl
 
 /* ============ achievements ============ */
 const ACH_DEFS={
- '首杀':'😺','连击大师':'🔥','火力全开':'💥','钢铁神经':'🧊','百手老手':'🎯','GTO 机器':'🤖','完美关卡':'🏆','巨牌漏着':'😱'
+ '首杀':'😺','连击大师':'🔥','火力全开':'💥','钢铁神经':'🧊','五十手通关':'🏁','GTO 机器':'🤖','完美关卡':'🏆','巨牌漏着':'😱'
 };
 function award(name,emoji){if(G.ach.has(name))return;G.ach.add(name);toast(name,emoji||ACH_DEFS[name]||'⭐');}
 function checkAch(){
  if(G.correct===1)award('首杀');
  if(G.best>=10)award('连击大师');
  if(G.best>=20)award('火力全开');
- if(G.fastCorrect>=5)award('钢铁神经');
- if(G.hands>=100)award('百手老手');
+ if(G.hands>=SESSION_HANDS)award('五十手通关');
  if(G.hands>=40 && G.correct/G.hands>=0.9)award('GTO 机器');
 }
 let toastT=null;
@@ -514,8 +497,8 @@ function toast(name,emoji,plain){const e=document.getElementById('toastEl')||(()
  clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2200);}
 
 /* ============ game over ============ */
-function gameOver(){
- G.over=true;stopTimer();SFX.over();
+function gameOver(win){
+ G.over=true;stopTimer(); if(win){SFX.level();burst(innerWidth/2,innerHeight*0.4,['#e8c66a','#34b074','#fff','#7fc6ff'],50,9);} else SFX.over();
  const acc=G.hands?Math.round(G.correct/G.hands*100):0;
  // lifetime stats
  const st=STORE.stats||{best:0,hands:0,correct:0,games:0};
@@ -523,7 +506,8 @@ function gameOver(){
  st.best=Math.max(st.best||0,G.score);
  st.hands=(st.hands||0)+G.hands; st.correct=(st.correct||0)+G.correct; st.games=(st.games||0)+1;
  STORE.stats=st; persist();
- document.getElementById('overTitle').innerHTML=`得分 <b style="color:var(--gold)">${G.score.toLocaleString()}</b>`+(isRecord&&G.score>0?` <span style="font-size:13px;color:var(--best)">🏅新纪录!</span>`:'');
+ const head = win ? `🎉 完成 ${SESSION_HANDS} 手 · ` : '';
+ document.getElementById('overTitle').innerHTML=head+`得分 <b style="color:var(--gold)">${G.score.toLocaleString()}</b>`+(isRecord&&G.score>0?` <span style="font-size:13px;color:var(--best)">🏅新纪录!</span>`:'');
  const s=document.getElementById('overStats');
  s.innerHTML=`
   <div class="stat"><div class="v">${acc}%</div><div class="k">GTO 准确率</div></div>
