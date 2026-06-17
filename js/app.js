@@ -744,6 +744,7 @@ function applyCGame(g){
  [...document.getElementById('cSelGame').children].forEach(x=>x.setAttribute('aria-selected',x.dataset.g===g));
  const fmts=GAMETYPES[g].formats;
  [...document.getElementById('cSelFormat').children].forEach(b=>{b.style.display=fmts.includes(b.dataset.v)?'':'none';});
+ document.getElementById('cFmtGroup').style.display=fmts.length>1?'':'none'; // 单场景（MTT）时隐藏场景栏，与首页一致
  if(!fmts.includes(cFormat))cFormat=fmts[0];
  chartFmtPick(cFormat);
 }
