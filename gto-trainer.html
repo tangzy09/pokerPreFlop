@@ -403,7 +403,6 @@
       <button class="navbtn" id="reviewBtn"><span class="ic">📕</span><span class="lbl">错题</span></button>
       <button class="navbtn" id="chartsBtn"><span class="ic">📊</span><span class="lbl">图表</span></button>
       <button class="navbtn" id="calcBtn"><span class="ic">🧮</span><span class="lbl">算胜率</span></button>
-      <button class="navbtn" id="solverBtn"><span class="ic">🧠</span><span class="lbl">翻后GTO</span></button>
       <button class="navbtn" id="statsBtn"><span class="ic">📈</span><span class="lbl">统计</span></button>
     </div>
 
@@ -538,19 +537,6 @@
     </div>
   </div>
 
-  <!-- POSTFLOP GTO SOLVER spots screen (real computed, offline CFR+) -->
-  <div class="chart-screen hide" id="solverScreen">
-    <div class="chart-bar">
-      <button class="back-btn" id="solverBack">← 返回</button>
-      <div class="chart-title">翻后 GTO 范例</div>
-      <div class="back-btn" style="visibility:hidden">返回</div>
-    </div>
-    <div class="chart-body about">
-      <p class="cnote">这些是<b>我们自己的 HU 翻后 CFR+ solver 离线真算</b>的均衡解（非手编、非占位）。每个局面演示一个核心概念，并标出<b>实测可利用度</b>（越接近 0 越精确）。诚实范围：HU、单一下注尺寸、无加注。</p>
-      <div id="solverBody"></div>
-    </div>
-  </div>
-
   <div class="chart-screen hide" id="guideScreen">
     <div class="chart-bar">
       <button class="back-btn" id="guideBack">← 返回</button>
@@ -645,7 +631,6 @@
 <script src="js/modes.js"></script>
 <script src="js/data/pushfold.js"></script>
 <script src="js/data/hu-pushfold.js"></script>
-<script src="js/data/postflop-spots.js"></script>
 <script src="js/packs.js"></script>
 <script src="js/app.js"></script>
 </body>

@@ -805,28 +805,53 @@ document.getElementById('guideBack').onclick=()=>{SFX.click();
 /* ---- Range vs Range 胜率计算器 (Phase 4) — real Monte-Carlo equity, zero data risk ---- */
 const CALC_SAMPLES=60000;
 function calcCombos(set){return rangeCombos([...set]).length;}
+// parse a board string ("Ah Kd 7c" / "AhKd7c") -> {cards:[ints]} (0=翻前) or {err}
+function parseBoardStr(s){
+ const t=(s||'').replace(/[\s,]+/g,'');
+ if(!t)return {cards:[]};
+ if(t.length%2!==0)return {err:'牌面字数不对——每张牌两个字符，如 Ah Kd 7c'};
+ const out=[],seen=new Set();
+ for(let i=0;i<t.length;i+=2){
+  const tok=t[i].toUpperCase()+t[i+1].toLowerCase();
+  let c;try{c=parseCard(tok);}catch(e){return {err:`看不懂这张牌「${tok}」——点数用 23456789TJQKA，花色用 shdc`};}
+  if(seen.has(c))return {err:`牌面里有重复的牌「${tok}」`};
+  seen.add(c);out.push(c);
+ }
+ if(out.length<3||out.length>5)return {err:'牌面要 3（翻牌）/4（转牌）/5（河牌）张，或留空=翻前全下'};
+ return {cards:out};
+}
+const STREET_NAME={3:'翻牌',4:'转牌',5:'河牌'};
 function updateCalcCounts(){
  const h=expand(document.getElementById('calcHero').value), v=expand(document.getElementById('calcVill').value);
  document.getElementById('calcHN').textContent=h.size?`· ${h.size} 手 / ${calcCombos(h)} 组合`:'· —';
  document.getElementById('calcVN').textContent=v.size?`· ${v.size} 手 / ${calcCombos(v)} 组合`:'· —';
+ const bp=parseBoardStr(document.getElementById('calcBoard').value);
+ const bn=document.getElementById('calcBN');
+ if(bn)bn.textContent=bp.err?'· ⚠ 写法待修正':(bp.cards.length?`· ${bp.cards.length} 张 · ${STREET_NAME[bp.cards.length]}`:'· 留空=翻前');
 }
 function runCalc(){
  const out=document.getElementById('calcOut');
  const hero=[...expand(document.getElementById('calcHero').value)];
  const vill=[...expand(document.getElementById('calcVill').value)];
  if(!hero.length||!vill.length){out.innerHTML=`<div class="calc-err">范围为空或写法无法识别——试试 <code>22+, AJs+, KQo</code> 这类写法喵～</div>`;return;}
+ const bp=parseBoardStr(document.getElementById('calcBoard').value);
+ if(bp.err){out.innerHTML=`<div class="calc-err">${bp.err}喵～</div>`;return;}
+ const board=bp.cards;
  SFX.click();
  out.innerHTML=`<div class="calc-edge">计算中…（${CALC_SAMPLES/10000} 万次模拟）</div>`;
  setTimeout(()=>{                                   // let the "计算中" frame paint before the blocking compute
   const rng=mulberry32(0x5eed);                     // fixed seed → reproducible numbers
-  const e=rangeEquity(hero,vill,CALC_SAMPLES,rng);
-  if(e==null){out.innerHTML=`<div class="calc-err">这两个范围牌张冲突太多，无法对局喵～</div>`;return;}
+  const e=board.length?rangeEquityBoard(hero,vill,board,CALC_SAMPLES,rng):rangeEquity(hero,vill,CALC_SAMPLES,rng);
+  if(e==null){out.innerHTML=`<div class="calc-err">范围和牌面牌张冲突太多，无法对局喵～</div>`;return;}
   const hp=e*100, vp=100-hp, edge=hp-vp;
   const bar=(name,pct,color)=>`<div class="calc-bar"><div class="bl"><span>${name}</span><span class="pct">${pct.toFixed(1)}%</span></div>`
    +`<div class="calc-track"><i style="width:${pct.toFixed(1)}%;background:${color}"></i></div></div>`;
   const lead = Math.abs(edge)<0.6 ? '两边几乎五五开' : `${edge>0?'你':'对手'}领先 <b>${Math.abs(edge).toFixed(1)}%</b>`;
+  const note = board.length
+   ? `· 牌面 ${board.map(cardStr).join(' ')}（${STREET_NAME[board.length]}）· ${CALC_SAMPLES/10000} 万次跑完剩余街`
+   : `· ${CALC_SAMPLES/10000} 万次全下到河模拟`;
   out.innerHTML=`<div class="calc-bars">${bar('你',hp,'var(--best)')}${bar('对手',vp,'var(--raise)')}</div>`
-   +`<div class="calc-edge">范围优势：${lead}　<span style="color:var(--foldink,#7c8c82)">· ${CALC_SAMPLES/10000} 万次全下到河模拟</span></div>`;
+   +`<div class="calc-edge">${board.length?'翻后胜率':'范围优势'}：${lead}　<span style="color:var(--foldink,#7c8c82)">${note}</span></div>`;
  },20);
 }
 function openCalc(){aInit();SFX.click();
@@ -840,44 +865,9 @@ document.getElementById('calcBack').onclick=()=>{SFX.click();
  document.getElementById('calcScreen').classList.add('hide');
  document.getElementById('startScreen').classList.remove('hide');};
 document.getElementById('calcRun').onclick=runCalc;
+document.getElementById('calcBoard').addEventListener('input',updateCalcCounts);
 document.getElementById('calcHero').addEventListener('input',updateCalcCounts);
 document.getElementById('calcVill').addEventListener('input',updateCalcCounts);
-// ----- 翻后 GTO 范例（离线 CFR+ solver 真算，数据来自 js/data/postflop-spots.js）-----
-function renderSolvedSpots(){
- var body=document.getElementById('solverBody'); if(!body) return;
- var spots=window.SOLVED_SPOTS||[];
- if(!spots.length){body.innerHTML='<div class="ab-card">（暂无数据——运行 tools/gen-postflop-spots.py 生成）</div>';return;}
- var FL={check:'过牌',bet:'下注',fold:'弃牌',call:'跟注'};
- var COL={bet:'var(--raise,#e0564a)',call:'var(--best,#39b178)',check:'#7c8c82',fold:'#7c8c82'};
- body.innerHTML=spots.map(function(s){
-  var lines=s.lines.map(function(ln){
-   var segs=Object.keys(ln.freq).map(function(k){
-    var pct=Math.round(ln.freq[k]*100); if(pct<=0) return '';
-    return '<span style="display:inline-block;height:100%;width:'+pct+'%;background:'+(COL[k]||'#888')
-      +';color:#fff;font-size:11px;line-height:22px;text-align:center;white-space:nowrap;overflow:hidden">'
-      +(pct>=14?(FL[k]||k)+' '+pct+'%':'')+'</span>';
-   }).join('');
-   return '<div style="font-size:13px;margin-top:8px;opacity:.92">'+ln.who+' · '+ln.hand+'</div>'
-     +'<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:#0003">'+segs+'</div>';
-  }).join('');
-  return '<div class="ab-card"><h3>'+s.concept+'</h3>'
-   +'<div style="font-size:13px;margin:2px 0 6px;letter-spacing:.5px"><b>牌面</b> '+s.board
-   +' <span style="font-size:11px;opacity:.6">· 河牌 · 单街</span></div>'
-   +'<p style="margin:.3em 0">'+s.desc+'</p>'+lines
-   +'<p style="margin:.8em 0 .3em;font-size:13px;background:#0001;padding:.5em .7em;border-radius:8px">💡 '+s.note+'</p>'
-   +'<div style="font-size:11px;opacity:.62;margin-top:.4em">📐 OOP 期望 '+(s.value>=0?'+':'')+s.value
-   +'（底池=1，零和基线）｜'+s.src+'</div></div>';
- }).join('');
-}
-function openSolver(){SFX.click();
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('solverScreen').classList.remove('hide');
- renderSolvedSpots();
-}
-document.getElementById('solverBtn').onclick=openSolver;
-document.getElementById('solverBack').onclick=()=>{SFX.click();
- document.getElementById('solverScreen').classList.add('hide');
- document.getElementById('startScreen').classList.remove('hide');};
 function guideLaunch(fmt,variant){
  selFormat=fmt;
  applyGame(gameOf(fmt),true,variant);
