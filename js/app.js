@@ -227,9 +227,9 @@ function nextHand(){
   const el=document.createElement('div');el.className='card';
   el.innerHTML=`<div class="back"></div>
    <div class="face">
-     <span class="rk ${card.c}">${rankFace(card.r)}<span class="su">${card.sym}</span></span>
+     <span class="rk ${card.c}">${rankFace(card.r)}</span>
      <span class="pip-c ${card.c}">${card.sym}</span>
-     <span class="rk br ${card.c}">${rankFace(card.r)}<span class="su">${card.sym}</span></span>
+     <span class="rk br ${card.c}">${rankFace(card.r)}</span>
    </div>`;
   cardsEl.appendChild(el);
   setTimeout(()=>{el.classList.add('flip');SFX.deal();},120+i*130);
