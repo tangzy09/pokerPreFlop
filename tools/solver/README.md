@@ -24,15 +24,14 @@ known answer before trusting it on a real spot, and measure exploitability.
    `test_streets.py` GREEN: reduces-to-river matches (+0.250), nuts-vs-air over
    all rivers → value +0.5 / air folds / expl 0.0005, real turn spot expl 0.002.
    Run: `python tools/solver/test_streets.py`. Scope: one bet size, no raises.
-4. 🚧 **Preflop ↔ postflop** — `test_preflop.py` written first (TDD, RED): a
-   HU SB/BB preflop tree values "see a flop" leaves via an INJECTED `leaf_ev`
-   callback (where the postflop solver / an EV model plugs in). Anchors:
-   reduces-to-push/fold when `leaf_ev=None` (jam/fold Nash, exploitability ~0,
-   best hand always jams), `leaf_ev` is actually invoked, combined game
-   converges. Next: implement `preflop.py`. NOTE: a *correct* leaf_ev needs the
-   postflop solve of the arriving ranges (chicken-and-egg) — v1 will inject a
-   cheap model (equity / realization factor) and label it honestly; real nested
-   solves are the expensive endgame.
+4. ✅ **Preflop ↔ postflop** — `preflop.py`: HU SB/BB preflop CFR (fold / limp /
+   jam) that values "see a flop" leaves via an INJECTED `leaf_ev` callback
+   (the postflop solver or an EV model plugs in here); all-in leaves use preflop
+   all-in equity. `test_preflop.py` GREEN: leaf_ev=None reduces to a push/fold
+   Nash (exploitability 0.016, AA always jams); leaf_ev is invoked; the combined
+   game converges (expl 0.011 / 0.033 deep). Run: `python tools/solver/test_preflop.py`.
+   NOTE: a *correct* leaf_ev needs the postflop solve of the arriving ranges
+   (chicken-and-egg). v1 injects a cheap labelled model; raises are v2.
 5. ⬜ Output strategy as data; only then consider feeding preflop leaves.
 
 ## Why HU only
