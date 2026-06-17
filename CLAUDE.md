@@ -10,8 +10,9 @@ A zero-build, dependency-free web app: a **pre-flop poker GTO decision trainer**
 
 ```
 gto-trainer.html         markup + ~650 lines CSS, then 6 <script src> tags (order matters)
-js/equity.js             dual-loaded all-in equity engine (evaluate7, equityExact, classEquity,
-                         rangeEquity); also require()d by tools/ — module.exports is guarded
+js/equity.js             dual-loaded equity engine (evaluate7, equityExact, classEquity,
+                         rangeEquity, rangeEquityBoard = equity on a given 3/4/5-card board);
+                         also require()d by tools/ — module.exports is guarded
 js/ranges.js             range-string DSL (expand) + scenario taxonomy (FORMATS/GAMETYPES/VARIANTS)
 js/modes.js              MODES — single source of mode behaviour (+ FREQ/handFreq, cellCat/catName)
 js/data/pushfold.js      AUTO-GENERATED computed 9-max 10/15/20bb Nash (global PUSHFOLD); loads before packs
@@ -19,7 +20,8 @@ js/data/hu-pushfold.js   AUTO-GENERATED computed HU SB-vs-BB push/fold, jam + ca
 js/packs.js              PACKS range database (+ PREMIUM); overrides d10 spots with the computed data
 js/data/postflop-spots.js AUTO-GENERATED HU postflop GTO solves (global SOLVED_SPOTS); displayed
                          by the 翻后GTO range/screen — solved offline by the Python CFR+ solver
-js/app.js                persistence, audio, confetti, hand helpers, game engine, charts + 胜率计算器 +
+js/app.js                persistence, audio, confetti, hand helpers, game engine, charts +
+                         胜率计算器 (翻前 + 翻后 board-equity, parseBoardStr) +
                          翻后GTO范例 (renderSolvedSpots) UI, boot
 tools/                   offline data computation — NOT shipped to the browser:
   pushfold.js            (Node) HU + multiway push/fold Nash solvers (buildEqMatrix, solveHU, solveRing); require()s ../js/equity
@@ -44,7 +46,7 @@ The scripts share one global scope (browser behaviour for classic scripts); load
 - Node v24 is installed at `C:\Program Files\nodejs\`. Freshly-spawned tool shells may not have it on PATH until a terminal restart — use the full path (`& "C:\Program Files\nodejs\node.exe"` / `npm.cmd`).
 
 ### How the tests work (no DOM, no dependencies)
-`test/load-app.js` reads the `<script src="js/...">` list from the HTML (in order), concatenates those files, and runs them in one `vm` context where every browser global is a **bulletproof Proxy stub** (each trap returns another callable/iterable Proxy), so the top-level boot code that touches `document`/`window`/`localStorage` can't throw. Concatenating reproduces the browser's shared global scope across classic scripts — so a load-order/reference error in `app.js` also throws here. It appends `;globalThis.__app={MODES,PACKS,cellCat,…}` to capture the internals. `test/regression.test.js` then runs **contract invariants** (every PACKS mode has a MODES entry; `correct`/`cell` outputs are well-formed; range-DSL + `handLabel`/`combosOf` sanity) plus a **golden snapshot** (`test/snapshot.js` builds the full decision matrix + every spot's chart categories across all 169 hands). This is the regression net for the MODES-centralized design. Note: the tests cover pure logic/data only — DOM rendering and the game loop still need a manual browser click-through.
+`test/load-app.js` reads the `<script src="js/...">` list from the HTML (in order), concatenates those files, and runs them in one `vm` context where every browser global is a **bulletproof Proxy stub** (each trap returns another callable/iterable Proxy), so the top-level boot code that touches `document`/`window`/`localStorage` can't throw. Concatenating reproduces the browser's shared global scope across classic scripts — so a load-order/reference error in `app.js` also throws here. It appends `;globalThis.__app={MODES,PACKS,cellCat,…}` to capture the internals. `test/regression.test.js` then runs **contract invariants** (every PACKS mode has a MODES entry; `correct`/`cell` outputs are well-formed; range-DSL + `handLabel`/`combosOf` sanity) plus a **golden snapshot** (`test/snapshot.js` builds the full decision matrix + every spot's chart categories across all 169 hands). This is the regression net for the MODES-centralized design. Two more suites cover the postflop additions: `test/solver-spots.test.js` (the shipped `js/data/postflop-spots.js` is well-formed, near-Nash, and matches the textbook closed forms — MDF 50%/67%, nuts-vs-air +0.5, etc.) and `test/equity-board.test.js` (`rangeEquityBoard` — river boards are deterministic so those equities are exact). Note: the tests cover pure logic/data only — DOM rendering and the game loop still need a manual browser click-through.
 
 ## Architecture (the parts that span multiple files)
 

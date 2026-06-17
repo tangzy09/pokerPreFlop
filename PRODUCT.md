@@ -35,7 +35,9 @@
 - **频率地基（Phase 1）**：`handFreq(t,hand)` → 每手动作权重；`freqTable` 可被真数据覆盖；`src/confidence` 标签；测试锁死「频率支持集 == 判定支持集」。
 - **频率显示与评级（Phase 2/3）**：精确局面的混合点按真频率评级（最高频=最佳、次频=好棋；占位 50/50 仍并列「好棋」，不编造高下）；反馈与图表（`cInfo`）对精确局面显示真实百分比，其余维持定性。
 - **自算 Nash 数据（Phase 7 起步）**：`tools/` 下自建 all-in equity 引擎 + HU/多人 push/fold Nash 求解器；**10 / 15 / 20bb 9 人推弃各 5 个位置已用自算 Nash 替换手搓范围**（`confidence:'precise'`，数据在 `js/data/pushfold.js`，离线 `node tools/gen-pushfold.js` 重算）。
-- 工程：多文件拆分、零依赖 Node 回归测试（契约不变量 + 金快照 + equity/Nash 验证，20 项）、git。
+- **翻后胜率（带公共牌）**：「算胜率」计算器现支持填**牌面**（翻牌/转牌/河牌）算**翻后 equity**（`rangeEquityBoard`，纯枚举/蒙特卡洛，自动按组合加权 + 跳过冲突）；留空则仍是翻前全下。
+- **翻后 GTO 范例（离线真算，只读）**：自建 HU 翻后 **CFR+ solver 链**（`tools/solver/`，纯 Python，含向量化 + 牌面抽象 + CFR+）离线真算的经典河牌局面（MDF / 极化 / 诈唬比例 / 无差异），在「🧠 翻后GTO」页**只读展示**，每个标**实测可利用度**；数据在 `js/data/postflop-spots.js`（`python tools/gen-postflop-spots.py` 重算）。**不是**浏览器内实时 solver（CFR 跑不了任意输入）。
+- 工程：多文件拆分、零依赖 Node 回归测试（契约不变量 + 金快照 + equity/Nash + 翻后数据/board-equity 验证，38 项）、git。
 
 ---
 
@@ -62,7 +64,8 @@
 | 功能 | 定义 | 数据/诚实约束 | 状态 |
 |---|---|---|---|
 | **频率 + 动作显示** | 反馈与图表显示「70% 加注 / 30% 跟注」而非二元对错 | 读 `handFreq`；派生值标注为近似 | Phase 2/3 ✅ |
-| **Range vs Range 胜率计算器** | 两个范围/手牌算 equity、范围优势、坚果优势 | 纯蒙特卡洛/枚举，**零数据风险**；是「诚实 EV」的钥匙 | Phase 4 ✅ 翻前 equity + 范围优势（坚果优势/带公共牌待做） |
+| **Range vs Range 胜率计算器** | 两个范围/手牌算 equity、范围优势；**可填牌面算翻后胜率** | 纯蒙特卡洛/枚举，**零数据风险**；是「诚实 EV」的钥匙 | Phase 4 ✅ 翻前 + **翻后（带公共牌）** equity ✅（坚果优势待做） |
+| **翻后 GTO 范例（只读）** | 展示离线真算的经典翻后均衡（MDF/极化/诈唬比例/无差异），带实测可利用度 | 数据来自自建 HU CFR+ solver（`tools/solver`），离线生成；**非浏览器内实时求解** | ✅（「🧠 翻后GTO」页，HU·单一下注尺寸·无加注） |
 | **Leak Analyzer 漏洞分析** | 从错题堆排出「最大漏洞」+ 错误类型分布 + 最常踩的坑（可一键去练） | 用 `reviewPile`（按手×spot 的失误计数）；标签写「vs 参考范围」 | Phase 5 ✅（在「统计」页） |
 | **错误分类** | 把失误归类：太松（该弃却入池）/ 太紧（该入却弃·漏价值）/ 边缘混合 / ICM | `classifyMiss(rec)` 仅凭 spot+hand 判定（混合点→边缘，纯弃打错→太松，纯入打错→太紧，ICM 局→ICM），无需存下选择 | Phase 5 ✅ |
 | **个人画像 Poker Profile** | 类型（TAG 等）+ 优势/弱点位置清单 | 纯本地统计聚合 | 计划 |
@@ -102,7 +105,7 @@
 | **编造的精确混合 %**（如 Fold 96/Call 3/Jam 1） | 派生的 50/50 假不出来；只有真数据或推弃才给真 %。 |
 | **「AI 教练」LLM 自然语言引擎** | 要接 API/后端，打破离线+零构建+零成本（§2）。用模板 `reasonFor()` 替代。 |
 | **商业 / 第三方版权 GTO 数据** | 版权与成本风险；坚持原创整理或公开可算数据。 |
-| **翻后（Post-flop）** | 另一套庞大引擎，本项目专注翻前。 |
+| **浏览器内实时翻后 GTO 求解** | CFR 求解需离线 Python，浏览器跑不了任意输入。翻后只做两件诚实的事：**翻后 equity**（纯数学，实时）＋ **离线真算的只读 GTO 范例**（带可利用度）。**不做**自定义牌面/范围的实时策略求解，也不做完整翻后训练器——本项目主线仍是翻前。 |
 
 ---
 
@@ -113,7 +116,8 @@
 | **Phase 1** ✅ | 频率权重地基（`handFreq`/`freqTable`/`confidence`） | 已完成，行为零回退 |
 | **Phase 2** ✅ | 引擎评级改读频率（精确局面最高频=最佳、次频=好棋；占位 50/50 不分高下）+ 反馈显示百分比 | 仅 `resolve()` 运行期行为，未动 `MODES`/快照 |
 | **Phase 3** ✅ | 图表叠加频率（`cInfo` 对精确局面显示「全下 78% / 弃牌 22%」） | 仅精确局面显示真频率，其余维持定性 |
-| **Phase 4** ✅ | **Range vs Range 胜率计算器**（纯数学钥匙）：浏览器端 `js/equity.js`（`rangeEquity` 蒙特卡洛）+「算胜率」界面，显示双方 equity 与范围优势 | 零数据风险；坚果优势/带公共牌/推弃 EV 待做 |
+| **Phase 4** ✅ | **Range vs Range 胜率计算器**（纯数学钥匙）：浏览器端 `js/equity.js`（`rangeEquity`/`rangeEquityBoard` 蒙特卡洛）+「算胜率」界面，显示双方 equity 与范围优势，**支持填牌面算翻后胜率** | 零数据风险；翻前+翻后 equity 均已做；坚果优势/推弃 EV 待做 |
+| **Phase 8（额外）** ✅ | **HU 翻后 CFR+ solver 链**（`tools/solver/`，离线 Python）：CFR 引擎→河→多街→向量化→牌面抽象→CFR+，全程对已知答案验证；其产物经 `gen-postflop-spots.py` 生成 `js/data/postflop-spots.js`，在「🧠 翻后GTO」页只读展示 | 详见 `tools/solver/README.md`。诚实边界：HU、单一下注尺寸、无加注；端到端真实翻前图需联合求解（开放难题），故未上线 |
 | **Phase 5** ✅ | **Leak Analyzer + 错误分类**（最独特价值）：「统计」页新增「🔍 你的漏洞」——错误类型分布（太松/太紧/边缘/ICM）+ 最常踩的坑 + 一键去练 | 吃 `reviewPile`；`classifyMiss` 仅凭 spot+hand 判定，旧数据也能分析；待办：动作级频率采集（更细的「偏离主频」） |
 | **Phase 6** | 个人画像 + 训练计划（成长系统外壳） | 纯本地 |
 | **Phase 7** | 自算/导入真数据 → `freqTable`。✅ **10/15/20bb 9 人推弃已自算 Nash**（`js/equity.js`+`tools/pushfold.js`+`gen-pushfold.js`）；待办：现金推弃/更多 stack、GTO Wizard/CSV 导入器 | 逐 spot 升 `confidence:precise` |

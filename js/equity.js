@@ -181,6 +181,39 @@ function rangeEquity(labels1, labels2, n, rng) {
   return done ? (win + tie / 2) / done : null;
 }
 
+// ---- equity of range1 vs range2 on a GIVEN partial board (3/4/5 cards already out) ----
+// Like rangeEquity but the board cards are fixed; deals the remaining (5 - board.length)
+// cards each iter. Skips combos that conflict with the board or each other. board is an
+// array of card ints. Returns range1's equity in [0,1], or null if undealable.
+function rangeEquityBoard(labels1, labels2, board, n, rng) {
+  const A = rangeCombos(labels1), B = rangeCombos(labels2);
+  if (!A.length || !B.length) return null;
+  const bset = new Set(board);
+  if (bset.size !== board.length || board.length > 5) return null;
+  const need = 5 - board.length;
+  const h7 = [0, 0, 0, 0, 0, 0, 0], v7 = [0, 0, 0, 0, 0, 0, 0];
+  for (let k = 0; k < board.length; k++) { h7[2 + k] = v7[2 + k] = board[k]; }
+  let win = 0, tie = 0, done = 0, tries = 0;
+  const maxTries = n * 50 + 1000;
+  while (done < n && tries < maxTries) {
+    tries++;
+    const a = A[(rng() * A.length) | 0], b = B[(rng() * B.length) | 0];
+    if (a[0] === b[0] || a[0] === b[1] || a[1] === b[0] || a[1] === b[1]) continue;
+    if (bset.has(a[0]) || bset.has(a[1]) || bset.has(b[0]) || bset.has(b[1])) continue;
+    h7[0] = a[0]; h7[1] = a[1]; v7[0] = b[0]; v7[1] = b[1];
+    if (need > 0) {
+      const dead = new Set([a[0], a[1], b[0], b[1]]); for (const c of board) dead.add(c);
+      const deck = []; for (let c = 0; c < 52; c++) if (!dead.has(c)) deck.push(c);
+      const m = deck.length;
+      for (let k = 0; k < need; k++) { const j = k + ((rng() * (m - k)) | 0); const t = deck[k]; deck[k] = deck[j]; deck[j] = t; h7[2 + board.length + k] = v7[2 + board.length + k] = deck[k]; }
+    }
+    const hs = evaluate7(h7), vs = evaluate7(v7);
+    if (hs > vs) win++; else if (hs === vs) tie++;
+    done++;
+  }
+  return done ? (win + tie / 2) / done : null;
+}
+
 const EQUITY_API = { card, cardRank, cardSuit, cardStr, parseCard, evaluate7, comboCards,
-  equityExact, equityMC, classEquity, rangeCombos, rangeEquity, mulberry32, RV, SV, RC, SC };
+  equityExact, equityMC, classEquity, rangeCombos, rangeEquity, rangeEquityBoard, mulberry32, RV, SV, RC, SC };
 if (typeof module !== 'undefined' && module.exports) module.exports = EQUITY_API; // Node (tools); in the browser the names above are plain globals
