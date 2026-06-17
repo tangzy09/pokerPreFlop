@@ -62,12 +62,22 @@ known answer before trusting it on a real spot, and measure exploitability.
    sizes reach the same river card+history) — without that, mixed multi-hand
    spots plateaued at ~0.1 exploitability. EXPENSIVE (48-card chance fan-out,
    ~2min) -> standalone, not in run_all. Run: `python tools/solver/test_vturn.py`.
-9. ⬜ Next: raises in the postflop trees; vectorized 2-chance (flop) solve;
-   flop-range iteration (the real chicken-and-egg joint solve).
+9. ✅ **Vectorized two-chance (flop→turn→river)** — `vflop.py` (needs numpy): two
+   chance nodes; all-in runouts use PRECOMPUTED average-equity matrices (O(1), no
+   fan-out), only the deep checked-betting path pays the ~48×47 board fan-out.
+   `test_vflop.py` GREEN (10/10): matches the scalar solver (value), flopped-quads
+   +P/2, scale, determinism. KEY FINDING: vectorization shrinks the RANGE
+   dimension (done) but NOT the board fan-out — a full deep flop solve traverses
+   ~2300 runouts per iteration, so it's only tractable at low iters here.
+   **The real next step for practical flop solving is card/board ABSTRACTION
+   (bucketing), a different technique than vectorization.** ~6min -> standalone.
+10. ⬜ Next: card/turn-river abstraction (the actual enabler for fast flop); raises
+    in postflop trees; flop-range iteration (the chicken-and-egg joint solve).
 
 ## Heavier standalone suites (not in run_all)
 - `python tools/solver/endtoend.py` — preflop fed by the real postflop solver (~45s)
 - `python tools/solver/test_vturn.py` — vectorized turn+river (~2min)
+- `python tools/solver/test_vflop.py` — vectorized flop (two chance nodes, ~6min)
 
 ## Why HU only
 CFR provably converges to Nash only in 2-player zero-sum games. Multiway
