@@ -575,6 +575,7 @@ function applyGame(g,keepFmt,wantVar){
  [...document.getElementById('selGame').children].forEach(x=>x.setAttribute('aria-selected',x.dataset.g===g));
  const fmts=GAMETYPES[g].formats;
  [...document.getElementById('selFormat').children].forEach(b=>{b.style.display=fmts.includes(b.dataset.v)?'':'none';});
+ document.getElementById('fmtGroup').style.display=fmts.length>1?'':'none'; // 只有一个场景时（如 MTT）隐藏整栏，省去无意义的单选
  if(!keepFmt || !fmts.includes(selFormat)) selFormat=fmts[0];
  startFmtPick(selFormat,wantVar);
 }
