@@ -42,11 +42,12 @@
   .hud-right{display:flex;align-items:center;gap:9px;min-width:0}
   .hud-score{text-align:right;min-width:0;overflow:hidden}
   .hud-score .lvl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .end-btn{flex:none;appearance:none;border:1px solid var(--line);background:transparent;cursor:pointer;color:var(--gold);font-family:inherit;font-weight:700;font-size:12.5px;line-height:1;border-radius:9px;padding:6px 10px;white-space:nowrap}
-  .end-btn:hover{background:rgba(232,198,106,.12)}
+  .hud2{display:flex;align-items:center;gap:10px;padding:0 16px 6px}
+  .end-btn{flex:none;appearance:none;border:1px solid var(--raise);background:rgba(224,84,79,.16);cursor:pointer;color:#ff9a93;font-family:inherit;font-weight:700;font-size:12.5px;line-height:1;border-radius:9px;padding:6px 12px;white-space:nowrap}
+  .end-btn:hover{background:rgba(224,84,79,.3)}
   .score{font-family:"Space Grotesk";font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1}
   .lvl{font-family:"Space Mono";font-size:10px;letter-spacing:.2em;color:var(--gold);text-transform:uppercase}
-  .combo-wrap{height:26px;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:2px}
+  .combo-wrap{display:flex;align-items:center;gap:7px}
   .combo{font-family:"Space Grotesk";font-weight:700;font-size:16px;color:var(--gold);opacity:0;transform:scale(.6);transition:.18s}
   .combo.show{opacity:1;transform:scale(1)}
   .combo.big{font-size:21px;text-shadow:0 0 16px rgba(232,198,106,.7)}
@@ -286,8 +287,9 @@
   .opts{display:flex;gap:8px;margin-bottom:14px}
   .opts-wrap{flex-wrap:wrap}
   /* 场景选择：固定 3 列网格，各按钮等宽等高（避免最后一行被 flex 拉宽，更整齐） */
-  #selFormat{display:grid;grid-template-columns:repeat(3,1fr);align-items:stretch}
-  #selFormat .opt{min-width:0}
+  /* 图表页(cSelFormat)与首页(selFormat)共用同一布局，保持一致 */
+  #selFormat,#cSelFormat{display:grid;grid-template-columns:repeat(3,1fr);align-items:stretch}
+  #selFormat .opt,#cSelFormat .opt{min-width:0}
   .opt-group{flex-basis:100%;width:100%;text-align:left;font-family:"Space Mono";font-size:9.5px;letter-spacing:.14em;
     text-transform:uppercase;color:var(--gold-dim,#9c8240);margin:4px 0 -4px;opacity:.85}
   /* leak analyzer */
@@ -304,6 +306,11 @@
   .leak-drill{appearance:none;border:1px solid var(--line);background:transparent;color:var(--gold);cursor:pointer;
     font-family:inherit;font-size:12px;font-weight:600;border-radius:8px;padding:4px 10px}
   .leak-drill:hover{background:rgba(232,198,106,.12)}
+  /* personal profile */
+  .prof-row{display:flex;align-items:baseline;gap:8px;font-size:13.5px;padding:6px 0;border-top:1px solid var(--line)}
+  .prof-row:first-child{border-top:0}
+  .prof-k{min-width:62px;color:var(--muted);font-size:12px}
+  .prof-d{color:var(--muted);font-size:12px;margin-left:auto;text-align:right}
   .opts-wrap .opt{flex:1 1 28%;min-width:92px}
   .opt{flex:1;appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px;color:var(--ink);
     background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 6px;transition:.15s;line-height:1.15}
@@ -337,11 +344,13 @@
       <button class="exit-btn" id="exitBtn" title="退出训练" aria-label="退出训练">←</button>
       <div class="hp" id="hp"></div>
     </div>
-    <div class="combo-wrap"><span class="combo" id="combo"></span></div>
     <div class="hud-right">
-      <div class="hud-score"><div class="score" id="score">0</div><div class="lvl" id="lvl">LV.1</div></div>
-      <button class="end-btn" id="endBtn" title="结束训练 · 查看战绩">结束</button>
+      <div class="hud-score"><div class="score" id="score">0</div><div class="lvl" id="hudScene">现金 6人</div><div class="lvl" id="lvl">LV.1 · 0/50</div></div>
     </div>
+  </div>
+  <div class="hud2">
+    <button class="end-btn" id="endBtn" title="结束训练 · 查看战绩">结束</button>
+    <div class="combo-wrap"><span class="combo" id="combo"></span></div>
   </div>
 
   <!-- table -->
@@ -425,7 +434,7 @@
     <div class="chart-bar">
       <button class="back-btn" id="chartBack">← 返回</button>
       <div class="chart-title">范围图表</div>
-      <div class="back-btn" style="visibility:hidden">返回</div>
+      <div class="back-btn" style="visibility:hidden">← 返回</div>
     </div>
     <div class="chart-body">
       <div class="sel-group">
@@ -463,8 +472,6 @@
         <div class="clegend" id="cLegend"></div>
         <div class="cinfo" id="cInfo">点格子查看每手牌的建议</div>
       </div>
-      <p class="cnote">右上三角=同花(s) · 左下=不同花(o) · 对角线=对子 · 斜分格=混合策略。</p>
-      <p class="cnote">数据来源标签：<span class="conf conf-precise">✓ 自算 Nash</span> = 本工具计算所得（精确） · <span class="conf conf-approx">~ 粗略估计</span> = 最粗（ICM/6人）。其余为参考范围（不另标）。</p>
     </div>
   </div>
 
@@ -473,7 +480,7 @@
     <div class="chart-bar">
       <button class="back-btn" id="aboutBack">← 返回</button>
       <div class="chart-title">关于数据与假设</div>
-      <div class="back-btn" style="visibility:hidden">返回</div>
+      <div class="back-btn" style="visibility:hidden">← 返回</div>
     </div>
     <div class="chart-body about">
       <div class="ab-card ab-ok">
@@ -517,7 +524,7 @@
     <div class="chart-bar">
       <button class="back-btn" id="calcBack">← 返回</button>
       <div class="chart-title">胜率计算器</div>
-      <div class="back-btn" style="visibility:hidden">返回</div>
+      <div class="back-btn" style="visibility:hidden">← 返回</div>
     </div>
     <div class="chart-body calc">
       <p class="cnote"><b>蒙特卡洛实算 · 真实数字</b>。范围用逗号分隔，如 <code>22+, AJs+, KQo</code>；单手 <code>AKs</code> 也行。<br>填了<b>牌面</b>就是<b>翻后胜率</b>（给定公共牌），留空则是<b>翻前全下</b>。</p>
@@ -543,7 +550,7 @@
     <div class="chart-bar">
       <button class="back-btn" id="guideBack">← 返回</button>
       <div class="chart-title">翻前主线 · 怎么练</div>
-      <div class="back-btn" style="visibility:hidden">返回</div>
+      <div class="back-btn" style="visibility:hidden">← 返回</div>
     </div>
     <div class="chart-body about">
       <div class="ab-card ab-ok">
@@ -601,7 +608,7 @@
     <div class="chart-bar">
       <button class="back-btn" id="reviewBack">← 返回</button>
       <div class="chart-title">错题复习堆</div>
-      <div class="back-btn" style="visibility:hidden">返回</div>
+      <div class="back-btn" style="visibility:hidden">← 返回</div>
     </div>
     <div class="chart-body about">
       <button class="big-btn" id="reviewAllBtn" style="max-width:430px">▶ 开始复习全部</button>
@@ -613,10 +620,16 @@
     <div class="chart-bar">
       <button class="back-btn" id="statsBack">← 返回</button>
       <div class="chart-title">生涯统计</div>
-      <div class="back-btn" style="visibility:hidden">返回</div>
+      <div class="back-btn" style="visibility:hidden">← 返回</div>
     </div>
     <div class="chart-body about">
       <div class="stats" id="statsTiles" style="width:100%;max-width:430px"></div>
+      <div class="ab-card" id="profileCard" style="width:100%;max-width:430px"><h3>🎯 个人画像</h3>
+        <div id="profileBody"></div>
+      </div>
+      <div class="ab-card" id="planCard" style="width:100%;max-width:430px"><h3>🗓 训练计划</h3>
+        <div id="planBody"></div>
+      </div>
       <div class="ab-card" id="leakCard" style="width:100%;max-width:430px"><h3>🔍 你的漏洞</h3>
         <div id="leakBody"></div>
       </div>

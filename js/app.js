@@ -155,9 +155,13 @@ function renderHUD(){
  const hp=document.getElementById('hp');hp.innerHTML='';
  for(let i=0;i<G.maxhp;i++){const e=document.createElement('i');e.textContent='❤';if(i>=G.hp)e.className='dead';hp.appendChild(e);}
  document.getElementById('score').textContent=G.score.toLocaleString();
+ // 3 lines: score (above) / 场景 / 等级·局数
+ document.getElementById('hudScene').textContent = G.reviewMode
+  ? '复习模式'
+  : FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short;
  document.getElementById('lvl').textContent = G.reviewMode
-  ? '复习模式 · 待清 '+reviewPile.length
-  : FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short+' · LV.'+G.level+' · '+(G.handNo||0)+'/'+SESSION_HANDS;
+  ? '待清 '+reviewPile.length
+  : 'LV.'+G.level+' · '+(G.handNo||0)+'/'+SESSION_HANDS;
  const c=document.getElementById('combo');
  if(G.combo>=2){c.textContent='🔥 '+G.combo+' 连击';c.className='combo show'+(G.combo>=8?' big':'');}
  else c.className='combo';
@@ -577,7 +581,7 @@ function buildVariants(varBoxId,varLabelId,format,current,pick){
  });
 }
 
-let selFormat='cash', selVariant='6', selDeal='all', selGame='cash';
+let selFormat='cash', selVariant='6', selDeal='smart', selGame='cash';
 function buildOpts(boxId,cfg,current,pick){
  const box=document.getElementById(boxId);box.innerHTML='';
  Object.entries(cfg).forEach(([k,v])=>{
@@ -608,7 +612,7 @@ function applyGame(g,keepFmt,wantVar){
 
 // restore saved preferences + mistake pile
 const _p=STORE.prefs||{};
-selDeal = (_p.deal && HANDFILTERS[_p.deal]) ? _p.deal : 'all';
+selDeal = (_p.deal && HANDFILTERS[_p.deal]) ? _p.deal : 'smart';
 const _savedFmt = (_p.format && VARIANTS[_p.format]) ? _p.format : 'cash';
 const _savedVar = (_p.variant && VARIANTS[_savedFmt][_p.variant]) ? _p.variant : null;
 selFormat=_savedFmt;
@@ -726,8 +730,49 @@ function renderLeak(){
  body.innerHTML=html;
  [...body.querySelectorAll('.leak-drill')].forEach(b=>b.onclick=()=>leakDrill(b.dataset.label));
 }
+/* ---- Phase 6: 个人画像 — 倾向(松/紧) + 准确率 + 强弱位置（全部 vs 参考范围）---- */
+function renderProfile(){
+ const body=document.getElementById('profileBody'); if(!body)return;
+ const bySpot=STORE.statsBySpot||{};
+ let th=0,tc=0;Object.values(bySpot).forEach(e=>{th+=e.h;tc+=e.c;});
+ if(th<10){body.innerHTML='<p class="cnote" style="margin:0">练够 10 手后这里生成你的画像喵 🐿</p>';return;}
+ const acc=Math.round(tc/th*100);
+ // 松/紧倾向：来自错题堆的 太松(loose) vs 太紧(tight) 计数
+ let L=0,T=0;reviewPile.forEach(r=>{const c=classifyMiss(r);if(c==='loose')L+=r.wrong;else if(c==='tight')T+=r.wrong;});
+ let tend,tdesc,tcolor;
+ if(L+T<5){tend='待定';tdesc='松紧样本不足，多练些边界手';tcolor='var(--muted)';}
+ else if(L>=T*1.6){tend='偏松';tdesc=`失误 ${Math.round(L/(L+T)*100)}% 是「该弃却入池」`;tcolor='var(--mistake)';}
+ else if(T>=L*1.6){tend='偏紧';tdesc=`失误 ${Math.round(T/(L+T)*100)}% 是「该入却弃·漏价值」`;tcolor='var(--good)';}
+ else {tend='较均衡';tdesc='松紧失误大致对半';tcolor='var(--gold)';}
+ let html=`<div class="prof-row"><span class="prof-k">风格倾向</span><b style="color:${tcolor}">${tend}</b><span class="prof-d">${tdesc}</span></div>`;
+ html+=`<div class="prof-row"><span class="prof-k">准确率</span><b>${acc}%</b><span class="prof-d">累计 ${th} 手</span></div>`;
+ const keys=Object.keys(bySpot).filter(k=>bySpot[k].h>=8);
+ if(keys.length){const pa=k=>Math.round(bySpot[k].c/bySpot[k].h*100);
+  const sorted=keys.slice().sort((a,b)=>pa(b)-pa(a));const best=sorted[0],worst=sorted[sorted.length-1];
+  html+=`<div class="prof-row"><span class="prof-k">最强</span><b style="color:var(--best)">${best}</b><span class="prof-d">${pa(best)}%</span></div>`;
+  if(worst!==best)html+=`<div class="prof-row"><span class="prof-k">最弱</span><b style="color:var(--mistake)">${worst}</b><span class="prof-d">${pa(worst)}%</span></div>`;
+ }
+ html+=`<p class="cnote" style="margin:8px 0 0">基于你 vs 参考范围的练习记录，非真实牌局风格。</p>`;
+ body.innerHTML=html;
+}
+/* ---- Phase 6: 训练计划 — 按 spot 分组排「最该练」(错得多 + 准确率低)，可一键去练 ---- */
+function renderPlan(){
+ const body=document.getElementById('planBody'); if(!body)return;
+ if(!reviewPile.length){body.innerHTML='<p class="cnote" style="margin:0">暂无可练项——训练里答错的局面会自动进计划喵</p>';return;}
+ const bySpot=STORE.statsBySpot||{};
+ const accOf=(fmt,v)=>{const F=FORMATS[fmt],V=VARIANTS[fmt]&&VARIANTS[fmt][v];if(!F||!V)return null;const s=bySpot[F.tag+'·'+V.short];return s&&s.h?s.c/s.h:null;};
+ const g={};
+ reviewPile.forEach(r=>{const e=g[r.label]||(g[r.label]={label:r.label,fmt:r.fmt,variant:r.variant,n:0,misses:0});e.n++;e.misses+=r.wrong;});
+ const arr=Object.values(g).map(e=>{const a=accOf(e.fmt,e.variant);return {...e,acc:a,score:e.misses+(a!=null?(1-a)*8:0)};});
+ arr.sort((x,y)=>y.score-x.score);
+ let html=`<p class="cnote" style="margin:0 0 8px">按「最该练」排序——错得多 + 准确率低优先：</p>`;
+ arr.slice(0,5).forEach((e,i)=>{const accTxt=e.acc!=null?`准确率 ${Math.round(e.acc*100)}% · `:'';
+  html+=`<div class="leak-hand"><span class="h">${i+1}</span><span class="sp">${e.label}<br><span style="color:var(--muted);font-size:11px">${accTxt}${e.n} 个错题</span></span><button class="leak-drill" data-label="${e.label.replace(/"/g,'&quot;')}">去练</button></div>`;});
+ body.innerHTML=html;
+ [...body.querySelectorAll('.leak-drill')].forEach(b=>b.onclick=()=>leakDrill(b.dataset.label));
+}
 function openStats(){aInit();SFX.click();
- renderStats();renderLeak();
+ renderStats();renderProfile();renderPlan();renderLeak();
  document.getElementById('startScreen').classList.add('hide');
  document.getElementById('statsScreen').classList.remove('hide');
 }

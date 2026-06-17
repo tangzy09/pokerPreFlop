@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> ⛔ **提交规则（最高优先）：只有用户明确说「提交 / commit」时才 `git commit`。** 平时改完代码、跑过测试，把改动留在工作区等待验收，**不要自动提交**。（用户要求：我让你提交才提交。）
+
 > Product scope, feature roadmap, and the **honesty constraints** (no fabricated EV/frequencies, offline/zero-build, what's explicitly excluded) live in [PRODUCT.md](PRODUCT.md). Read it before adding features.
 
 ## What this is
