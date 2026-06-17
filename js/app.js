@@ -81,6 +81,7 @@ function unlocked(){const u=G.pack.filter(t=>t.tier<=G.level);return u.length?u:
 /* ---- mistake review pile (session memory) ---- */
 let reviewPile=[];
 const MASTER_STREAK=2; // consecutive corrects in review needed before a spot leaves the pile
+const SESSION_HANDS=50; // a normal game = 50 hands (then 🎉 complete); HP=0 still ends it early
 function pileKey(fmt,v,tname,hand){return fmt+'|'+v+'|'+tname+'|'+hand;}
 function addMistake(){
  const key=pileKey(G.format,G.variant,G.table.name,G.hand);
@@ -182,7 +183,9 @@ const CONF={
  approx :{mark:'~',txt:'粗略估计',cls:'conf-approx', desc:'最粗的一档（如 ICM / 6人估计）'},
 };
 function confOf(t){return CONF[(t&&t.confidence)]||CONF.curated;}
-function confChip(t){const c=confOf(t);const title=(t&&t.src)?c.desc+' · '+t.src:c.desc;
+function confChip(t){const c=confOf(t);
+ if(c===CONF.curated)return ''; // 手搓档不再显示标签（仅计算/粗估档显示）
+ const title=(t&&t.src)?c.desc+' · '+t.src:c.desc;
  return `<span class="conf ${c.cls}" title="${title.replace(/"/g,'&quot;')}">${c.mark} ${c.txt}</span>`;}
 /* frequency string: precise spots show the REAL computed %; others stay qualitative (占位) */
 function freqText(t,hand){
@@ -359,7 +362,9 @@ function resolve(choice,btn,timedOut){
  }
 
  const dead = !G.reviewMode && G.hp<=0;
- const quick = ok && !G.isMix && !dead; // pure best → auto advance
+ const done = !G.reviewMode && !dead && G.hands>=SESSION_HANDS;   // finished the 50-hand session
+ const ending = dead || done;
+ const quick = ok && !G.isMix && !ending; // pure best → auto advance
 
  if(quick){ setTimeout(()=>{ if(!G.over) advance(); }, 1000); return; }
 
@@ -371,8 +376,8 @@ function resolve(choice,btn,timedOut){
  const youLine = ok ? '' : (timedOut ? `<span class="you">超时未操作 —— 本手作废喵～</span>` : `<span class="you">你选了「${nameMap[choice]||'弃牌'}」 —— 不是最优。</span>`);
  document.getElementById('fbReason').innerHTML=youLine+r;
  const nextBtn=document.getElementById('fbNext');
- nextBtn.textContent = dead ? '查看结果 →' : '下一步 →';
- nextBtn.onclick = ()=>{ SFX.click(); if(dead){gameOver();} else advance(); };
+ nextBtn.textContent = ending ? '查看结果 →' : '下一步 →';
+ nextBtn.onclick = ()=>{ SFX.click(); if(ending){gameOver(done);} else advance(); };
  document.getElementById('actions').style.display='none';
  document.getElementById('feedback').classList.remove('hide');
 }
