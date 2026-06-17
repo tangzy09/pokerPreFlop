@@ -82,6 +82,28 @@ def main():
        min(table[("AhAc", b)] for b in ("KsKd", "QsQd")) > max(table[("7h2d", b)] for b in ("KsKd", "QsQd")))
     ck("preflop converges with the real leaf", expl < 0.05, f"expl={expl:.4f}")
 
+    # --- 10 more (reuse the computed leaf table + preflop solution; cheap) ---
+    # leaf table sanity (the postflop solves produced sane, differentiated EVs)
+    ck("AA leaf EV > 0 vs both (wins postflop)", all(table[("AhAc", b)] > 0 for b in ("KsKd", "QsQd")))
+    ck("trash leaf EV < 0 vs both (loses postflop)", all(table[("7h2d", b)] < 0 for b in ("KsKd", "QsQd")))
+    ck("AA beats the weaker overpair more (QQ > KK)", table[("AhAc", "QsQd")] > table[("AhAc", "KsKd")])
+    ck("trash loses less to the weaker overpair (QQ > KK)", table[("7h2d", "QsQd")] > table[("7h2d", "KsKd")])
+    ck("leaf EVs are non-degenerate (real spread)", max(table.values()) - min(table.values()) > 1.0,
+       f"spread={max(table.values()) - min(table.values()):.3f}")
+    # full table is populated for every matchup
+    ck("leaf table covers all 4 matchups", len(table) == 4, f"n={len(table)}")
+    # preflop solution sanity
+    ck("SB strategies are valid distributions",
+       all(abs(sum(s.sb_strategy(h).values()) - 1) < 1e-6 for h in ("AhAc", "7h2d")))
+    ck("AA never folds (plays its premium)", s.sb_strategy("AhAc").get("fold", 0) < 0.05,
+       f"fold(AA)={s.sb_strategy('AhAc').get('fold', 0):.3f}")
+    ck("preflop game value bounded by stack", abs(s.game_value) < PRE_STACK, f"value={s.game_value:+.3f}")
+    # deterministic + convergent (cheap: leaf table is cached, only the preflop CFR re-runs)
+    v2 = preflop.solve(preflop.PreflopGame(SB, BB, stack=PRE_STACK, leaf_ev=leaf), iters=4000, seed=1).game_value
+    ck("deterministic: same seed -> same value", abs(v2 - s.game_value) < 1e-9, f"{v2:.6f} vs {s.game_value:.6f}")
+    coarse = preflop.solve(preflop.PreflopGame(SB, BB, stack=PRE_STACK, leaf_ev=leaf), iters=120, seed=2).exploitability()
+    ck("convergence: more iters -> less exploitable", expl < coarse, f"coarse={coarse:.4f} fine={expl:.4f}")
+
     print("\n" + ("PASS — preflop solved end-to-end with a real postflop-solver leaf"
                   if ok else "FAIL"))
     return 0 if ok else 1
