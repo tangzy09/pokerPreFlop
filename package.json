@@ -5,6 +5,8 @@
   "description": "Single-file pre-flop poker GTO decision trainer (see gto-trainer.html)",
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
-    "test:update": "node test/update-snapshot.js"
+    "test:update": "node test/update-snapshot.js",
+    "test:solver": "python tools/solver/run_all.py",
+    "test:all": "node --test \"test/*.test.js\" && python tools/solver/run_all.py"
   }
 }

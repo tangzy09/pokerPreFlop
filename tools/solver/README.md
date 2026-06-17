@@ -7,6 +7,9 @@ out, would *produce data* (freqTables) like the push/fold tools already do.
 **Honesty rule (same as the rest of the project):** prove the engine against a
 known answer before trusting it on a real spot, and measure exploitability.
 
+**Run all suites:** `python tools/solver/run_all.py` (or `npm run test:solver`;
+`npm run test:all` also runs the app's JS tests).
+
 ## Staged plan
 1. ✅ **CFR engine correctness** — `kuhn_cfr.py`. Vanilla CFR on Kuhn poker,
    verified against the closed-form Nash (game value −1/18, parameter-independent

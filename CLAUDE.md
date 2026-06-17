@@ -27,7 +27,8 @@ The scripts share one global scope (browser behaviour for classic scripts); load
 ## Running & verifying (no build step)
 
 - **Run:** open `gto-trainer.html` in any browser. State persists to `localStorage` (`STORE_KEY = 'gtoTrainer_v1'`); it silently no-ops in sandboxed previews.
-- **Test:** `npm test` (= `node --test "test/*.test.js"`). Run a single test with `node --test --test-name-pattern="snapshot" "test/*.test.js"`.
+- **Test:** `npm test` (app JS, = `node --test "test/*.test.js"`). Run a single test with `node --test --test-name-pattern="snapshot" "test/*.test.js"`.
+- **Solver tests (Python):** `npm run test:solver` (= `python tools/solver/run_all.py`, runs the 4 CFR/equity suites in `tools/solver/`). `npm run test:all` runs JS + solver together.
 - **After an INTENTIONAL change to `MODES` or the ranges**, the snapshot test will fail by design — regenerate the golden with `npm run test:update`, then review the diff in `test/__snapshots__/regression.snap.json` before committing.
 - **Recompute the push/fold Nash data** with `node tools/gen-pushfold.js` (~2min; writes `js/data/pushfold.js` for 10/15/20bb). Then regenerate the snapshot. The d10/d15p/d20p ranges are computed, not hand-curated — edit the model in `tools/`, not the data file.
 - **Accuracy is measured, not assumed:** `ringRegret()` computes the solution's exploitability (max bb/hand a best-responder could gain; 0 = exact Nash within the model). gen-pushfold records it per stack in `PUSHFOLD.meta.exploitability` and packs.js surfaces it in each spot's `src` / confidence tooltip. The data is a *computed approximation of a simplified model* (chip-EV, no antes, no-overcall, class-level equity, Monte-Carlo) — not real-table truth.
