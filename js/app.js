@@ -48,21 +48,55 @@ function showPaywall(why){
  return false;
 }
 
-/* ============ audio (synth) ============ */
-let AC=null;
-function aInit(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}}
-function tone(f,d,t='sine',g=.18,delay=0){if(!AC)return;const o=AC.createOscillator(),v=AC.createGain();
- o.type=t;o.frequency.value=f;o.connect(v);v.connect(AC.destination);
- const s=AC.currentTime+delay;v.gain.setValueAtTime(.0001,s);v.gain.exponentialRampToValueAtTime(g,s+.012);
- v.gain.exponentialRampToValueAtTime(.0001,s+d);o.start(s);o.stop(s+d+.02);}
+/* ============ audio (synth) — smoothed envelopes + master lowpass/compressor
+   for a softer, click-free feel; noise ticks for tactile UI/deal sounds ============ */
+let AC=null, MASTER=null, _noiseBuf=null;
+function aInit(){
+ if(AC) return;
+ try{
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  MASTER=AC.createGain(); MASTER.gain.value=0.85;
+  const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=7000; lp.Q.value=0.4;   // tame harshness
+  const comp=AC.createDynamicsCompressor();                                                        // even out peaks
+  comp.threshold.value=-16; comp.knee.value=22; comp.ratio.value=3.2; comp.attack.value=0.003; comp.release.value=0.16;
+  MASTER.connect(lp); lp.connect(comp); comp.connect(AC.destination);
+  const n=Math.floor(AC.sampleRate*0.3)||1; _noiseBuf=AC.createBuffer(1,n,AC.sampleRate);          // reusable white noise
+  const d=_noiseBuf.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+ }catch(e){}
+}
+function _resume(){ try{ if(AC&&AC.state==='suspended') AC.resume(); }catch(e){} }
+// smooth voice: exp attack + exp decay + tiny linear kill (no clicks), routed through MASTER
+function tone(freq,dur,o={}){
+ if(!AC) return; _resume();
+ const type=o.type||'sine', gain=o.gain!=null?o.gain:0.14, delay=o.delay||0, attack=o.attack||0.01;
+ const t0=AC.currentTime+delay, osc=AC.createOscillator(), v=AC.createGain();
+ osc.type=type; osc.frequency.setValueAtTime(freq,t0);
+ if(o.glideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1,o.glideTo),t0+dur);
+ v.gain.setValueAtTime(0.0001,t0);
+ v.gain.exponentialRampToValueAtTime(gain,t0+attack);
+ v.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+ v.gain.linearRampToValueAtTime(0,t0+dur+0.02);
+ osc.connect(v); v.connect(MASTER||AC.destination);
+ osc.start(t0); osc.stop(t0+dur+0.04);
+}
+// short band-passed noise tick (UI click / card flick) — tactile, not beepy
+function ntick(dur,o={}){
+ if(!AC||!_noiseBuf) return; _resume();
+ const gain=o.gain!=null?o.gain:0.05, delay=o.delay||0, freq=o.freq||1800, Q=o.Q||0.7;
+ const t0=AC.currentTime+delay, src=AC.createBufferSource(), f=AC.createBiquadFilter(), v=AC.createGain();
+ src.buffer=_noiseBuf; f.type='bandpass'; f.frequency.value=freq; f.Q.value=Q;
+ v.gain.setValueAtTime(gain,t0); v.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+ src.connect(f); f.connect(v); v.connect(MASTER||AC.destination);
+ src.start(t0); src.stop(t0+dur+0.02);
+}
 const SFX={
- deal(){tone(520,.05,'square',.05);tone(380,.06,'square',.04,.04);},
- click(){tone(300,.04,'square',.06);},
- correct(){tone(660,.1,'triangle',.16);tone(880,.16,'triangle',.14,.07);},
- great(){[523,659,784,1046].forEach((f,i)=>tone(f,.14,'triangle',.13,i*.06));},
- wrong(){tone(180,.22,'sawtooth',.13);tone(120,.28,'sawtooth',.1,.05);},
- level(){[523,659,784,1046,1318].forEach((f,i)=>tone(f,.2,'sine',.14,i*.07));},
- over(){[440,392,330,262].forEach((f,i)=>tone(f,.3,'sine',.14,i*.13));},
+ click(){ ntick(0.03,{gain:0.04,freq:2200,Q:0.6}); },                                              // soft tick
+ deal(){ ntick(0.05,{gain:0.06,freq:1500,Q:0.5}); tone(420,0.05,{type:'triangle',gain:0.05,glideTo:300}); }, // card flick
+ correct(){ tone(659.25,0.10,{type:'triangle',gain:0.12}); tone(987.77,0.16,{type:'triangle',gain:0.10,delay:0.07}); }, // rising 5th
+ great(){ [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,0.30,{type:'triangle',gain:0.11,delay:i*0.07})); tone(1568,0.5,{type:'sine',gain:0.05,delay:0.28}); }, // Cmaj arpeggio + sparkle
+ wrong(){ tone(233.08,0.22,{type:'sine',gain:0.12,glideTo:146.83}); tone(174.61,0.18,{type:'triangle',gain:0.06,delay:0.03}); ntick(0.04,{gain:0.03,freq:520,Q:0.4}); }, // soft descending thud
+ level(){ [523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=>tone(f,0.22,{type:'triangle',gain:0.12,delay:i*0.075})); tone(2093,0.45,{type:'sine',gain:0.05,delay:0.40}); }, // triumphant climb
+ over(){ [440,392,329.63,261.63].forEach((f,i)=>tone(f,0.34,{type:'sine',gain:0.12,delay:i*0.14})); }, // gentle fall
 };
 function buzz(p){if(navigator.vibrate)navigator.vibrate(p);}
 
