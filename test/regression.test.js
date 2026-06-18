@@ -6,6 +6,9 @@ const { loadApp } = require('./load-app');
 const { buildSnapshot, SNAP_PATH } = require('./snapshot');
 
 const app = loadApp();
+// the data files are canonical Chinese; pin i18n to zh so prose assertions + the
+// golden snapshot read the source language (English is purely a display layer).
+if (app.setLang) app.setLang('zh');
 const { MODES, PACKS, expand, handLabel, combosOf, catName, handFreq, freqNote, confOf } = app;
 
 const approx1 = (s) => Math.abs(s - 1) < 1e-9;

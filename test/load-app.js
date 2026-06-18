@@ -44,6 +44,7 @@ const EXPORTS = [
   'RANKS', 'RIDX', 'PREMIUM',
   'FORMATS', 'VARIANTS', 'GAMETYPES', 'gameOf', 'HANDFILTERS',
   'classifyMiss', 'LEAK_TYPES',
+  'L', 'tr', 'setLang', 'curLang',
 ];
 
 function loadApp(htmlPath) {
@@ -69,7 +70,7 @@ function loadApp(htmlPath) {
 
   const stub = mkStub();
   const ctx = {
-    Math, JSON, Object, Array, Set, Map, String, Number, Boolean, RegExp,
+    Math, JSON, Object, Array, Set, Map, WeakMap, WeakSet, String, Number, Boolean, RegExp,
     Symbol, parseInt, parseFloat, isNaN, console, Date,
     document: stub, window: stub, localStorage: stub, navigator: stub,
     performance: stub, location: stub,

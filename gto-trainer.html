@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>GTO 翻前对战 · 训练营</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,14 +25,16 @@
     background:
       radial-gradient(120% 80% at 50% -10%, #14463a 0%, var(--felt) 45%, var(--felt2) 100%);
     -webkit-font-smoothing:antialiased;touch-action:manipulation;
+    -webkit-user-select:none;user-select:none;
   }
+  input,textarea{-webkit-user-select:text;user-select:text}
   #app{position:fixed;inset:0;display:flex;flex-direction:column;max-width:520px;margin:0 auto;
     border-left:1px solid rgba(0,0,0,.3);border-right:1px solid rgba(0,0,0,.3);
     box-shadow:0 0 80px rgba(0,0,0,.5);overflow:hidden}
   #fx{position:fixed;inset:0;pointer-events:none;z-index:60}
 
   /* ---------- top HUD ---------- */
-  .hud{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;gap:10px;overflow:hidden}
+  .hud{display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top)) 16px 8px;gap:10px;overflow:hidden}
   .hud-left{display:flex;align-items:center;gap:9px}
   .exit-btn{appearance:none;border:1px solid var(--line);background:transparent;cursor:pointer;color:var(--gold);font-family:inherit;font-weight:700;font-size:15px;line-height:1;border-radius:9px;padding:5px 9px}
   .exit-btn:hover{background:rgba(232,198,106,.12)}
@@ -60,6 +62,20 @@
     font-weight:700;font-size:14px}
   .scene .badge .pip{width:9px;height:9px;border-radius:50%;background:var(--gold)}
   .scene .who{margin-top:9px;color:var(--muted);font-size:12.5px}
+  /* 训练牌桌可视化 */
+  .felt{position:relative;width:min(370px,88vw);height:150px;margin:2px auto 0;
+    border-radius:50%/46%;background:radial-gradient(120% 120% at 50% 32%,#1b5a48,#0e3a2e 70%,#0b2c23);
+    border:3px solid #14342a;box-shadow:inset 0 2px 18px rgba(0,0,0,.45)}
+  .felt:empty{display:none}
+  .felt-pot{position:absolute;left:50%;top:28%;transform:translate(-50%,-50%);font-size:10px;color:var(--muted);letter-spacing:.08em}
+  .seat{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap}
+  .seat-pos{font-family:"Space Mono";font-size:10px;font-weight:700;color:var(--ink);background:rgba(0,0,0,.42);
+    border:1px solid var(--line);border-radius:8px;padding:2px 7px;line-height:1.25}
+  .seat.hero .seat-pos{color:#16110a;background:linear-gradient(180deg,var(--gold),var(--gold2));border-color:var(--gold)}
+  .seat.folded{opacity:.34}
+  .seat .bet{font-family:"Space Grotesk";font-weight:700;font-size:11px;color:var(--gold);background:rgba(0,0,0,.55);border-radius:9px;padding:1px 6px}
+  .seat .bet small{font-size:8px;opacity:.7;font-weight:500;margin-left:1px}
+  .dlr{display:inline-block;background:#f1f5ee;color:#16110a;border-radius:50%;width:13px;height:13px;line-height:13px;text-align:center;font-size:9px;font-weight:800}
 
   .cards{display:flex;gap:12px;perspective:900px}
   .card{width:88px;height:124px;border-radius:var(--card-r);position:relative;
@@ -150,7 +166,7 @@
     gap:18px;padding:30px;text-align:center;
     background:radial-gradient(120% 80% at 50% 0%, rgba(20,70,58,.97), rgba(8,26,21,.98))}
   .screen.hide{display:none}
-  #startScreen{justify-content:flex-start;overflow-y:auto;gap:13px;padding-top:26px;padding-bottom:26px}
+  #startScreen{justify-content:flex-start;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;gap:13px;padding-top:calc(26px + env(safe-area-inset-top));padding-bottom:calc(26px + env(safe-area-inset-bottom))}
   .logo-suit{font-size:40px;letter-spacing:6px;margin-bottom:-6px}
   .logo-suit .r{color:#e0544f}.logo-suit .k{color:#f1f5ee}
   .screen h1{font-family:"Space Grotesk";font-weight:700;font-size:34px;margin:0;letter-spacing:-.02em;line-height:1.05}
@@ -168,10 +184,10 @@
   .chart-screen{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;
     background:radial-gradient(120% 80% at 50% 0%, rgba(20,70,58,.98), rgba(8,26,21,.99))}
   .chart-screen.hide{display:none}
-  .chart-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;border-bottom:1px solid var(--line);gap:8px}
+  .chart-bar{display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top)) 16px 8px;border-bottom:1px solid var(--line);gap:8px}
   .chart-title{font-family:"Space Grotesk";font-weight:700;font-size:18px}
   .back-btn{appearance:none;border:0;background:transparent;cursor:pointer;color:var(--gold);font-family:inherit;font-weight:600;font-size:14px;padding:4px 2px}
-  .chart-body{flex:1;overflow-y:auto;padding:16px 16px 30px;display:flex;flex-direction:column;gap:6px;align-items:center}
+  .chart-body{flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:16px 16px calc(30px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px;align-items:center}
   .chart-body .sel-group{max-width:360px}
   /* range-vs-range calculator */
   .chart-body.calc{gap:10px}
@@ -359,6 +375,7 @@
       <div class="badge"><span class="pip" id="scenePip"></span><span id="sceneName">—</span></div>
       <div class="who" id="sceneWho"></div>
     </div>
+    <div class="felt" id="felt"></div>
     <div class="cards" id="cards"></div>
 
     <div class="verdict" id="verdict"><div class="grade" id="grade"></div><div class="tip" id="tip"></div></div>
@@ -485,37 +502,37 @@
     <div class="chart-body about">
       <div class="ab-card ab-ok">
         <h3>✅ 这是什么</h3>
-        <p>一个翻前决策的<b>入门训练工具</b>，帮你建立「什么位置该开什么牌」的 GTO 范围直觉。适合练习、记忆、找漏洞。</p>
+        <p data-i18n-html="about_what_p">一个翻前决策的<b>入门训练工具</b>，帮你建立「什么位置该开什么牌」的 GTO 范围直觉。适合练习、记忆、找漏洞。</p>
       </div>
       <div class="ab-card ab-warn">
         <h3>⚠️ 这不是什么</h3>
-        <p><b>大部分范围不是 solver 精确解</b>：开局、大盲防守、面对 3bet/4bet、挤压、冷跟等，是参考公开 GTO 图表 + 扑克理论<b>手工整理的简化范围</b>（界面上不带标签），与 PioSOLVER / GTO Wizard 会有出入——尤其边缘牌取舍和混合频率。<b>例外</b>：各档<b>推弃 / 全下跟注</b>由本工具<b>自算 Nash</b>（界面标<b>「精准」</b>，详见下方「假设条件」），但仍是简化模型、非真实牌桌精确。要做精确研究，请用真正的 solver。</p>
+        <p data-i18n-html="about_not_p"><b>大部分范围不是 solver 精确解</b>：开局、大盲防守、面对 3bet/4bet、挤压、冷跟等，是参考公开 GTO 图表 + 扑克理论<b>手工整理的简化范围</b>（界面上不带标签），与 PioSOLVER / GTO Wizard 会有出入——尤其边缘牌取舍和混合频率。<b>例外</b>：各档<b>推弃 / 全下跟注</b>由本工具<b>自算 Nash</b>（界面标<b>「精准」</b>，详见下方「假设条件」），但仍是简化模型、非真实牌桌精确。要做精确研究，请用真正的 solver。</p>
       </div>
       <div class="ab-card">
         <h3>📐 假设条件</h3>
         <ul>
-          <li><b>现金局</b>：100bb 深度、约 2.5x 开局、常规抽水</li>
-          <li><b>MTT 40/25/15bb</b>：带前注的近似开局范围。<b>注意</b>：真实前注会让范围更宽，本工具偏<b>保守（略紧）</b>，宁紧勿松，可按实战略放宽</li>
-          <li><b>MTT 6人（终桌/短手）</b>：40bb / 20bb 近似开局。人少→范围更宽；按"取后位+适度放宽"估计，<b>非精确解</b></li>
-          <li><b>推弃 / 全下跟注（标「精准」）</b>：用本工具自带 equity + Nash 求解器<b>自算</b>，覆盖 9 人 8/10/12/15/20bb 全下弃、6 人 10/15/20bb、单挑 HU 5–25bb（SB 全下＋BB 跟）、9 人 BB 面对 BTN 全下的跟注。<b>无前注</b>的简化模型（no-overcall / 类级 equity / 蒙特卡洛），<b>非真实牌桌精确</b>；每档可利用度已测量、写在「精准」标签的提示里（越接近 0 越准）</li>
-          <li><b>泡沫 ICM</b>：<b>本工具最粗的一块</b>。这里简化成「一律收紧开局＝保命」，但真实 ICM 的核心其实是<b>跟注/全下跟注更紧</b>（别出局）；筹码舒服的大牌量反而能<b>开得更宽去施压</b>风险厌恶的对手。请把 ICM 档当"保命直觉"看，别照搬到具体泡沫局</li>
-          <li><b>面对 3-bet（4bet/跟/弃）</b>：100bb 近似范围，4-bet ~3%。有位置(IP)防守更宽、无位置(OOP)更紧——形状对，但 4bet/跟注的精确分配随下注尺度变化</li>
-          <li><b>面对 4-bet（5bet全下/跟/弃）</b>：100bb 近似。基本"全下或弃"、跟注极窄；5-bet 视作直接全下</li>
-          <li><b>挤压 Squeeze（开+跟后反加）</b>：100bb 近似。挤压偏两极化（价值+阻断诈唬）、overcall 为多人底池投机牌；尺度/人数会影响精确范围</li>
-          <li><b>冷跟 Cold-call（非盲位防守）</b>：100bb 近似。<b>平跟范围≠开局范围</b>——开局会加的牌很多面对加注要改 3bet 或弃；位置越靠前/对手越强，跟注越窄</li>
-          <li><b>SB 用"加注或弃"模型</b>：真实浅码 SB 常用 limp / limp-jam，本工具未建模</li>
-          <li><b>边缘混合带</b>：频率按约一半估计，<b>非真实 solver 频率</b></li>
+          <li data-i18n-html="about_li1"><b>现金局</b>：100bb 深度、约 2.5x 开局、常规抽水</li>
+          <li data-i18n-html="about_li2"><b>MTT 40/25/15bb</b>：带前注的近似开局范围。<b>注意</b>：真实前注会让范围更宽，本工具偏<b>保守（略紧）</b>，宁紧勿松，可按实战略放宽</li>
+          <li data-i18n-html="about_li3"><b>MTT 6人（终桌/短手）</b>：40bb / 20bb 近似开局。人少→范围更宽；按"取后位+适度放宽"估计，<b>非精确解</b></li>
+          <li data-i18n-html="about_li4"><b>推弃 / 全下跟注（标「精准」）</b>：用本工具自带 equity + Nash 求解器<b>自算</b>，覆盖 9 人 8/10/12/15/20bb 全下弃、6 人 10/15/20bb、单挑 HU 5–25bb（SB 全下＋BB 跟）、9 人 BB 面对 BTN 全下的跟注。<b>无前注</b>的简化模型（no-overcall / 类级 equity / 蒙特卡洛），<b>非真实牌桌精确</b>；每档可利用度已测量、写在「精准」标签的提示里（越接近 0 越准）</li>
+          <li data-i18n-html="about_li5"><b>泡沫 ICM</b>：<b>本工具最粗的一块</b>。这里简化成「一律收紧开局＝保命」，但真实 ICM 的核心其实是<b>跟注/全下跟注更紧</b>（别出局）；筹码舒服的大牌量反而能<b>开得更宽去施压</b>风险厌恶的对手。请把 ICM 档当"保命直觉"看，别照搬到具体泡沫局</li>
+          <li data-i18n-html="about_li6"><b>面对 3-bet（4bet/跟/弃）</b>：100bb 近似范围，4-bet ~3%。有位置(IP)防守更宽、无位置(OOP)更紧——形状对，但 4bet/跟注的精确分配随下注尺度变化</li>
+          <li data-i18n-html="about_li7"><b>面对 4-bet（5bet全下/跟/弃）</b>：100bb 近似。基本"全下或弃"、跟注极窄；5-bet 视作直接全下</li>
+          <li data-i18n-html="about_li8"><b>挤压 Squeeze（开+跟后反加）</b>：100bb 近似。挤压偏两极化（价值+阻断诈唬）、overcall 为多人底池投机牌；尺度/人数会影响精确范围</li>
+          <li data-i18n-html="about_li9"><b>冷跟 Cold-call（非盲位防守）</b>：100bb 近似。<b>平跟范围≠开局范围</b>——开局会加的牌很多面对加注要改 3bet 或弃；位置越靠前/对手越强，跟注越窄</li>
+          <li data-i18n-html="about_li10"><b>SB 用"加注或弃"模型</b>：真实浅码 SB 常用 limp / limp-jam，本工具未建模</li>
+          <li data-i18n-html="about_li11"><b>边缘混合带</b>：频率按约一半估计，<b>非真实 solver 频率</b></li>
         </ul>
       </div>
       <div class="ab-card">
         <h3>🔍 范围怎么来的</h3>
-        <p>作者参考多个公开 GTO 图表整理而成，并已对照权威来源核对过<b>入池比例与整体形状</b>（量级正确），但<b>未逐手核对</b>。所有数据为原创整理，<b>不含任何第三方版权内容</b>。</p>
+        <p data-i18n-html="about_src_p">作者参考多个公开 GTO 图表整理而成，并已对照权威来源核对过<b>入池比例与整体形状</b>（量级正确），但<b>未逐手核对</b>。所有数据为原创整理，<b>不含任何第三方版权内容</b>。</p>
       </div>
       <div class="ab-card">
         <h3>🎯 真要精确？</h3>
-        <p>建议使用 PioSOLVER、GTO Wizard、MonkerSolver 等专业 solver 获取针对你的下注尺度、抽水、筹码深度的精确范围。本工具用于建立直觉，不替代它们。</p>
+        <p data-i18n-html="about_exact_p">建议使用 PioSOLVER、GTO Wizard、MonkerSolver 等专业 solver 获取针对你的下注尺度、抽水、筹码深度的精确范围。本工具用于建立直觉，不替代它们。</p>
       </div>
-      <p class="cnote">真 GTO 随下注尺度、抽水、前注、筹码深度变化。本工具固定了上述假设。松鼠出品 🐿</p>
+      <p class="cnote" data-i18n-html="about_note">真 GTO 随下注尺度、抽水、前注、筹码深度变化。本工具固定了上述假设。松鼠出品 🐿</p>
     </div>
   </div>
 
@@ -527,7 +544,7 @@
       <div class="back-btn" style="visibility:hidden">← 返回</div>
     </div>
     <div class="chart-body calc">
-      <p class="cnote"><b>蒙特卡洛实算 · 真实数字</b>。范围用逗号分隔，如 <code>22+, AJs+, KQo</code>；单手 <code>AKs</code> 也行。<br>填了<b>牌面</b>就是<b>翻后胜率</b>（给定公共牌），留空则是<b>翻前全下</b>。</p>
+      <p class="cnote" data-i18n-html="calc_note"><b>蒙特卡洛实算 · 真实数字</b>。范围用逗号分隔，如 <code>22+, AJs+, KQo</code>；单手 <code>AKs</code> 也行。<br>填了<b>牌面</b>就是<b>翻后胜率</b>（给定公共牌），留空则是<b>翻前全下</b>。</p>
       <div class="calc-row">
         <div class="calc-lab">牌面 <span class="calc-n" id="calcBN">· 留空=翻前</span></div>
         <input class="calc-in" id="calcBoard" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="如 Ah Kd 7c（3/4/5 张）" value="">
@@ -555,51 +572,51 @@
     <div class="chart-body about">
       <div class="ab-card ab-ok">
         <h3>🧭 翻前是一棵决策树</h3>
-        <p>一手牌从「谁先加注」开始，随着反加层层升级。把每个环节单独练熟，整棵树就通了。建议新手<b>从上往下按顺序</b>练。</p>
+        <p data-i18n-html="guide_intro_p">一手牌从「谁先加注」开始，随着反加层层升级。把每个环节单独练熟，整棵树就通了。建议新手<b>从上往下按顺序</b>练。</p>
       </div>
 
       <div class="gd-spine">
         <div class="gd-node" data-fmt="cash" data-var="6">
           <div class="gd-badge">1</div>
-          <div class="gd-txt"><b>开局 RFI ＋ 大盲防守</b><small>你第一个进池该开哪些牌；别人开了你在大盲怎么弃/跟/3-bet。一切的基础。</small></div>
+          <div class="gd-txt" data-i18n-html="guide_node1"><b>开局 RFI ＋ 大盲防守</b><small>你第一个进池该开哪些牌；别人开了你在大盲怎么弃/跟/3-bet。一切的基础。</small></div>
           <button class="gd-go">练 →</button>
         </div>
-        <div class="gd-arrow">↓ 你开局后，被身后的人反加…</div>
+        <div class="gd-arrow" data-i18n-html="guide_arrow1">↓ 你开局后，被身后的人反加…</div>
         <div class="gd-node" data-fmt="face3b" data-var="btn">
           <div class="gd-badge">2</div>
-          <div class="gd-txt"><b>面对 3-bet</b><small>开局被反加：4-bet / 跟注 / 弃牌。最高频、最该补。重点学有位置 vs 无位置。</small></div>
+          <div class="gd-txt" data-i18n-html="guide_node2"><b>面对 3-bet</b><small>开局被反加：4-bet / 跟注 / 弃牌。最高频、最该补。重点学有位置 vs 无位置。</small></div>
           <button class="gd-go">练 →</button>
         </div>
-        <div class="gd-arrow">↓ 你（或对手）再加一手，战火升级…</div>
+        <div class="gd-arrow" data-i18n-html="guide_arrow2">↓ 你（或对手）再加一手，战火升级…</div>
         <div class="gd-node" data-fmt="face4b" data-var="ip">
           <div class="gd-badge">3</div>
-          <div class="gd-txt"><b>面对 4-bet</b><small>你 3-bet 后被再加：5-bet 全下 / 跟 / 弃。100bb 基本"全下或弃"。</small></div>
+          <div class="gd-txt" data-i18n-html="guide_node3"><b>面对 4-bet</b><small>你 3-bet 后被再加：5-bet 全下 / 跟 / 弃。100bb 基本"全下或弃"。</small></div>
           <button class="gd-go">练 →</button>
         </div>
       </div>
 
       <div class="ab-card" style="margin-top:6px"><h3>🌿 其他常见局面</h3>
-        <p>主线之外，这两种也很常见：</p></div>
+        <p data-i18n-html="guide_other_p">主线之外，这两种也很常见：</p></div>
       <div class="gd-node" data-fmt="squeeze" data-var="bb">
         <div class="gd-badge alt">S</div>
-        <div class="gd-txt"><b>挤压 Squeeze</b><small>有人开 + 有人跟，轮到你反加。多人底池死钱多，挤压回报高。</small></div>
+        <div class="gd-txt" data-i18n-html="guide_nodeS"><b>挤压 Squeeze</b><small>有人开 + 有人跟，轮到你反加。多人底池死钱多，挤压回报高。</small></div>
         <button class="gd-go">练 →</button>
       </div>
       <div class="gd-node" data-fmt="coldcall" data-var="btn">
         <div class="gd-badge alt">C</div>
-        <div class="gd-txt"><b>冷跟 Cold-call</b><small>非盲位面对开局：3bet / 平跟 / 弃。注意平跟范围≠开局范围。</small></div>
+        <div class="gd-txt" data-i18n-html="guide_nodeC"><b>冷跟 Cold-call</b><small>非盲位面对开局：3bet / 平跟 / 弃。注意平跟范围≠开局范围。</small></div>
         <button class="gd-go">练 →</button>
       </div>
       <div class="gd-node" data-fmt="mtt" data-var="d40">
         <div class="gd-badge alt">T</div>
-        <div class="gd-txt"><b>锦标赛 MTT 专线</b><small>按筹码深度变化：40→25→15bb 收紧 → 推弃（8–20bb / 6人 / 单挑 HU）→ 泡沫 ICM。独立一条线。</small></div>
+        <div class="gd-txt" data-i18n-html="guide_nodeT"><b>锦标赛 MTT 专线</b><small>按筹码深度变化：40→25→15bb 收紧 → 推弃（8–20bb / 6人 / 单挑 HU）→ 泡沫 ICM。独立一条线。</small></div>
         <button class="gd-go">练 →</button>
       </div>
 
       <div class="ab-card ab-warn" style="margin-top:10px"><h3>📚 建议顺序</h3>
-        <p>① 先把 <b>开局 RFI</b> 练到每个位置张口就来 → ② 再练 <b>大盲防守</b>（同在现金局里）→ ③ <b>面对 3-bet</b>（收益最大）→ ④ <b>面对 4-bet</b> → ⑤ 想打多人池补 <b>挤压</b>，想打比赛走 <b>MTT 专线</b>。用<b>发牌偏好「边缘」</b>专攻每个 spot 的难点。</p></div>
+        <p data-i18n-html="guide_order_p">① 先把 <b>开局 RFI</b> 练到每个位置张口就来 → ② 再练 <b>大盲防守</b>（同在现金局里）→ ③ <b>面对 3-bet</b>（收益最大）→ ④ <b>面对 4-bet</b> → ⑤ 想打多人池补 <b>挤压</b>，想打比赛走 <b>MTT 专线</b>。用<b>发牌偏好「边缘」</b>专攻每个 spot 的难点。</p></div>
       <div class="ab-card"><h3>💾 本地存档</h3>
-        <p>本地运行时，app 会自动记住你的<b>错题堆、历史最高分、上次设置</b>（存在浏览器本地，不上传）。换浏览器或清缓存会丢失。</p>
+        <p data-i18n-html="guide_save_p">本地运行时，app 会自动记住你的<b>错题堆、历史最高分、上次设置</b>（存在浏览器本地，不上传）。换浏览器或清缓存会丢失。</p>
         <button class="gd-go" id="clearDataBtn" style="margin-top:8px;background:var(--fold,#5b6f63);color:#fff">🗑 清除本地存档</button></div>
     </div>
   </div>
@@ -641,6 +658,7 @@
   </div>
 </div>
 
+<script src="js/i18n.js"></script>
 <script src="js/equity.js"></script>
 <script src="js/ranges.js"></script>
 <script src="js/modes.js"></script>

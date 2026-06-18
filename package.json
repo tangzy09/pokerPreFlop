@@ -7,6 +7,16 @@
     "test": "node --test \"test/*.test.js\"",
     "test:update": "node test/update-snapshot.js",
     "test:solver": "python tools/solver/run_all.py",
-    "test:all": "node --test \"test/*.test.js\" && python tools/solver/run_all.py"
+    "test:all": "node --test \"test/*.test.js\" && python tools/solver/run_all.py",
+    "build:www": "node tools/build-www.js",
+    "app:sync": "node tools/build-www.js && cap copy",
+    "app:android": "node tools/build-www.js && cap copy android && cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/core": "^8.4.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.0"
   }
 }
