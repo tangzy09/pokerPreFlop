@@ -323,7 +323,7 @@ function tableModel(t,fmt,variant){
   if(!facing){ if(i<hi && pos!=='SB' && pos!=='BB') folded=true; }           // 首入：折到英雄
   else if(i!==hi && betAt[i]==null && pos!=='SB' && pos!=='BB') folded=true; // 面对下注：留英雄+下注者+盲注
   const ang=Math.PI/2 + ((i-hi)/N)*2*Math.PI;            // 英雄固定底部中央，其余环绕
-  const x=50+44*Math.cos(ang), y=52+40*Math.sin(ang);
+  const x=50+39*Math.cos(ang), y=52+39*Math.sin(ang);    // 半径留余量，避免边座位被裁
   return {pos,bet:+bet.toFixed(2),blind,folded,hero:i===hi,btn:pos==='BTN'||(N===2&&pos==='SB'),x,y};
  });
  return {N,seats,mtt,facing};
@@ -405,6 +405,36 @@ function buildActions(mode){
 function choose(choice,btn,e){
  if(G.busy)return;G.busy=true;stopTimer();SFX.click();
  resolve(choice,btn,false);
+}
+
+// an action key → the matrix colour it maps to in this mode (raise is purple in 3bet-family modes)
+const ACT_COLORS={raise:'var(--raise)',shove:'var(--raise)',threebet:'var(--threebet)',call:'var(--call)',fold:'var(--fold)'};
+function actionColor(mode,a){
+ const cat = a==='fold'?'fold' : a==='call'?'call' : a==='shove'?'shove'
+  : (mode==='defense'||mode==='face3b'||mode==='squeeze')?'threebet' : 'raise';
+ return ACT_COLORS[cat];
+}
+// 答错时把该局面的范围表弹进反馈面板：红框标出你这手牌，表头用色块标注「你选的动作」
+function renderFbMatrix(t,hand,corrStr,choice,choiceName){
+ const box=document.getElementById('fbMatrix'); if(!box)return;
+ const edgeBg={'edge-raise':'var(--raise)','edge-shove':'var(--raise)','edge-call':'var(--call)'};
+ let cells='';
+ for(let r=0;r<13;r++)for(let c=0;c<13;c++){
+  const h=handLabel(r,c),cat=cellCat(t,h),now=h===hand?' now':'';
+  cells+=`<div class="ccell ${cat}${r===c?' pair':''}${now}">${now?`<span>${h}</span>`:''}</div>`;
+ }
+ let leg='';
+ MODES[t.mode].legend.forEach(([cls,lab])=>{
+  let bg;
+  if(cls==='mix')bg='linear-gradient(118deg,var(--threebet) 0 50%,var(--call) 50% 100%)';
+  else if(cls.startsWith('edge'))bg=`linear-gradient(118deg,${edgeBg[cls]} 0 50%,var(--fold) 50% 100%)`;
+  else bg=ACT_COLORS[cls]||'var(--fold)';
+  leg+=`<div class="it"><span class="sw" style="background:${bg};${cls==='fold'?'box-shadow:inset 0 0 0 1px var(--line)':''}"></span>${L(lab)}</div>`;
+ });
+ const youSw=`<span class="fbmx-sw" style="background:${actionColor(t.mode,choice)}"></span>`;
+ box.innerHTML=`<div class="fbmx-h">${tr('fbmxHead',{hand,correct:corrStr,you:youSw+choiceName})}</div>`
+  +`<div class="fbmx-grid">${cells}</div><div class="fbmx-leg">${leg}</div>`;
+ box.classList.remove('hide');
 }
 
 function resolve(choice,btn,timedOut){
@@ -513,6 +543,9 @@ function resolve(choice,btn,timedOut){
  document.getElementById('fbAns').innerHTML=tr('answerLine',{ans:corrStr,freq:freq,chip:confChip(t)});
  const youLine = ok ? '' : (timedOut ? tr('youTimeout') : tr('youChose',{c:L(nameMap[choice]||'弃牌')}));
  document.getElementById('fbReason').innerHTML=youLine+r;
+ // wrong answer → pop the range table with this hand ringed; otherwise keep it hidden
+ if(!ok) renderFbMatrix(t,hand,corrStr,choice,L(nameMap[choice]||'弃牌'));
+ else document.getElementById('fbMatrix').classList.add('hide');
  const nextBtn=document.getElementById('fbNext');
  nextBtn.textContent = ending ? L('查看结果 →') : L('下一步 →');
  nextBtn.onclick = ()=>{ SFX.click(); if(ending){gameOver(done);} else advance(); };
@@ -666,6 +699,54 @@ function buildVariants(varBoxId,varLabelId,format,current,pick){
 }
 
 let selFormat='cash', selVariant='6', selDeal='smart', selGame='cash';
+// ---- start-screen live range preview (mirrors the in-app charts page) ----
+let sChartIdx=0, sChartSel=null;
+function renderStartChart(){
+ const pack=PACKS[selFormat]&&PACKS[selFormat][selVariant];
+ const mEl=document.getElementById('sMatrix'); if(!pack||!mEl)return;
+ if(sChartIdx>=pack.length)sChartIdx=0;
+ // position chips injected INLINE inside #selVariant, right under the selected stack's group
+ const old=document.getElementById('sChips'); if(old)old.remove();
+ if(pack.length>1){
+  const chips=document.createElement('div');chips.className='cchips';chips.id='sChips';
+  chips.style.cssText='flex-basis:100%;width:100%;max-width:none;justify-content:flex-start;margin:3px 0 8px';
+  pack.forEach((tt,i)=>{const b=document.createElement('button');b.className='cchip';
+   b.textContent=L(tt.name);b.setAttribute('aria-selected',i===sChartIdx);
+   b.onclick=()=>{sChartIdx=i;sChartSel=null;try{SFX.click();}catch(e){}renderStartChart();};
+   chips.appendChild(b);});
+  const sv=document.getElementById('selVariant');
+  const sel=sv&&sv.querySelector('[data-v="'+selVariant+'"]');
+  if(sv&&sel){ let a=sel.nextElementSibling; while(a&&!a.classList.contains('opt-group'))a=a.nextElementSibling; sv.insertBefore(chips,a); }
+  else if(sv){ sv.appendChild(chips); }
+ }
+ const t=pack[sChartIdx];
+ document.getElementById('sName').textContent=L(t.name);
+ document.getElementById('sWho').innerHTML=Lwho(t.who||'')+' '+confChip(t);
+ const solid={raise:'var(--raise)',shove:'var(--raise)',threebet:'var(--threebet)',call:'var(--call)',fold:'var(--fold)'};
+ const edgeBg={'edge-raise':'var(--raise)','edge-shove':'var(--raise)','edge-call':'var(--call)'};
+ mEl.innerHTML='';let inC=0;
+ for(let r=0;r<13;r++)for(let c=0;c<13;c++){
+  const hand=handLabel(r,c),cat=cellCat(t,hand);
+  const cell=document.createElement('div');cell.className='ccell '+cat+(r===c?' pair':'')+(hand===sChartSel?' sel':'');
+  cell.innerHTML=`<span>${hand}</span>`;
+  if(cat!=='fold')inC+= cat.startsWith('edge')?combosOf(hand)/2:combosOf(hand);
+  cell.onclick=()=>{sChartSel=hand;
+   document.querySelectorAll('#sMatrix .ccell.sel').forEach(x=>x.classList.remove('sel'));cell.classList.add('sel');
+   const fq=(t.confidence==='precise'&&cat!=='fold')?` · <span class="cfreq">${freqText(t,hand)}</span>`:'';
+   document.getElementById('sInfo').innerHTML=tr('cCellInfo',{hand,cat:L(catName(cat,t.mode)),fq});};
+  mEl.appendChild(cell);
+ }
+ document.getElementById('sStat').innerHTML=tr('cPotPct',{p:(inC/1326*100).toFixed(0)});
+ const leg=document.getElementById('sLegend');leg.innerHTML='';
+ MODES[t.mode].legend.forEach(([cls,lab])=>{let bg;
+  if(cls==='mix')bg='linear-gradient(118deg,var(--threebet) 0 50%,var(--call) 50% 100%)';
+  else if(cls.startsWith('edge'))bg=`linear-gradient(118deg,${edgeBg[cls]} 0 50%,var(--fold) 50% 100%)`;
+  else bg=solid[cls];
+  const it=document.createElement('div');it.className='it';
+  it.innerHTML=`<span class="sw" style="background:${bg};${cls==='fold'?'box-shadow:inset 0 0 0 1px var(--line)':''}"></span>${L(lab)}`;
+  leg.appendChild(it);});
+ if(!sChartSel)document.getElementById('sInfo').innerHTML=tr('cChartHint');
+}
 function buildOpts(boxId,cfg,current,pick){
  const box=document.getElementById(boxId);box.innerHTML='';
  Object.entries(cfg).forEach(([k,v])=>{
@@ -680,7 +761,8 @@ function buildOpts(boxId,cfg,current,pick){
 function startFmtPick(f,wantVar){
  selFormat=f; selVariant=(wantVar && VARIANTS[f][wantVar])?wantVar:defVariant(f);
  [...document.getElementById('selFormat').children].forEach(x=>x.setAttribute('aria-selected',x.dataset.v===f));
- buildVariants('selVariant','selVarLabel',f,selVariant,k=>selVariant=k);
+ buildVariants('selVariant','selVarLabel',f,selVariant,k=>{selVariant=k;sChartIdx=0;sChartSel=null;renderStartChart();});
+ sChartIdx=0;sChartSel=null;renderStartChart();
 }
 function applyGame(g,keepFmt,wantVar){
  selGame=g;
@@ -1072,8 +1154,9 @@ document.getElementById('clearDataBtn').onclick=()=>{SFX.click();
 /* ---- i18n: re-render dynamic UI after a language switch (called by setLang) ---- */
 function rerenderUI(){
  try{
-  buildVariants('selVariant','selVarLabel',selFormat,selVariant,k=>selVariant=k);
+  buildVariants('selVariant','selVarLabel',selFormat,selVariant,k=>{selVariant=k;sChartIdx=0;sChartSel=null;renderStartChart();});
   buildOpts('selDeal',HANDFILTERS,selDeal,k=>selDeal=k);
+  renderStartChart();
   updateReviewBtns();
   const cs=document.getElementById('chartScreen');
   if(cs && !cs.classList.contains('hide')){

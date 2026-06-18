@@ -43,7 +43,7 @@ const I18N_EN = {
  '🎯 个人画像':'🎯 Profile','🗓 训练计划':'🗓 Training plan','🔍 你的漏洞':'🔍 Your leaks','📊 各档位准确率':'📊 Accuracy by spot',
  // —— calc ——
  '牌面':'Board','你的范围':'Your range','对手范围':'Opp range','对战':'vs','计算胜率':'Run equity','· 留空=翻前':'· empty = preflop',
- '翻牌':'Flop','转牌':'Turn','河牌':'River','你':'You','对手':'Opp','翻后胜率':'Postflop equity','范围优势':'Range edge',
+ '翻牌':'Flop','转牌':'Turn','河牌':'River','你':'You','对手':'Opp','翻后胜率':'Postflop equity','范围优势':'Range advantage',
  '两边几乎五五开':'roughly a coin flip','· ⚠ 写法待修正':'· ⚠ check format',
  // —— about h3 (leaf) ——
  '✅ 这是什么':'✅ What this is','⚠️ 这不是什么':"⚠️ What this isn't",'📐 假设条件':'📐 Assumptions',
@@ -55,14 +55,14 @@ const I18N_EN = {
  '最佳':'Best','好棋':'Good','不准':'Inaccurate','失误':'Mistake','漏着':'Blunder','超时':'Timeout',
  '边缘混合点':'edge / mix point','打得漂亮！':'Nicely played!',
  // —— action display names (MODES.names / ACT_LABEL) ——
- '弃牌':'Fold','加注':'Raise','全下':'All-in','跟注':'Call','跟注全下':'Call all-in','入池':'enter','3-bet':'3-bet','4-bet':'4-bet',
+ '弃牌':'Fold','加注':'Raise','全下':'All-in','跟注':'Call','跟注全下':'Call all-in','入池':'Enter','3-bet':'3-bet','4-bet':'4-bet',
  '挤压 3-bet':'Squeeze','5-bet 全下':'5-bet all-in','反加 3-bet':'3-bet','加注开局':'Open raise','再加 4-bet':'4-bet',
  // —— chart category names (CAT_NAME / catName overrides) ——
  '混合':'Mixed','3-bet / 跟注（混合）':'3-bet / call (mixed)','加注 / 弃牌（边缘混合）':'Raise / fold (edge)',
  '全下 / 弃牌（边缘混合）':'All-in / fold (edge)','跟注 / 弃牌（边缘混合）':'Call / fold (edge)',
  '4-bet / 跟注（混合）':'4-bet / call (mixed)','挤压 / 跟注（混合）':'Squeeze / call (mixed)','5-bet全下 / 跟注（混合）':'5-bet / call (mixed)',
  // —— confidence chip ——
- '精准':'Exact','手搓参考':'curated ref',
+ '精准':'Exact','手搓参考':'Curated',
  '本工具 equity+Nash 求解器计算所得（非手搓）；属简化模型（无前注 / no-overcall / 类级 equity）的近似解，非真实牌桌精确——可剥削度见来源':
   'Computed by this app’s own equity + Nash solver (not hand-picked); a simplified-model approximation (no ante / no-overcall / class-level equity), not table-exact — see exploitability in the source',
  '参考公开图表手工整理，核对过量级/形状；混合频率为占位，非 solver 精确':
@@ -71,7 +71,7 @@ const I18N_EN = {
  'GTO 准确率':'GTO accuracy','最高连击':'Best combo','总手数':'Total hands','到达关卡':'Level reached','最佳+好棋':'Best + good',
  '历史最高':'All-time best','历史最高分':'All-time high','累计手数':'Hands played','总体准确率':'Overall accuracy','总局数':'Games',
  '本轮清掉':'Cleared this round','仍待练':'Still to drill','复习手数':'Review hands','本轮准确率':'Round accuracy',
- '风格倾向':'Style','打法倾向':'Aggression','准确率':'Accuracy','最强':'Best','最弱':'Weakest',
+ '风格倾向':'Style','打法倾向':'Aggression','准确率':'Accuracy','最强':'Best','最弱':'Worst',
  '待定':'TBD','偏松':'Loose','偏紧':'Tight','较均衡':'Balanced','偏被动':'Passive','偏激进':'Aggressive','打法均衡':'Balanced',
  // —— leak types ——
  '太松':'Too loose','该弃却入池':'play hands you should fold','太紧':'Too tight','该入却弃·漏价值':'fold hands you should play · missed value',
@@ -108,7 +108,7 @@ const I18N_EN = {
  '被4bet·可跟可弃':'vs 4-bet · call or fold','被4bet·全下或弃':'vs 4-bet · jam or fold',
  '无位置·偏价值':'OOP · value-heavy','有位置·更宽':'IP · wider','有位置·可宽跟':'IP · call wide','身后有人·偏紧':'players behind · tight',
  // —— VARIANTS.group ——
- '开局加注 · 9人':'RFI · 9-max','推弃 · 9人':'Jam/fold · 9-max','面对全下 · 9人BB 跟 BTN':'Vs jam · 9-max BB calls BTN',
+ 'RFI 开局 · 9人（40/25/15bb）':'RFI open · 9-max (40/25/15bb)','推弃 · 9人':'Jam/fold · 9-max','面对全下 · 9人BB 跟 BTN':'Vs jam · 9-max BB calls BTN',
  '推弃 · 6人终桌':'Jam/fold · 6-max FT','单挑 HU · SB全下+BB跟':'Heads-up · SB jam + BB call','特殊场景':'Special spots',
  // —— spot names (t.name) ——
  'UTG · 枪口位':'UTG · early','MP · 中位':'MP · middle','CO · 关煞位':'CO · cutoff','BTN · 按钮位':'BTN · button','SB · 小盲位':'SB · small blind','HJ · 劫机位':'HJ · hijack',
@@ -157,6 +157,7 @@ _tpl('shouldBe', '应 <b>{ans}</b>', 'Should be <b>{ans}</b>');
 _tpl('answerLine', '正确打法：<b>{ans}</b> {freq} {chip}', 'Correct play: <b>{ans}</b> {freq} {chip}');
 _tpl('youTimeout', '<span class="you">超时未操作 —— 本手作废喵～</span>', '<span class="you">No action in time — this hand is void, nya~</span>');
 _tpl('youChose', '<span class="you">你选了「{c}」 —— 不是最优。</span>', '<span class="you">You chose “{c}” — not optimal.</span>');
+_tpl('fbmxHead', '红框＝你这手 <b>{hand}</b> · 正确 <b>{correct}</b> · 你选了 {you}', 'Red ring = your hand <b>{hand}</b> · correct <b>{correct}</b> · you chose {you}');
 // freqNote
 _tpl('fnPrecise', '（计算频率：{f}）', '(solved freq: {f})');
 _tpl('fnEdge', '（边缘 · 占位频率）', '(edge · placeholder freq)');
@@ -227,7 +228,7 @@ _tpl('pwFoot', '核心训练永久免费 · Pro 只解锁进阶能力', 'Core tr
 _tpl('pwWhyDefault', '这是 Pro 进阶功能', 'This is a Pro feature');
 _tpl('pwWhyPush', '这套「自算 Nash 推弃」训练属于 Pro', 'The solved-Nash jam/fold drills are Pro');
 _tpl('pwWhyCalc', '算胜率计算器属于 Pro', 'The equity calculator is Pro');
-_tpl('pwLockNote', '{name}是 Pro 进阶分析——解锁后按你的真实错题给出。', '{name} is a Pro analysis — unlocks based on your real mistakes.');
+_tpl('pwLockNote', '{name}是 Pro 进阶分析——解锁后按你的真实错题给出。', '{name} is a Pro feature — unlocks based on your real mistakes.');
 _tpl('pwWhyFeature', '{name}属于 Pro', '{name} is Pro');
 _tpl('unlockPro', '解锁 Pro', 'Unlock Pro');
 _tpl('feat.profile', '个人画像', 'Profile'); _tpl('feat.plan', '训练计划', 'Training plan'); _tpl('feat.leak', '漏洞分析', 'Leak analysis');
@@ -311,23 +312,23 @@ _tpl('about_not_p',
 _tpl('about_li1', '<b>现金局</b>：100bb 深度、约 2.5x 开局、常规抽水', '<b>Cash:</b> 100bb deep, ~2.5x opens, standard rake');
 _tpl('about_li2', '<b>MTT 40/25/15bb</b>：带前注的近似开局范围。<b>注意</b>：真实前注会让范围更宽，本工具偏<b>保守（略紧）</b>，宁紧勿松，可按实战略放宽',
  '<b>MTT 40/25/15bb:</b> approximate ante-adjusted open ranges. <b>Note:</b> real antes widen ranges; this tool is <b>conservative (a touch tight)</b> — widen a bit in practice.');
-_tpl('about_li3', '<b>MTT 6人（终桌/短手）</b>：40bb / 20bb 近似开局。人少→范围更宽；按"取后位+适度放宽"估计，<b>非精确解</b>',
+_tpl('about_li3', '<b>MTT 6人（终桌/短手）</b>：40bb / 20bb 近似开局。人少→范围更宽；按「取后位＋适度放宽」估计，<b>非精确解</b>',
  '<b>MTT 6-max (final table / short):</b> 40bb / 20bb approximate opens. Fewer players → wider; estimated as “later seats + modest widening,” <b>not exact</b>.');
 _tpl('about_li4',
  '<b>推弃 / 全下跟注（标「精准」）</b>：用本工具自带 equity + Nash 求解器<b>自算</b>，覆盖 9 人 8/10/12/15/20bb 全下弃、6 人 10/15/20bb、单挑 HU 5–25bb（SB 全下＋BB 跟）、9 人 BB 面对 BTN 全下的跟注。<b>无前注</b>的简化模型（no-overcall / 类级 equity / 蒙特卡洛），<b>非真实牌桌精确</b>；每档可利用度已测量、写在「精准」标签的提示里（越接近 0 越准）',
  '<b>Jam/fold & jam-call (tagged “Exact”):</b> <b>solved</b> with this app’s own equity + Nash solver — 9-max 8/10/12/15/20bb jam-or-fold, 6-max 10/15/20bb, heads-up 5–25bb (SB jam + BB call), and 9-max BB calling a BTN jam. A <b>no-ante</b> simplified model (no-overcall / class-level equity / Monte-Carlo), <b>not table-exact</b>; each stack’s exploitability is measured and shown in the “Exact” tag tooltip (closer to 0 = more accurate).');
 _tpl('about_li5',
- '<b>泡沫 ICM</b>：<b>本工具最粗的一块</b>。这里简化成「一律收紧开局＝保命」，但真实 ICM 的核心其实是<b>跟注/全下跟注更紧</b>（别出局）；筹码舒服的大牌量反而能<b>开得更宽去施压</b>风险厌恶的对手。请把 ICM 档当"保命直觉"看，别照搬到具体泡沫局',
+ '<b>泡沫 ICM</b>：<b>本工具最粗的一块</b>。这里简化成「一律收紧开局＝保命」，但真实 ICM 的核心其实是<b>跟注/全下跟注更紧</b>（别出局）；筹码舒服的大牌量反而能<b>开得更宽去施压</b>风险厌恶的对手。请把 ICM 档当「保命直觉」看，别照搬到具体泡沫局',
  '<b>Bubble ICM:</b> <b>the roughest part.</b> Simplified to “tighten all opens = survive,” but real ICM is mostly about <b>calling/jam-calling tighter</b> (don’t bust); a big stack can actually <b>open wider to pressure</b> risk-averse opponents. Treat ICM here as “survival intuition,” not a literal bubble guide.');
 _tpl('about_li6', '<b>面对 3-bet（4bet/跟/弃）</b>：100bb 近似范围，4-bet ~3%。有位置(IP)防守更宽、无位置(OOP)更紧——形状对，但 4bet/跟注的精确分配随下注尺度变化',
  '<b>Vs 3-bet (4-bet/call/fold):</b> 100bb approximation, 4-bet ~3%. In position defends wider, out of position tighter — shape is right, but exact 4-bet/call split varies with sizing.');
-_tpl('about_li7', '<b>面对 4-bet（5bet全下/跟/弃）</b>：100bb 近似。基本"全下或弃"、跟注极窄；5-bet 视作直接全下',
+_tpl('about_li7', '<b>面对 4-bet（5bet全下/跟/弃）</b>：100bb 近似。基本「全下或弃」、跟注极窄；5-bet 视作直接全下',
  '<b>Vs 4-bet (5-bet jam/call/fold):</b> 100bb approximation. Mostly “jam or fold,” calls very narrow; 5-bet treated as a direct jam.');
 _tpl('about_li8', '<b>挤压 Squeeze（开+跟后反加）</b>：100bb 近似。挤压偏两极化（价值+阻断诈唬）、overcall 为多人底池投机牌；尺度/人数会影响精确范围',
  '<b>Squeeze (re-raise after open + call):</b> 100bb approximation. Squeezes are polarized (value + blocker bluffs), overcalls are speculative multiway hands; sizing/players shift the exact range.');
 _tpl('about_li9', '<b>冷跟 Cold-call（非盲位防守）</b>：100bb 近似。<b>平跟范围≠开局范围</b>——开局会加的牌很多面对加注要改 3bet 或弃；位置越靠前/对手越强，跟注越窄',
  '<b>Cold-call (non-blind defense):</b> 100bb approximation. <b>Flatting range ≠ opening range</b> — many hands you’d open must become a 3-bet or fold vs a raise; earlier position / stronger opener = narrower calls.');
-_tpl('about_li10', '<b>SB 用"加注或弃"模型</b>：真实浅码 SB 常用 limp / limp-jam，本工具未建模', '<b>SB uses a “raise or fold” model:</b> real short-stack SB often limps / limp-jams, not modeled here.');
+_tpl('about_li10', '<b>SB 用「加注或弃」模型</b>：真实浅码 SB 常用 limp / limp-jam，本工具未建模', '<b>SB uses a “raise or fold” model:</b> real short-stack SB often limps / limp-jams, not modeled here.');
 _tpl('about_li11', '<b>边缘混合带</b>：频率按约一半估计，<b>非真实 solver 频率</b>', '<b>Edge mixes:</b> frequencies estimated at ~half, <b>not real solver frequencies</b>.');
 _tpl('about_src_p',
  '作者参考多个公开 GTO 图表整理而成，并已对照权威来源核对过<b>入池比例与整体形状</b>（量级正确），但<b>未逐手核对</b>。所有数据为原创整理，<b>不含任何第三方版权内容</b>。',
@@ -346,7 +347,7 @@ _tpl('guide_arrow1', '↓ 你开局后，被身后的人反加…', '↓ You ope
 _tpl('guide_node2', '<b>面对 3-bet</b><small>开局被反加：4-bet / 跟注 / 弃牌。最高频、最该补。重点学有位置 vs 无位置。</small>',
  '<b>Vs 3-bet</b><small>Your open gets re-raised: 4-bet / call / fold. The most common, most worth fixing. Focus on in vs out of position.</small>');
 _tpl('guide_arrow2', '↓ 你（或对手）再加一手，战火升级…', '↓ Another raise goes in, the war escalates…');
-_tpl('guide_node3', '<b>面对 4-bet</b><small>你 3-bet 后被再加：5-bet 全下 / 跟 / 弃。100bb 基本"全下或弃"。</small>',
+_tpl('guide_node3', '<b>面对 4-bet</b><small>你 3-bet 后被再加：5-bet 全下 / 跟 / 弃。100bb 基本「全下或弃」。</small>',
  '<b>Vs 4-bet</b><small>Your 3-bet gets re-raised: 5-bet jam / call / fold. At 100bb it’s mostly “jam or fold.”</small>');
 _tpl('guide_other_p', '主线之外，这两种也很常见：', 'Beyond the main line, these two are common too:');
 _tpl('guide_nodeS', '<b>挤压 Squeeze</b><small>有人开 + 有人跟，轮到你反加。多人底池死钱多，挤压回报高。</small>',
@@ -413,31 +414,42 @@ function applyI18n(root){
  _updateLangBtn();
  if(typeof rerenderUI==='function'){ try{ rerenderUI(); }catch(e){} }
 }
+// highlight the active segment in the 中|EN selector
 function _updateLangBtn(){
- const b=document.getElementById('langToggle'); if(b) b.textContent = LANG==='en' ? '中' : 'EN';
+ const w=document.getElementById('langToggle'); if(!w) return;
+ w.querySelectorAll('button[data-lang]').forEach(seg=>{
+  const on=seg.dataset.lang===LANG;
+  seg.style.background = on ? 'linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f))' : 'transparent';
+  seg.style.color = on ? '#16110a' : 'var(--muted,#8fa79a)';
+ });
 }
 function setLang(l){ if(l!=='en'&&l!=='zh') return; LANG=l; try{localStorage.setItem('gtoLang',l);}catch(e){} applyI18n(); }
 function _mountLangToggle(){
  if(!_hasDOM()) return;
  try{
   if(document.getElementById('langToggle')) return;
-  const b=document.createElement('button'); b.id='langToggle'; b.type='button';
-  b.title='Language / 语言';
-  b.style.cssText='position:fixed;top:calc(7px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));z-index:150;appearance:none;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.82);backdrop-filter:blur(4px);color:var(--ink,#f1f5ee);font:600 12px/1 system-ui;padding:5px 9px;border-radius:8px;cursor:pointer;opacity:.8';
-  b.onclick=()=>{ try{ if(typeof SFX!=='undefined') SFX.click(); }catch(e){} setLang(LANG==='en'?'zh':'en'); };
-  document.body.appendChild(b);
-  // show the toggle on any menu/overlay screen; hide during an active hand (avoids the HUD score)
+  const wrap=document.createElement('div'); wrap.id='langToggle'; wrap.title='Language / 语言';
+  wrap.style.cssText='position:fixed;top:calc(7px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));z-index:150;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
+  const mk=(code,label)=>{
+   const seg=document.createElement('button'); seg.type='button'; seg.dataset.lang=code; seg.textContent=label;
+   seg.style.cssText='appearance:none;border:0;background:transparent;font:700 12px/1 system-ui;padding:5px 9px;border-radius:7px;cursor:pointer;transition:.15s';
+   seg.onclick=()=>{ if(LANG===code) return; try{ if(typeof SFX!=='undefined') SFX.click(); }catch(e){} setLang(code); };
+   return seg;
+  };
+  wrap.appendChild(mk('zh','中')); wrap.appendChild(mk('en','EN'));
+  document.body.appendChild(wrap);
+  // show the selector on any menu/overlay screen; hide during an active hand (avoids the HUD score)
   const OVL=['startScreen','overScreen','chartScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen'];
   const obs=new MutationObserver(_langBtnVis);
   OVL.forEach(id=>{const e=document.getElementById(id); if(e) obs.observe(e,{attributes:true,attributeFilter:['class']});});
-  _langBtnVis();
+  _langBtnVis(); _updateLangBtn();
  }catch(e){}
 }
 function _langBtnVis(){
  const b=document.getElementById('langToggle'); if(!b) return;
  const OVL=['startScreen','overScreen','chartScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen'];
  const open=OVL.some(id=>{const e=document.getElementById(id); return e && !e.classList.contains('hide');});
- b.style.display = open ? '' : 'none';
+ b.style.display = open ? 'flex' : 'none';
 }
 
 /* boot: scripts sit at end of <body>, so the DOM is ready here. app.js (loaded

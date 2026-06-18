@@ -55,7 +55,7 @@
   .combo.big{font-size:21px;text-shadow:0 0 16px rgba(232,198,106,.7)}
 
   /* ---------- table center ---------- */
-  .table{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:8px 18px;position:relative}
+  .table{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:8px 18px;position:relative}
   .scene{text-align:center}
   .scene .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,.28);
     border:1px solid rgba(232,198,106,.35);border-radius:999px;padding:7px 16px;
@@ -134,6 +134,19 @@
   .fb-reason{font-size:14px;line-height:1.6;color:var(--ink);background:rgba(0,0,0,.26);
     border:1px solid var(--line);border-radius:12px;padding:12px 14px}
   .fb-reason .you{color:var(--muted);display:block;margin-bottom:5px;font-size:12.5px}
+  /* wrong-answer range table popped into the feedback panel */
+  .fbmx{width:100%;max-width:300px;margin:0 auto;background:rgba(0,0,0,.24);border:1px solid var(--line);border-radius:12px;padding:11px 11px 9px}
+  .fbmx.hide{display:none}
+  .fbmx-h{font-size:12px;color:var(--muted);text-align:center;margin-bottom:8px;line-height:1.5}
+  .fbmx-h b{color:var(--ink)}
+  /* 13×13 等分正方格：列+行都用 1fr + 容器正方形，格子不随内容变形 */
+  .fbmx-grid{display:grid;grid-template-columns:repeat(13,1fr);grid-template-rows:repeat(13,1fr);gap:1px;aspect-ratio:1/1;width:100%}
+  .fbmx .ccell{cursor:default;font-size:0;border-radius:2px;min-height:0;min-width:0}
+  .fbmx .ccell.now{font-size:7.5px;color:#fff;box-shadow:0 0 0 2px var(--blunder),0 0 0 4px rgba(255,255,255,.6);z-index:4}
+  .fbmx-leg{display:flex;flex-wrap:wrap;gap:5px 12px;justify-content:center;margin-top:9px}
+  .fbmx-leg .it{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+  .fbmx-leg .sw,.fbmx-sw{width:11px;height:11px;border-radius:3px}
+  .fbmx-sw{display:inline-block;vertical-align:-1px;margin-right:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
   .fb-next{appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:17px;
     color:#16110a;background:linear-gradient(180deg,var(--gold),var(--gold2));
     padding:16px;border-radius:14px;box-shadow:0 6px 0 rgba(0,0,0,.3)}
@@ -349,6 +362,9 @@
     font-size:10.5px;font-family:"Space Mono";opacity:.6}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.05ms!important}}
   @media (max-height:680px){.card{width:74px;height:104px}.card .pip-c{font-size:34px}.screen h1{font-size:28px}}
+  /* 矮屏（小手机 / 浏览器工具栏占位）逐级压缩牌桌，保证动作按钮始终可见 */
+  @media (max-height:600px){.table{gap:10px}.felt{height:120px}.card{width:68px;height:96px}.card .pip-c{font-size:30px}.scene .who{margin-top:5px;font-size:11.5px}}
+  @media (max-height:520px){.table{gap:6px;padding-top:4px}.felt{height:98px}.card{width:60px;height:84px}.card .pip-c{font-size:26px}.scene .badge{padding:5px 13px;font-size:13px}}
 </style>
 </head>
 <body>
@@ -387,6 +403,7 @@
   <div class="feedback hide" id="feedback">
     <div class="fb-top"><span class="fb-grade" id="fbGrade"></span><span class="fb-ans" id="fbAns"></span></div>
     <div class="fb-reason" id="fbReason"></div>
+    <div class="fbmx hide" id="fbMatrix"></div>
     <button class="fb-next" id="fbNext">下一步 →</button>
   </div>
 
@@ -394,6 +411,19 @@
   <div class="screen" id="startScreen">
     <div class="logo-suit"><span class="blk">♠</span><span class="r">♥</span><span class="r">♦</span><span class="blk">♣</span></div>
     <h1>GTO 翻前<b>训练</b></h1>
+
+    <!-- live range preview: shown above Start, updates as you pick game type / scenario / variant -->
+    <div class="sel-group" id="startChartGroup" style="width:100%;max-width:430px">
+      <div class="cmatrix-wrap">
+        <div class="cmatrix-head"><span id="sName">—</span><span class="cmatrix-stat" id="sStat"></span></div>
+        <div class="cmatrix-who" id="sWho"></div>
+        <div class="cmatrix" id="sMatrix"></div>
+        <div class="clegend" id="sLegend"></div>
+        <div class="cinfo" id="sInfo">点格子查看每手牌的建议</div>
+      </div>
+    </div>
+
+    <button class="big-btn" id="startBtn">开始训练</button>
 
     <div class="sel-group">
       <div class="sel-label">游戏类型</div>
@@ -405,8 +435,8 @@
     <div class="sel-group" id="fmtGroup">
       <div class="sel-label">场景</div>
       <div class="opts opts-wrap" id="selFormat">
-        <button class="opt" data-v="cash">开局 + 防守<small>开局加注 · 大盲防守</small></button>
-        <button class="opt" data-v="mtt">开局范围<small>按深度 / 人数</small></button>
+        <button class="opt" data-v="cash">开局 + 防守</button>
+        <button class="opt" data-v="mtt">开局范围</button>
         <button class="opt" data-v="face3b">面对 3-bet<small>你开局被反加</small></button>
         <button class="opt" data-v="face4b">面对 4-bet<small>你 3bet 被 4bet</small></button>
         <button class="opt" data-v="squeeze">挤压<small>有人开+跟 · 你反加</small></button>
@@ -416,8 +446,8 @@
     <div class="sel-group">
       <div class="sel-label" id="selVarLabel">牌桌人数</div>
       <div class="opts opts-wrap" id="selVariant"></div>
+      <!-- 位置按钮（#sChips）由 renderStartChart 动态插到所选档位分组的正下方 -->
     </div>
-    <button class="big-btn" id="startBtn">开始训练</button>
 
     <details class="adv">
       <summary>⚙ 进阶设置 · 发牌偏好</summary>
@@ -464,8 +494,8 @@
       <div class="sel-group" id="cFmtGroup">
         <div class="sel-label">场景</div>
         <div class="opts opts-wrap" id="cSelFormat">
-          <button class="opt" data-v="cash">开局 + 防守<small>开局加注 · 大盲防守</small></button>
-          <button class="opt" data-v="mtt">开局范围<small>按深度 / 人数</small></button>
+          <button class="opt" data-v="cash">开局 + 防守</button>
+          <button class="opt" data-v="mtt">开局范围</button>
           <button class="opt" data-v="face3b">面对 3-bet<small>你开局被反加</small></button>
           <button class="opt" data-v="face4b">面对 4-bet<small>你 3bet 被 4bet</small></button>
           <button class="opt" data-v="squeeze">挤压<small>有人开+跟 · 你反加</small></button>
@@ -513,14 +543,14 @@
         <ul>
           <li data-i18n-html="about_li1"><b>现金局</b>：100bb 深度、约 2.5x 开局、常规抽水</li>
           <li data-i18n-html="about_li2"><b>MTT 40/25/15bb</b>：带前注的近似开局范围。<b>注意</b>：真实前注会让范围更宽，本工具偏<b>保守（略紧）</b>，宁紧勿松，可按实战略放宽</li>
-          <li data-i18n-html="about_li3"><b>MTT 6人（终桌/短手）</b>：40bb / 20bb 近似开局。人少→范围更宽；按"取后位+适度放宽"估计，<b>非精确解</b></li>
+          <li data-i18n-html="about_li3"><b>MTT 6人（终桌/短手）</b>：40bb / 20bb 近似开局。人少→范围更宽；按「取后位＋适度放宽」估计，<b>非精确解</b></li>
           <li data-i18n-html="about_li4"><b>推弃 / 全下跟注（标「精准」）</b>：用本工具自带 equity + Nash 求解器<b>自算</b>，覆盖 9 人 8/10/12/15/20bb 全下弃、6 人 10/15/20bb、单挑 HU 5–25bb（SB 全下＋BB 跟）、9 人 BB 面对 BTN 全下的跟注。<b>无前注</b>的简化模型（no-overcall / 类级 equity / 蒙特卡洛），<b>非真实牌桌精确</b>；每档可利用度已测量、写在「精准」标签的提示里（越接近 0 越准）</li>
-          <li data-i18n-html="about_li5"><b>泡沫 ICM</b>：<b>本工具最粗的一块</b>。这里简化成「一律收紧开局＝保命」，但真实 ICM 的核心其实是<b>跟注/全下跟注更紧</b>（别出局）；筹码舒服的大牌量反而能<b>开得更宽去施压</b>风险厌恶的对手。请把 ICM 档当"保命直觉"看，别照搬到具体泡沫局</li>
+          <li data-i18n-html="about_li5"><b>泡沫 ICM</b>：<b>本工具最粗的一块</b>。这里简化成「一律收紧开局＝保命」，但真实 ICM 的核心其实是<b>跟注/全下跟注更紧</b>（别出局）；筹码舒服的大牌量反而能<b>开得更宽去施压</b>风险厌恶的对手。请把 ICM 档当「保命直觉」看，别照搬到具体泡沫局</li>
           <li data-i18n-html="about_li6"><b>面对 3-bet（4bet/跟/弃）</b>：100bb 近似范围，4-bet ~3%。有位置(IP)防守更宽、无位置(OOP)更紧——形状对，但 4bet/跟注的精确分配随下注尺度变化</li>
-          <li data-i18n-html="about_li7"><b>面对 4-bet（5bet全下/跟/弃）</b>：100bb 近似。基本"全下或弃"、跟注极窄；5-bet 视作直接全下</li>
+          <li data-i18n-html="about_li7"><b>面对 4-bet（5bet全下/跟/弃）</b>：100bb 近似。基本「全下或弃」、跟注极窄；5-bet 视作直接全下</li>
           <li data-i18n-html="about_li8"><b>挤压 Squeeze（开+跟后反加）</b>：100bb 近似。挤压偏两极化（价值+阻断诈唬）、overcall 为多人底池投机牌；尺度/人数会影响精确范围</li>
           <li data-i18n-html="about_li9"><b>冷跟 Cold-call（非盲位防守）</b>：100bb 近似。<b>平跟范围≠开局范围</b>——开局会加的牌很多面对加注要改 3bet 或弃；位置越靠前/对手越强，跟注越窄</li>
-          <li data-i18n-html="about_li10"><b>SB 用"加注或弃"模型</b>：真实浅码 SB 常用 limp / limp-jam，本工具未建模</li>
+          <li data-i18n-html="about_li10"><b>SB 用「加注或弃」模型</b>：真实浅码 SB 常用 limp / limp-jam，本工具未建模</li>
           <li data-i18n-html="about_li11"><b>边缘混合带</b>：频率按约一半估计，<b>非真实 solver 频率</b></li>
         </ul>
       </div>
@@ -590,7 +620,7 @@
         <div class="gd-arrow" data-i18n-html="guide_arrow2">↓ 你（或对手）再加一手，战火升级…</div>
         <div class="gd-node" data-fmt="face4b" data-var="ip">
           <div class="gd-badge">3</div>
-          <div class="gd-txt" data-i18n-html="guide_node3"><b>面对 4-bet</b><small>你 3-bet 后被再加：5-bet 全下 / 跟 / 弃。100bb 基本"全下或弃"。</small></div>
+          <div class="gd-txt" data-i18n-html="guide_node3"><b>面对 4-bet</b><small>你 3-bet 后被再加：5-bet 全下 / 跟 / 弃。100bb 基本「全下或弃」。</small></div>
           <button class="gd-go">练 →</button>
         </div>
       </div>

@@ -12,6 +12,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { buildEqMatrix, solveRing, ringRegret, CLASSES } = require('./pushfold');
+const { enforceMonotonic } = require('./monotonic');
 
 const SAMPLES = 4000, SEED = 1234;
 const STACKS = [8, 10, 12, 15, 20];      // 9-max jam depths
@@ -21,7 +22,8 @@ const SOLVE = { iters: 8000, damp: 0.02 };
 const SEAT_OF = { UTG: 0, MP: 3, CO: 5, BTN: 6, SB: 7 };       // 9-max (BB = 8)
 const SEAT_OF6 = { UTG: 0, HJ: 1, CO: 2, BTN: 3, SB: 4 };      // 6-max (SB = 4, BB = 5)
 const round = (x) => Math.round(x * 1000) / 1000;
-const trim = (m) => { const o = {}; for (const h of CLASSES) if (m[h] > 0) o[h] = round(m[h]); return o; };
+// monotonic-correct (kill threshold-noise non-monotonicity) then round + drop zeros
+const trim = (raw) => { const m = enforceMonotonic(raw); const o = {}; for (const h of CLASSES) if (m[h] > 0) o[h] = round(m[h]); return o; };
 
 console.log(`building ${CLASSES.length}x${CLASSES.length} equity matrix (samples=${SAMPLES})…`);
 let t = Date.now();

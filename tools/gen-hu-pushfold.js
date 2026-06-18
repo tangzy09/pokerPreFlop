@@ -8,6 +8,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { buildEqMatrix, solveRing, ringRegret, CLASSES } = require('./pushfold');
+const { enforceMonotonic } = require('./monotonic');
 
 const SAMPLES = 4000, SEED = 1234, STACKS = [5, 8, 10, 12, 15, 20, 25];
 const SOLVE = { nSeats: 2, iters: 8000, damp: 0.02 };
@@ -17,7 +18,7 @@ let t = Date.now();
 const EQ = buildEqMatrix(SAMPLES, SEED);
 console.log(`  done in ${((Date.now() - t) / 1000).toFixed(1)}s`);
 
-const trim = (m) => { const o = {}; for (const h of CLASSES) if (m[h] > 0) o[h] = m[h]; return o; };
+const trim = (raw) => { const m = enforceMonotonic(raw); const o = {}; for (const h of CLASSES) if (m[h] > 0) o[h] = m[h]; return o; };
 const pct = (m) => {
   const bc = (l) => (l.length === 2 ? 6 : l[2] === 's' ? 4 : 12);
   let a = 0, b = 0; for (const h of CLASSES) { a += bc(h) * (m[h] || 0); b += bc(h); }
