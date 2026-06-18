@@ -428,8 +428,11 @@ function _mountLangToggle(){
  if(!_hasDOM()) return;
  try{
   if(document.getElementById('langToggle')) return;
+  // live INSIDE the start screen, top-right, position:absolute → it scrolls away with
+  // the content (not a persistent fixed overlay) and stays within the app column.
+  const host=document.getElementById('startScreen'); if(!host) return;
   const wrap=document.createElement('div'); wrap.id='langToggle'; wrap.title='Language / 语言';
-  wrap.style.cssText='position:fixed;top:calc(7px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));z-index:150;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
+  wrap.style.cssText='position:absolute;top:calc(10px + env(safe-area-inset-top));right:14px;z-index:5;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
   const mk=(code,label)=>{
    const seg=document.createElement('button'); seg.type='button'; seg.dataset.lang=code; seg.textContent=label;
    seg.style.cssText='appearance:none;border:0;background:transparent;font:700 12px/1 system-ui;padding:5px 9px;border-radius:7px;cursor:pointer;transition:.15s';
@@ -437,19 +440,9 @@ function _mountLangToggle(){
    return seg;
   };
   wrap.appendChild(mk('zh','中')); wrap.appendChild(mk('en','EN'));
-  document.body.appendChild(wrap);
-  // show the selector on any menu/overlay screen; hide during an active hand (avoids the HUD score)
-  const OVL=['startScreen','overScreen','chartScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen'];
-  const obs=new MutationObserver(_langBtnVis);
-  OVL.forEach(id=>{const e=document.getElementById(id); if(e) obs.observe(e,{attributes:true,attributeFilter:['class']});});
-  _langBtnVis(); _updateLangBtn();
+  host.appendChild(wrap);
+  _updateLangBtn();
  }catch(e){}
-}
-function _langBtnVis(){
- const b=document.getElementById('langToggle'); if(!b) return;
- const OVL=['startScreen','overScreen','chartScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen'];
- const open=OVL.some(id=>{const e=document.getElementById(id); return e && !e.classList.contains('hide');});
- b.style.display = open ? 'flex' : 'none';
 }
 
 /* boot: scripts sit at end of <body>, so the DOM is ready here. app.js (loaded

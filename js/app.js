@@ -1054,10 +1054,7 @@ function applyCGame(g){
 [...document.getElementById('cSelFormat').children].forEach(b=>b.onclick=()=>{aInit();SFX.click();chartFmtPick(b.dataset.v);});
 [...document.getElementById('cSelGame').children].forEach(b=>b.onclick=()=>{aInit();SFX.click();applyCGame(b.dataset.g);});
 
-document.getElementById('chartsBtn').onclick=()=>{aInit();SFX.click();
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('chartScreen').classList.remove('hide');
- applyCGame(gameOf(cFormat));};
+// 「图表」导航入口已移除（开始页顶部已有实时图表预览，不再需要单独的图表页）
 document.getElementById('chartBack').onclick=()=>{SFX.click();
  document.getElementById('chartScreen').classList.add('hide');
  document.getElementById('startScreen').classList.remove('hide');};
