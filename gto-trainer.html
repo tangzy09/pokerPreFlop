@@ -281,7 +281,6 @@
   .conf{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap;vertical-align:middle;cursor:help}
   .conf-precise{background:rgba(52,176,116,.18);color:#7fe0a8;border:1px solid rgba(52,176,116,.55)}
   .conf-curated{background:rgba(232,198,106,.14);color:#e8c66a;border:1px solid rgba(232,198,106,.5)}
-  .conf-approx{background:rgba(224,84,79,.13);color:#e9926a;border:1px solid rgba(224,84,79,.5)}
   .sel-group{width:100%;max-width:340px}
   .sel-label{font-family:"Space Mono";font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 8px;text-align:left}
   .opts{display:flex;gap:8px;margin-bottom:14px}
@@ -290,8 +289,9 @@
   /* 图表页(cSelFormat)与首页(selFormat)共用同一布局，保持一致 */
   #selFormat,#cSelFormat{display:grid;grid-template-columns:repeat(3,1fr);align-items:stretch}
   #selFormat .opt,#cSelFormat .opt{min-width:0}
-  .opt-group{flex-basis:100%;width:100%;text-align:left;font-family:"Space Mono";font-size:9.5px;letter-spacing:.14em;
-    text-transform:uppercase;color:var(--gold-dim,#9c8240);margin:4px 0 -4px;opacity:.85}
+  .opt-group{flex-basis:100%;width:100%;text-align:left;font-family:"Space Mono";font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--gold);margin:11px 0 2px;border-top:1px solid var(--line);padding-top:9px}
+  .opts-wrap .opt-group:first-child{border-top:0;margin-top:2px;padding-top:0}
   /* leak analyzer */
   .leak-row{display:flex;align-items:center;gap:9px;margin:7px 0}
   .leak-lab{font-size:12.5px;min-width:118px;color:var(--ink)}
@@ -489,7 +489,7 @@
       </div>
       <div class="ab-card ab-warn">
         <h3>⚠️ 这不是什么</h3>
-        <p>这<b>不是 solver 精确解</b>。范围是参考公开 GTO 图表 + 扑克理论<b>手工整理的简化范围</b>，与 PioSOLVER / GTO Wizard 的精确输出会有出入——尤其是边缘牌的取舍和混合频率。要做精确研究，请用真正的 solver。</p>
+        <p><b>大部分范围不是 solver 精确解</b>：开局、大盲防守、面对 3bet/4bet、挤压、冷跟等，是参考公开 GTO 图表 + 扑克理论<b>手工整理的简化范围</b>（界面上不带标签），与 PioSOLVER / GTO Wizard 会有出入——尤其边缘牌取舍和混合频率。<b>例外</b>：各档<b>推弃 / 全下跟注</b>由本工具<b>自算 Nash</b>（界面标<b>「精准」</b>，详见下方「假设条件」），但仍是简化模型、非真实牌桌精确。要做精确研究，请用真正的 solver。</p>
       </div>
       <div class="ab-card">
         <h3>📐 假设条件</h3>
@@ -497,7 +497,7 @@
           <li><b>现金局</b>：100bb 深度、约 2.5x 开局、常规抽水</li>
           <li><b>MTT 40/25/15bb</b>：带前注的近似开局范围。<b>注意</b>：真实前注会让范围更宽，本工具偏<b>保守（略紧）</b>，宁紧勿松，可按实战略放宽</li>
           <li><b>MTT 6人（终桌/短手）</b>：40bb / 20bb 近似开局。人少→范围更宽；按"取后位+适度放宽"估计，<b>非精确解</b></li>
-          <li><b>10bb 推弃</b>：~10bb <b>无前注</b> Nash 近似</li>
+          <li><b>推弃 / 全下跟注（标「精准」）</b>：用本工具自带 equity + Nash 求解器<b>自算</b>，覆盖 9 人 8/10/12/15/20bb 全下弃、6 人 10/15/20bb、单挑 HU 5–25bb（SB 全下＋BB 跟）、9 人 BB 面对 BTN 全下的跟注。<b>无前注</b>的简化模型（no-overcall / 类级 equity / 蒙特卡洛），<b>非真实牌桌精确</b>；每档可利用度已测量、写在「精准」标签的提示里（越接近 0 越准）</li>
           <li><b>泡沫 ICM</b>：<b>本工具最粗的一块</b>。这里简化成「一律收紧开局＝保命」，但真实 ICM 的核心其实是<b>跟注/全下跟注更紧</b>（别出局）；筹码舒服的大牌量反而能<b>开得更宽去施压</b>风险厌恶的对手。请把 ICM 档当"保命直觉"看，别照搬到具体泡沫局</li>
           <li><b>面对 3-bet（4bet/跟/弃）</b>：100bb 近似范围，4-bet ~3%。有位置(IP)防守更宽、无位置(OOP)更紧——形状对，但 4bet/跟注的精确分配随下注尺度变化</li>
           <li><b>面对 4-bet（5bet全下/跟/弃）</b>：100bb 近似。基本"全下或弃"、跟注极窄；5-bet 视作直接全下</li>
@@ -592,7 +592,7 @@
       </div>
       <div class="gd-node" data-fmt="mtt" data-var="d40">
         <div class="gd-badge alt">T</div>
-        <div class="gd-txt"><b>锦标赛 MTT 专线</b><small>按筹码深度变化：40→25→15bb 收紧 → 10bb 推弃 → 泡沫 ICM。独立一条线。</small></div>
+        <div class="gd-txt"><b>锦标赛 MTT 专线</b><small>按筹码深度变化：40→25→15bb 收紧 → 推弃（8–20bb / 6人 / 单挑 HU）→ 泡沫 ICM。独立一条线。</small></div>
         <button class="gd-go">练 →</button>
       </div>
 

@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { buildEqMatrix, solveRing, ringRegret, CLASSES } = require('./pushfold');
 
-const SAMPLES = 4000, SEED = 1234, STACKS = [10, 15, 20];
+const SAMPLES = 4000, SEED = 1234, STACKS = [5, 8, 10, 12, 15, 20, 25];
 const SOLVE = { nSeats: 2, iters: 8000, damp: 0.02 };
 
 console.log(`building equity matrix (samples=${SAMPLES})…`);

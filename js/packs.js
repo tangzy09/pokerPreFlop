@@ -63,53 +63,101 @@ const PACKS={
   // raise strings (only on d10) are a fallback if that data file fails to load.
   // pf = seat key, pfStack = stack depth to look up in PUSHFOLD.stacks.
   d8p:[
-   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~8bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:8},
-   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~8bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:8},
-   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~8bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:8},
-   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~8bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:8},
-   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~8bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:8},
+   {mode:'push',name:'UTG 全下/弃',who:'9人桌 · ~8bb · 全下或弃',tier:1,pf:'UTG',pfStack:8},
+   {mode:'push',name:'MP 全下/弃',who:'9人桌 · ~8bb · 全下或弃',tier:1,pf:'MP',pfStack:8},
+   {mode:'push',name:'CO 全下/弃',who:'9人桌 · ~8bb · 全下或弃',tier:2,pf:'CO',pfStack:8},
+   {mode:'push',name:'BTN 全下/弃',who:'9人桌 · ~8bb · 全下或弃',tier:2,pf:'BTN',pfStack:8},
+   {mode:'push',name:'SB 全下/弃',who:'9人桌 · ~8bb · 仅剩大盲',tier:3,pf:'SB',pfStack:8},
   ],
   d10:[
-   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:10,raise:"44+, A8s+, A5s, KJs+, QJs, JTs, AJo+, KQo"},
-   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:10,raise:"22+, A7s+, A5s-A4s, K9s+, QTs+, JTs, T9s, ATo+, KQo"},
-   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:10,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T8s+, 98s, A8o+, A5o, KTo+, QJo"},
-   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~10bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:10,raise:"22+, A2s+, K3s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, A2o+, K7o+, Q9o+, J9o+, T9o, 98o"},
-   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~10bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:10,raise:"22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 95s+, 85s+, 74s+, 64s+, 54s, A2o+, K5o+, Q8o+, J8o+, T8o+, 97o+, 87o, 76o"},
+   {mode:'push',name:'UTG 全下/弃',who:'9人桌 · ~10bb · 全下或弃',tier:1,pf:'UTG',pfStack:10,raise:"44+, A8s+, A5s, KJs+, QJs, JTs, AJo+, KQo"},
+   {mode:'push',name:'MP 全下/弃',who:'9人桌 · ~10bb · 全下或弃',tier:1,pf:'MP',pfStack:10,raise:"22+, A7s+, A5s-A4s, K9s+, QTs+, JTs, T9s, ATo+, KQo"},
+   {mode:'push',name:'CO 全下/弃',who:'9人桌 · ~10bb · 全下或弃',tier:2,pf:'CO',pfStack:10,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T8s+, 98s, A8o+, A5o, KTo+, QJo"},
+   {mode:'push',name:'BTN 全下/弃',who:'9人桌 · ~10bb · 全下或弃',tier:2,pf:'BTN',pfStack:10,raise:"22+, A2s+, K3s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, A2o+, K7o+, Q9o+, J9o+, T9o, 98o"},
+   {mode:'push',name:'SB 全下/弃',who:'9人桌 · ~10bb · 仅剩大盲',tier:3,pf:'SB',pfStack:10,raise:"22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 95s+, 85s+, 74s+, 64s+, 54s, A2o+, K5o+, Q8o+, J8o+, T8o+, 97o+, 87o, 76o"},
   ],
   d12p:[
-   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~12bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:12},
-   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~12bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:12},
-   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~12bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:12},
-   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~12bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:12},
-   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~12bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:12},
+   {mode:'push',name:'UTG 全下/弃',who:'9人桌 · ~12bb · 全下或弃',tier:1,pf:'UTG',pfStack:12},
+   {mode:'push',name:'MP 全下/弃',who:'9人桌 · ~12bb · 全下或弃',tier:1,pf:'MP',pfStack:12},
+   {mode:'push',name:'CO 全下/弃',who:'9人桌 · ~12bb · 全下或弃',tier:2,pf:'CO',pfStack:12},
+   {mode:'push',name:'BTN 全下/弃',who:'9人桌 · ~12bb · 全下或弃',tier:2,pf:'BTN',pfStack:12},
+   {mode:'push',name:'SB 全下/弃',who:'9人桌 · ~12bb · 仅剩大盲',tier:3,pf:'SB',pfStack:12},
   ],
   d15p:[
-   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~15bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:15},
-   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~15bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:15},
-   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~15bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:15},
-   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~15bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:15},
-   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~15bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:15},
+   {mode:'push',name:'UTG 全下/弃',who:'9人桌 · ~15bb · 全下或弃',tier:1,pf:'UTG',pfStack:15},
+   {mode:'push',name:'MP 全下/弃',who:'9人桌 · ~15bb · 全下或弃',tier:1,pf:'MP',pfStack:15},
+   {mode:'push',name:'CO 全下/弃',who:'9人桌 · ~15bb · 全下或弃',tier:2,pf:'CO',pfStack:15},
+   {mode:'push',name:'BTN 全下/弃',who:'9人桌 · ~15bb · 全下或弃',tier:2,pf:'BTN',pfStack:15},
+   {mode:'push',name:'SB 全下/弃',who:'9人桌 · ~15bb · 仅剩大盲',tier:3,pf:'SB',pfStack:15},
   ],
   d20p:[
-   {mode:'push',name:'UTG 推/弃',who:'9人桌 · ~20bb · 全下或弃 · 计算 Nash',tier:1,pf:'UTG',pfStack:20},
-   {mode:'push',name:'MP 推/弃',who:'9人桌 · ~20bb · 全下或弃 · 计算 Nash',tier:1,pf:'MP',pfStack:20},
-   {mode:'push',name:'CO 推/弃',who:'9人桌 · ~20bb · 全下或弃 · 计算 Nash',tier:2,pf:'CO',pfStack:20},
-   {mode:'push',name:'BTN 推/弃',who:'9人桌 · ~20bb · 全下或弃 · 计算 Nash',tier:2,pf:'BTN',pfStack:20},
-   {mode:'push',name:'SB 推/弃',who:'9人桌 · ~20bb · 仅剩大盲 · 计算 Nash',tier:3,pf:'SB',pfStack:20},
+   {mode:'push',name:'UTG 全下/弃',who:'9人桌 · ~20bb · 全下或弃',tier:1,pf:'UTG',pfStack:20},
+   {mode:'push',name:'MP 全下/弃',who:'9人桌 · ~20bb · 全下或弃',tier:1,pf:'MP',pfStack:20},
+   {mode:'push',name:'CO 全下/弃',who:'9人桌 · ~20bb · 全下或弃',tier:2,pf:'CO',pfStack:20},
+   {mode:'push',name:'BTN 全下/弃',who:'9人桌 · ~20bb · 全下或弃',tier:2,pf:'BTN',pfStack:20},
+   {mode:'push',name:'SB 全下/弃',who:'9人桌 · ~20bb · 仅剩大盲',tier:3,pf:'SB',pfStack:20},
   ],
   // hu* = heads-up SB-vs-BB push/fold, COMPUTED (js/data/hu-pushfold.js). Two spots:
   // SB jam (push mode) + BB call-off facing a jam (callshove mode). huSide picks side.
   hu10:[
-   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~10bb · SB 全下或弃 · 计算 Nash',tier:1,huStack:10,huSide:'jam'},
-   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~10bb · 面对 SB 全下 · 计算 Nash',tier:1,huStack:10,huSide:'call'},
+   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~10bb · SB 全下或弃',tier:1,huStack:10,huSide:'jam'},
+   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~10bb · 面对 SB 全下',tier:1,huStack:10,huSide:'call'},
   ],
   hu15:[
-   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~15bb · SB 全下或弃 · 计算 Nash',tier:1,huStack:15,huSide:'jam'},
-   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~15bb · 面对 SB 全下 · 计算 Nash',tier:1,huStack:15,huSide:'call'},
+   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~15bb · SB 全下或弃',tier:1,huStack:15,huSide:'jam'},
+   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~15bb · 面对 SB 全下',tier:1,huStack:15,huSide:'call'},
   ],
   hu20:[
-   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~20bb · SB 全下或弃 · 计算 Nash',tier:1,huStack:20,huSide:'jam'},
-   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~20bb · 面对 SB 全下 · 计算 Nash',tier:1,huStack:20,huSide:'call'},
+   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~20bb · SB 全下或弃',tier:1,huStack:20,huSide:'jam'},
+   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~20bb · 面对 SB 全下',tier:1,huStack:20,huSide:'call'},
+  ],
+  hu5:[
+   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~5bb · SB 全下或弃',tier:1,huStack:5,huSide:'jam'},
+   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~5bb · 面对 SB 全下',tier:1,huStack:5,huSide:'call'},
+  ],
+  hu8:[
+   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~8bb · SB 全下或弃',tier:1,huStack:8,huSide:'jam'},
+   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~8bb · 面对 SB 全下',tier:1,huStack:8,huSide:'call'},
+  ],
+  hu12:[
+   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~12bb · SB 全下或弃',tier:1,huStack:12,huSide:'jam'},
+   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~12bb · 面对 SB 全下',tier:1,huStack:12,huSide:'call'},
+  ],
+  hu25:[
+   {mode:'push',name:'SB 全下/弃',who:'单挑 · ~25bb · SB 全下或弃',tier:1,huStack:25,huSide:'jam'},
+   {mode:'callshove',name:'BB 跟注/弃',who:'单挑 · ~25bb · 面对 SB 全下',tier:1,huStack:25,huSide:'call'},
+  ],
+  // 6 人桌推弃 (COMPUTED 6-max Nash, PUSHFOLD.ring6); pf6 = 6-max seat key.
+  p6_10:[
+   {mode:'push',name:'UTG 全下/弃',who:'6人桌 · ~10bb · 全下或弃',tier:1,pf6:'UTG',pfStack:10},
+   {mode:'push',name:'HJ 全下/弃',who:'6人桌 · ~10bb · 全下或弃',tier:1,pf6:'HJ',pfStack:10},
+   {mode:'push',name:'CO 全下/弃',who:'6人桌 · ~10bb · 全下或弃',tier:2,pf6:'CO',pfStack:10},
+   {mode:'push',name:'BTN 全下/弃',who:'6人桌 · ~10bb · 全下或弃',tier:2,pf6:'BTN',pfStack:10},
+   {mode:'push',name:'SB 全下/弃',who:'6人桌 · ~10bb · 仅剩大盲',tier:3,pf6:'SB',pfStack:10},
+  ],
+  p6_15:[
+   {mode:'push',name:'UTG 全下/弃',who:'6人桌 · ~15bb · 全下或弃',tier:1,pf6:'UTG',pfStack:15},
+   {mode:'push',name:'HJ 全下/弃',who:'6人桌 · ~15bb · 全下或弃',tier:1,pf6:'HJ',pfStack:15},
+   {mode:'push',name:'CO 全下/弃',who:'6人桌 · ~15bb · 全下或弃',tier:2,pf6:'CO',pfStack:15},
+   {mode:'push',name:'BTN 全下/弃',who:'6人桌 · ~15bb · 全下或弃',tier:2,pf6:'BTN',pfStack:15},
+   {mode:'push',name:'SB 全下/弃',who:'6人桌 · ~15bb · 仅剩大盲',tier:3,pf6:'SB',pfStack:15},
+  ],
+  p6_20:[
+   {mode:'push',name:'UTG 全下/弃',who:'6人桌 · ~20bb · 全下或弃',tier:1,pf6:'UTG',pfStack:20},
+   {mode:'push',name:'HJ 全下/弃',who:'6人桌 · ~20bb · 全下或弃',tier:1,pf6:'HJ',pfStack:20},
+   {mode:'push',name:'CO 全下/弃',who:'6人桌 · ~20bb · 全下或弃',tier:2,pf6:'CO',pfStack:20},
+   {mode:'push',name:'BTN 全下/弃',who:'6人桌 · ~20bb · 全下或弃',tier:2,pf6:'BTN',pfStack:20},
+   {mode:'push',name:'SB 全下/弃',who:'6人桌 · ~20bb · 仅剩大盲',tier:3,pf6:'SB',pfStack:20},
+  ],
+  // 9 人 面对全下·BB 跟注 (COMPUTED, PUSHFOLD.calloff): BB 面对 BTN 全下跟不跟。
+  co10:[
+   {mode:'callshove',name:'BB 跟注/弃 vs BTN',who:'9人桌 · ~10bb · 面对 BTN 全下',tier:2,calloff:'btn',coStack:10},
+  ],
+  co15:[
+   {mode:'callshove',name:'BB 跟注/弃 vs BTN',who:'9人桌 · ~15bb · 面对 BTN 全下',tier:2,calloff:'btn',coStack:15},
+  ],
+  co20:[
+   {mode:'callshove',name:'BB 跟注/弃 vs BTN',who:'9人桌 · ~20bb · 面对 BTN 全下',tier:2,calloff:'btn',coStack:20},
   ],
   icm:[
    {mode:'open',name:'UTG · 枪口位',who:'9人桌 · 泡沫期 ~20bb · 保命收紧',tier:1,raise:"88+, AJs+, AKo"},
@@ -188,9 +236,8 @@ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
  t.R=expand(t.raise);t.C=expand(t.call);t.M=expand(t.mix);
  t.union=[...new Set([...t.R,...t.C,...t.M])];
  // per-spot provenance / confidence (lets the app be honest spot-by-spot):
- //  precise  = backed by a real freqTable import / solved Nash
- //  curated  = hand-checked for magnitude+shape, mix freqs are ~placeholders
- //  approx   = roughest (e.g. ICM / 6-max estimates)
+ //  precise  = backed by a real freqTable import / solved Nash (shows the 「精准」chip)
+ //  curated  = hand-checked for magnitude+shape, mix freqs are ~placeholders (no chip)
  t.confidence = t.confidence || (t.freqTable ? 'precise' : 'curated');
  t.src = t.src || '';
 })));
@@ -201,20 +248,29 @@ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
 (function applyComputedPushfold(){
  if(typeof PUSHFOLD==='undefined')return;
  const rnd=x=>Math.round(x*1000)/1000;
- Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
-  if(!t.pf || t.pfStack==null)return;
-  const stack=PUSHFOLD.stacks[t.pfStack];
-  const tbl=stack && stack.seats[t.pf];
-  if(!tbl)return;
-  const R=new Set(), M=new Set(), freqTable={};
+ // fill a spot from a hand->freq table for one action (shove=push mode, call=callshove mode)
+ const fill=(t,tbl,act,src)=>{
+  const R=new Set(),C=new Set(),M=new Set(),freqTable={};
   for(const hand in tbl){ const fr=tbl[hand];
-   if(fr>=0.995){ R.add(hand); freqTable[hand]={shove:1}; }
-   else if(fr>0.005){ M.add(hand); freqTable[hand]={shove:rnd(fr),fold:rnd(1-fr)}; }
+   if(fr>=0.995){ (act==='call'?C:R).add(hand); freqTable[hand]={[act]:1}; }
+   else if(fr>0.005){ M.add(hand); freqTable[hand]={[act]:rnd(fr),fold:rnd(1-fr)}; }
   }
-  t.R=R; t.C=new Set(); t.M=M; t.union=[...new Set([...R,...M])];
-  t.freqTable=freqTable; t.confidence='precise';
-  const reg=PUSHFOLD.meta.exploitability && PUSHFOLD.meta.exploitability[t.pfStack];
-  t.src=`computed ${t.pfStack}bb Nash (${PUSHFOLD.meta.model}`+(reg!=null?` · 可剥削度~${reg}bb/手`:'')+')';
+  t.R=R; t.C=C; t.M=M; t.union=[...new Set([...R,...C,...M])];
+  t.freqTable=freqTable; t.confidence='precise'; t.src=src;
+ };
+ const model=PUSHFOLD.meta.model, exp=PUSHFOLD.meta.exploitability||{}, exp6=PUSHFOLD.meta.exploitability6||{};
+ const dis=(e,s)=>e[s]!=null?` · 可剥削度~${e[s]}bb/手`:'';
+ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
+  if(t.pf && t.pfStack!=null){                               // 9-max jam (push)
+   const s=PUSHFOLD.stacks[t.pfStack], tbl=s&&s.seats[t.pf]; if(!tbl)return;
+   fill(t,tbl,'shove',`computed ${t.pfStack}bb Nash (${model}${dis(exp,t.pfStack)})`);
+  } else if(t.pf6 && t.pfStack!=null){                        // 6-max jam (push)
+   const s=PUSHFOLD.ring6&&PUSHFOLD.ring6[t.pfStack], tbl=s&&s.seats[t.pf6]; if(!tbl)return;
+   fill(t,tbl,'shove',`computed ${t.pfStack}bb 6人 Nash${dis(exp6,t.pfStack)}`);
+  } else if(t.calloff && t.coStack!=null){                    // 9-max BB call-off vs a jam (callshove)
+   const s=PUSHFOLD.calloff&&PUSHFOLD.calloff[t.coStack], tbl=s&&s[t.calloff]; if(!tbl)return;
+   fill(t,tbl,'call',`computed ${t.coStack}bb 跟注 Nash${dis(exp,t.coStack)}`);
+  }
  })));
 })();
 

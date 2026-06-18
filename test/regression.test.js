@@ -78,8 +78,8 @@ test('every spot has a confidence tag', () => {
           `${fmt}/${v}/${t.name}: bad confidence "${t.confidence}"`);
 });
 
-test('computed push spots (10/15/20bb) loaded as precise with freqTable', () => {
-  for (const v of ['d10', 'd15p', 'd20p']) {
+test('computed push spots (8/10/12/15/20bb) loaded as precise with freqTable', () => {
+  for (const v of ['d8p', 'd10', 'd12p', 'd15p', 'd20p']) {
     const arr = PACKS.mtt[v];
     assert.ok(arr && arr.length === 5, `${v} should have 5 spots`);
     for (const t of arr) {
@@ -93,8 +93,8 @@ test('computed push spots (10/15/20bb) loaded as precise with freqTable', () => 
   // within a stack: SB jams wider than UTG; premiums in, trash out
   assert.ok(sb('d10').union.length > utg('d10').union.length, 'SB wider than UTG');
   assert.ok(utg('d10').R.has('AA') && !utg('d10').R.has('72o'), 'UTG jams AA not 72o');
-  // deeper stacks jam tighter (pure jam/fold)
-  assert.ok(sb('d10').union.length > sb('d20p').union.length, 'SB tighter at 20bb than 10bb');
+  // shallower stacks jam wider (pure jam/fold): 8bb widest, 20bb tightest
+  assert.ok(sb('d8p').union.length > sb('d20p').union.length, 'SB jams wider at 8bb than 20bb');
 });
 
 test('HU push/fold spots (jam + call) loaded as precise from computed Nash', () => {
@@ -120,7 +120,7 @@ test('HU push/fold spots (jam + call) loaded as precise from computed Nash', () 
 test('UI labels computed spots as precise (real freq) and curated as placeholder', () => {
   const precise = PACKS.mtt.d10.find((t) => t.pf === 'UTG');
   const curated = PACKS.cash['6'][0];
-  assert.equal(confOf(precise).txt, '自算 Nash');
+  assert.equal(confOf(precise).txt, '精准');
   assert.equal(confOf(curated).txt, '手搓参考');
   // precise spot shows a computed frequency; curated mix stays a placeholder
   assert.match(freqNote(precise, 'AA', false, false), /计算频率/);

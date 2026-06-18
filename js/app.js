@@ -174,15 +174,14 @@ function stopTimer(){if(timerRAF)cancelAnimationFrame(timerRAF);timerRAF=null;}
 
 /* ---- data-confidence labelling (honest per-spot provenance in the UI) ---- */
 const CONF={
- precise:{mark:'✓',txt:'自算 Nash',cls:'conf-precise',desc:'本工具 equity+Nash 求解器计算所得（非手搓）；属简化模型（无前注 / no-overcall / 类级 equity）的近似解，非真实牌桌精确——可剥削度见来源'},
+ precise:{mark:'',txt:'精准',cls:'conf-precise',desc:'本工具 equity+Nash 求解器计算所得（非手搓）；属简化模型（无前注 / no-overcall / 类级 equity）的近似解，非真实牌桌精确——可剥削度见来源'},
  curated:{mark:'≈',txt:'手搓参考',cls:'conf-curated',desc:'参考公开图表手工整理，核对过量级/形状；混合频率为占位，非 solver 精确'},
- approx :{mark:'~',txt:'粗略估计',cls:'conf-approx', desc:'最粗的一档（如 ICM / 6人估计）'},
 };
 function confOf(t){return CONF[(t&&t.confidence)]||CONF.curated;}
 function confChip(t){const c=confOf(t);
- if(c===CONF.curated)return ''; // 手搓档不再显示标签（仅计算/粗估档显示）
+ if(c===CONF.curated)return ''; // 手搓档不显示标签（仅「精准」自算档显示）
  const title=(t&&t.src)?c.desc+' · '+t.src:c.desc;
- return `<span class="conf ${c.cls}" title="${title.replace(/"/g,'&quot;')}">${c.mark} ${c.txt}</span>`;}
+ return `<span class="conf ${c.cls}" title="${title.replace(/"/g,'&quot;')}">${c.mark?c.mark+' ':''}${c.txt}</span>`;}
 /* frequency string: precise spots show the REAL computed %; others stay qualitative (占位) */
 function freqText(t,hand){
  const f=handFreq(t,hand), names=MODES[t.mode].names;
@@ -294,7 +293,7 @@ function resolve(choice,btn,timedOut){
  const ok = !timedOut && correct.includes(choice);
  // frequency-aware grading: a precise spot carries real solved frequencies, so a
  // mix point HAS a majority line — reward matching it as 最佳, a secondary line as
- // 好棋. Curated/approx mixes are placeholder ~50/50, so we cannot rank them (§6).
+ // 好棋. Curated mixes are placeholder ~50/50, so we cannot rank them (§6).
  const fmap=handFreq(t,hand);
  const topAct=Object.keys(fmap).sort((a,b)=>fmap[b]-fmap[a])[0];
  const freqGraded = t.confidence==='precise' && G.isMix;
@@ -573,7 +572,7 @@ function buildVariants(varBoxId,varLabelId,format,current,pick){
    box.appendChild(h);lastGroup=v.group;
   }
   const b=document.createElement('button');b.className='opt';b.dataset.v=k;
-  b.innerHTML=`${v.label}<small>${v.sub}</small>`;
+  b.innerHTML=`${v.label}${v.sub?`<small>${v.sub}</small>`:''}`;
   b.setAttribute('aria-selected',k===String(current));
   b.onclick=()=>{aInit();SFX.click();pick(k);
    [...box.children].forEach(x=>{if(x.classList.contains('opt'))x.setAttribute('aria-selected',x===b);});};
@@ -586,7 +585,7 @@ function buildOpts(boxId,cfg,current,pick){
  const box=document.getElementById(boxId);box.innerHTML='';
  Object.entries(cfg).forEach(([k,v])=>{
   const b=document.createElement('button');b.className='opt';b.dataset.v=k;
-  b.innerHTML=`${v.label}<small>${v.sub}</small>`;
+  b.innerHTML=`${v.label}${v.sub?`<small>${v.sub}</small>`:''}`;
   b.setAttribute('aria-selected',k===current);
   b.onclick=()=>{aInit();SFX.click();pick(k);
    [...box.children].forEach(x=>x.setAttribute('aria-selected',x===b));};
