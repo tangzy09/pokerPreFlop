@@ -11,6 +11,10 @@ Thumbs.db
 /tmp/
 *.log
 
+# local deploy script (contains EC2 host + key path — keep out of the public repo)
+/deploy.sh
+*.pem
+
 # Python
 __pycache__/
 *.pyc
