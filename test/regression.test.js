@@ -123,7 +123,7 @@ test('HU push/fold spots (jam + call) loaded as precise from computed Nash', () 
 test('UI labels computed spots as precise (real freq) and curated as placeholder', () => {
   const precise = PACKS.mtt.d10.find((t) => t.pf === 'UTG');
   const curated = PACKS.cash['6'][0];
-  assert.equal(confOf(precise).txt, '精准');
+  assert.equal(confOf(precise).txt, 'Nash 博弈论最优');
   assert.equal(confOf(curated).txt, '手搓参考');
   // precise spot shows a computed frequency; curated mix stays a placeholder
   assert.match(freqNote(precise, 'AA', false, false), /计算频率/);

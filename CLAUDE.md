@@ -11,30 +11,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A zero-build, dependency-free web app: a **pre-flop poker GTO decision trainer** (Chinese UI). [gto-trainer.html](gto-trainer.html) holds the markup + CSS and loads plain classic scripts (no ES modules, no bundler — still double-click-to-run from `file://`):
 
 ```
-gto-trainer.html         markup + ~650 lines CSS, then 6 <script src> tags (order matters)
+gto-trainer.html         markup + ~650 lines CSS, then 7 <script src> tags (order matters)
+js/i18n.js               LOADS FIRST. Bilingual display layer (English default + 中文 toggle).
+                         The DATA files stay Chinese = canonical source; translation is display-only:
+                         L("中文")→en/zh by source lookup; tr(key,vars)→keyed bilingual templates;
+                         applyI18n() walks static HTML; floating 🌐 中|EN toggle lives in #startScreen
 js/equity.js             dual-loaded equity engine (evaluate7, equityExact, classEquity,
                          rangeEquity, rangeEquityBoard = equity on a given 3/4/5-card board);
                          also require()d by tools/ — module.exports is guarded
 js/ranges.js             range-string DSL (expand) + scenario taxonomy (FORMATS/GAMETYPES/VARIANTS)
 js/modes.js              MODES — single source of mode behaviour (+ FREQ/handFreq, cellCat/catName)
-js/data/pushfold.js      AUTO-GENERATED computed 9-max 8/10/12/15/20bb Nash (global PUSHFOLD); loads before packs
-js/data/hu-pushfold.js   AUTO-GENERATED computed HU SB-vs-BB push/fold, jam + call (global HU_PUSHFOLD)
-js/packs.js              PACKS range database (+ PREMIUM); overrides d10 spots with the computed data
-js/app.js                persistence, audio, confetti, hand helpers, game engine, charts +
-                         胜率计算器 (翻前 + 翻后 board-equity, parseBoardStr) + 漏洞分析(Leak Analyzer) UI, boot
-                         NOTE: the in-app 翻后GTO display was removed; the offline solver chain + its
-                         js/data/postflop-spots.js are kept, but that file is no longer <script>-loaded
+js/data/pushfold.js      AUTO-GENERATED Nash (global PUSHFOLD): 9-max 8/10/12/15/20bb jam, 6-max 10/15/20bb
+                         (ring6), 9-max BB call-off vs BTN jam (calloff); loads before packs
+js/data/hu-pushfold.js   AUTO-GENERATED HU SB-vs-BB push/fold, jam + call, 5/8/10/12/15/20/25bb (global HU_PUSHFOLD)
+js/packs.js              PACKS range database (+ PREMIUM); overrides push/call spots with the computed data
+js/app.js                persistence, audio (synth SFX w/ master lowpass+compressor), confetti, hand helpers,
+                         game engine, charts + start-screen live chart preview (renderStartChart) +
+                         wrong-answer range table in feedback (renderFbMatrix) + 胜率计算器 +
+                         漏洞分析(Leak Analyzer) UI + Pro 门控(isPro — currently forced true = all unlocked), boot.
+                         All user-facing strings go through L()/tr(); the in-app 翻后GTO screen + the
+                         bottom 图表 nav entry are removed (postflop-spots.js no longer <script>-loaded)
 tools/                   offline data computation — NOT shipped to the browser:
   pushfold.js            (Node) HU + multiway push/fold Nash solvers (buildEqMatrix, solveHU, solveRing); require()s ../js/equity
-  gen-pushfold.js        (Node) runs the solver and writes js/data/pushfold.js (8/10/12/15/20bb 9-max)
-  gen-hu-pushfold.js     (Node) writes js/data/hu-pushfold.js (HU SB jam + BB call-off, 10/15/20bb)
+  monotonic.js           (Node) enforceMonotonic(table) — kills threshold-noise non-monotonicity in a
+                         push/call range by hand domination (req'd by both gen-pushfold + gen-hu-pushfold)
+  gen-pushfold.js        (Node) runs the solver + monotonic pass, writes js/data/pushfold.js (9-max + 6-max + calloff)
+  gen-hu-pushfold.js     (Node) writes js/data/hu-pushfold.js (HU SB jam + BB call-off, 5–25bb)
   gen-postflop-spots.py  (Python) solves canonical HU postflop spots with tools/solver (vectorized CFR+)
                          and writes js/data/postflop-spots.js (validated by test/solver-spots.test.js) —
                          kept as an offline artifact; no longer <script>-loaded (the 翻后GTO screen was removed)
   solver/                (Python) the experimental HU postflop CFR/CFR+ solver chain; see solver/README.md
 ```
 
-The scripts share one global scope (browser behaviour for classic scripts); load order is `equity → ranges → modes → packs → app` and is enforced by the `<script src>` order. `js/equity.js` is the one file used both in the browser (plain globals) and by Node tools (`require`, via the guarded `module.exports`). An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
+The scripts share one global scope (browser behaviour for classic scripts); load order is `i18n → equity → ranges → modes → packs → app` and is enforced by the `<script src>` order (`i18n.js` must be first so `L`/`tr` exist for everyone). `js/equity.js` is the one file used both in the browser (plain globals) and by Node tools (`require`, via the guarded `module.exports`). An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
 
 ## Running & verifying (no build step)
 
@@ -42,7 +51,7 @@ The scripts share one global scope (browser behaviour for classic scripts); load
 - **Test:** `npm test` (app JS, = `node --test "test/*.test.js"`). Run a single test with `node --test --test-name-pattern="snapshot" "test/*.test.js"`.
 - **Solver tests (Python):** `npm run test:solver` (= `python tools/solver/run_all.py`, runs the 4 CFR/equity suites in `tools/solver/`). `npm run test:all` runs JS + solver together.
 - **After an INTENTIONAL change to `MODES` or the ranges**, the snapshot test will fail by design — regenerate the golden with `npm run test:update`, then review the diff in `test/__snapshots__/regression.snap.json` before committing.
-- **Recompute the push/fold Nash data** with `node tools/gen-pushfold.js` (~3-4min; writes `js/data/pushfold.js` for 8/10/12/15/20bb). Then regenerate the snapshot. The d8p/d10/d12p/d15p/d20p ranges are computed, not hand-curated — edit `STACKS` / the model in `tools/`, not the data file.
+- **Recompute the push/fold Nash data** with `node tools/gen-pushfold.js` (9-max + 6-max + BB call-off, ~3-4min) and `node tools/gen-hu-pushfold.js` (HU 5–25bb). Both are deterministic (fixed seed) and apply `tools/monotonic.js` (`enforceMonotonic`) so threshold-noise non-monotonicity is removed (e.g. KJo can't fold while the weaker KTo jams). Then regenerate the snapshot. These ranges are computed, not hand-curated — edit `STACKS` / the model in `tools/`, not the data file.
 - **The offline 翻后GTO solver** lives in `tools/solver/` (+ `gen-postflop-spots.py`, `npm run test:solver`). It still produces/validates `js/data/postflop-spots.js`, but the **in-app 翻后GTO screen was removed** (product decision) — the data file is no longer `<script>`-loaded by `gto-trainer.html`. The solver chain is kept for the offline pipeline + its tests; honest scope if revived: HU, single bet size, no raises (MDF / polarization / indifference demos).
 - **Accuracy is measured, not assumed:** `ringRegret()` computes the solution's exploitability (max bb/hand a best-responder could gain; 0 = exact Nash within the model). gen-pushfold records it per stack in `PUSHFOLD.meta.exploitability` and packs.js surfaces it in each spot's `src` / confidence tooltip. The data is a *computed approximation of a simplified model* (chip-EV, no antes, no-overcall, class-level equity, Monte-Carlo) — not real-table truth.
 - Node v24 is installed at `C:\Program Files\nodejs\`. Freshly-spawned tool shells may not have it on PATH until a terminal restart — use the full path (`& "C:\Program Files\nodejs\node.exe"` / `npm.cmd`).
@@ -72,12 +81,22 @@ Read these relationships before editing:
 ### Selection taxonomy
 `GAMETYPES` (cash vs mtt) → `FORMATS` → `VARIANTS`. `gameOf(fmt)` maps a format back to its game. The start screen, charts screen, and guide all build option chips from these.
 
+### i18n (bilingual, English default)
+[js/i18n.js](js/i18n.js) loads first and is a **pure display layer** — the data files (`ranges`/`modes`/`packs`) and all `name`/`who`/label strings stay **Chinese = the canonical source**. Translation happens only at render:
+- `L("中文")` → English when `LANG==='en'`, the original Chinese when `'zh'` (lookup by the Chinese source string; unknown strings fall back to Chinese). Used for short labels, action names, spot `name`/`who` (the latter via `Lwho`/`Lparts` which split on ` · ` / tokens).
+- `tr(key, vars)` → keyed bilingual templates with `{var}` interpolation, for the interpolated prose (`reasonFor`, feedback, paywall) and inline-`<b>` HTML blocks. **Named `tr`, not `t`, because app.js uses `t` for the spot object.**
+- `applyI18n()` walks static HTML (`data-i18n-html` keyed blocks + simple text nodes) and is re-run on language switch; `setLang()` persists `gtoLang` to localStorage and calls `rerenderUI()` (defined in app.js) to rebuild dynamic UI.
+- Default is **English**; a floating `中 | EN` toggle is mounted inside `#startScreen` (scrolls with the page).
+- **Tests are pinned to `zh`** (`app.setLang('zh')` in `regression.test.js`) so the golden snapshot + prose assertions read the canonical language. `load-app.js` exports `L`/`tr`/`setLang`/`curLang`. Because data stays Chinese, adding i18n did **not** change the snapshot.
+
 ### Game loop & state
-`G` is the mutable game-state object. Flow: `newGame()` → `nextHand()` (deals via `pickHand(t, filter)` using `HANDFILTERS`, computes `G.correct_set` from `MODES`) → `choose()`/`timeOut()` → `resolve()` (grades, scores, HP, feedback via `reasonFor()`) → `advance()`. `PREMIUM` marks hands whose misplay is graded a "blunder".
+`G` is the mutable game-state object. Flow: `newGame()` → `nextHand()` (deals via `pickHand(t, filter)` using `HANDFILTERS`, computes `G.correct_set` from `MODES`) → `choose()`/`timeOut()` → `resolve()` (grades, scores, HP, feedback via `reasonFor()`) → `advance()`. A session is `SESSION_HANDS` (=20) hands. `PREMIUM` marks hands whose misplay is graded a "blunder". `unlocked()` falls back to the **whole pack** when no spot is `tier<=level` (some variants' lowest tier is >1, e.g. `co*` has a single tier-2 spot — falling back to `tier===1` only would deal an empty pool and crash).
+
+The default **`smart`** filter builds a balanced **question bank** in `buildSmartQueue()`: each unlocked spot's in-range hands are bucketed by answer type (`isM?'edge':corr.length>1?'mix':corr[0]`) and joined with `adjacentFolds(t)` — "hard folds" = same-suitedness ±1-rank neighbours of range hands that aren't themselves in range (e.g. A5s→A4s/K5s, 88→77). Each type is capped at `SMART_PER_TYPE` (weak/review hands first) and shuffled, so a session sees roughly equal counts of each action type and only borderline folds (never obvious trash). On wrong answers the feedback panel pops the spot's range chart (`renderFbMatrix`) with the played hand ringed; the in-game table collapses (`.table.fb-hide`) so the scrollable feedback doesn't overlap the cards.
 
 **频率评级（Phase 2/3，中文说明）**：`resolve()` 的评分会读 `handFreq(t,hand)`。判定支持集（`G.correct_set`）仍来自 `MODES`，但**混合点的「最佳 vs 好棋」按真实频率细分**：
 - 仅当 `t.confidence==='precise'`（有真 `freqTable`，如自算推弃 Nash）时，混合点才有「主频线」——选**频率最高**的动作记 **最佳**（触发庆祝），选次频但仍在支持集内的动作记 **好棋**；支持集外仍是失误。
-- `curated`/`approx` 局面的混合频率是 `MIX=0.5` 占位，**不分高下**，任一支持动作都记 **好棋**（§6 诚实红线：不从占位频率编造「最佳」）。
+- `curated` 局面的混合频率是 `MIX=0.5` 占位，**不分高下**：**边缘带**（`G.isEdge`）答对记 **两可**（绿色，等同正确，明确「两种都对」），其余两路混合点记 **好棋**；任一支持动作都算对（§6 诚实红线：不从占位频率编造「最佳」）。
 - 这套逻辑只在运行期的 `resolve()`，**不动 `MODES` 也不影响金快照**；反馈面板与图表 `cInfo` 仅对 `precise` 局面显示真实百分比，其余维持定性。
 
 ### Persistence & review
@@ -87,4 +106,13 @@ Read these relationships before editing:
 
 ## Domain caveat (do not misrepresent)
 
-Ranges are **hand-curated GTO approximations, not solver-exact output**. Mix/edge frequencies are "~50%" placeholders, not true solver frequencies; MTT/ICM/6-max are the roughest. The in-app "关于" (About) screen documents every assumption. Keep new copy/features honest about this — never present output as solver-precise. UI text is Chinese and written in a "松鼠" (squirrel) persona.
+Most ranges are **hand-curated GTO approximations, not solver-exact output** (mix/edge frequencies are "~50%" placeholders; MTT/ICM/6-max are the roughest). The **exception** is the push/fold + jam-call spots, which are this tool's **own computed Nash** (`confidence:'precise'`, tagged「Nash 博弈论最优」/「Nash GTO」) — still a simplified-model approximation (chip-EV, no antes, no-overcall, class equity, Monte-Carlo), not table truth. The in-app "关于/About" screen documents every assumption. Keep new copy/features honest — never present output as solver-precise. UI is **bilingual (English default + 中文 toggle)** and written in a "松鼠/squirrel" persona in both. Pro gating exists (`isPro`) but is **currently forced `true`** = everything unlocked.
+
+## Deployment (live site)
+
+The app is a static site; hosting is just nginx serving the repo. **GitHub Pages is disabled** (we moved to EC2). The repo is public at `github.com/tangzy09/pokerPreFlop`.
+
+- **Live:** **https://pre-flop.ai-speeds.com/** (Let's Encrypt cert via certbot, HTTP→HTTPS redirect).
+- **Where:** a shared EC2 (`3.26.95.240`, Amazon Linux 2023, multi-site nginx — also hosts fishid/4096/ina/dive `*.ai-speeds.com`, each under `/var/www/<name>`). poker lives at **`/var/www/poker`** (a `git clone` of this repo). nginx vhost: `/etc/nginx/conf.d/pre-flop.conf`. Also reachable via `/poker_pre_flop/` subpath + the underscore `pre_flop.ai-speeds.com` (HTTP only — underscore hostnames can't get a LE cert).
+- **Deploy:** local `deploy.sh` (**gitignored** — holds the EC2 host + key path; not in the public repo). `bash deploy.sh "msg"` = commit-all + test + `git push` + SSH `sudo git -C /var/www/poker pull`. Manual equivalent: `ssh -i <key> ec2-user@3.26.95.240 'sudo git -C /var/www/poker pull'`.
+- Root `index.html` is a redirect to `gto-trainer.html` (so the site root opens the app); `.nojekyll` is present.

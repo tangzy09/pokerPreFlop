@@ -10,8 +10,8 @@
 const ACT_LABEL={fold:['弃牌','FOLD','a-fold'],call:['跟注','CALL','a-call'],
  raise:['加注开局','RAISE','a-raise'],raise3:['反加 3-bet','3-BET','a-3bet'],
  raise4:['再加 4-bet','4-BET','a-3bet'],squeeze:['挤压 3-bet','SQUEEZE','a-3bet'],
- shove5:['5-bet 全下','5-BET ALLIN','a-raise'],
- shove:['全下','ALL IN','a-raise'],callshove:['跟注全下','CALL','a-call']};
+ shove5:['5-bet 全下','5-BET ALL-IN','a-raise'],
+ shove:['全下','ALL-IN','a-raise'],callshove:['跟注全下','CALL ALL-IN','a-call']};
 const CAT_NAME={raise:'加注',shove:'全下',threebet:'3-bet',call:'跟注',mix:'3-bet / 跟注（混合）',
  'edge-raise':'加注 / 弃牌（边缘混合）','edge-shove':'全下 / 弃牌（边缘混合）','edge-call':'跟注 / 弃牌（边缘混合）',fold:'弃牌'};
 /* 复用的判定 / 格子函数（按模式语义命名，供下方 MODES 引用） */

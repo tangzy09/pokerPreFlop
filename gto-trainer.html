@@ -56,6 +56,7 @@
 
   /* ---------- table center ---------- */
   .table{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:8px 18px;position:relative}
+  .table.fb-hide{display:none}   /* 反馈/结果面板出现时收起牌桌区，避免与说明重叠 */
   .scene{text-align:center}
   .scene .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,.28);
     border:1px solid rgba(232,198,106,.35);border-radius:999px;padding:7px 16px;
@@ -123,8 +124,8 @@
   .act.correct{animation:pop .4s}
   .act.wrong{animation:shake .4s}
 
-  .feedback{padding:12px 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:11px;
-    animation:fbUp .25s ease}
+  .feedback{padding:14px 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:11px;
+    flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;animation:fbUp .25s ease}
   .feedback.hide{display:none}
   @keyframes fbUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
   .fb-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -143,6 +144,7 @@
   .fbmx-grid{display:grid;grid-template-columns:repeat(13,1fr);grid-template-rows:repeat(13,1fr);gap:1px;aspect-ratio:1/1;width:100%}
   .fbmx .ccell{cursor:default;font-size:0;border-radius:2px;min-height:0;min-width:0}
   .fbmx .ccell.now{font-size:7.5px;color:#fff;box-shadow:0 0 0 2px var(--blunder),0 0 0 4px rgba(255,255,255,.6);z-index:4}
+  .fbmx .ccell.now.ok{box-shadow:0 0 0 2px var(--best),0 0 0 4px rgba(255,255,255,.6)}   /* 答对/两可：绿框 */
   .fbmx-leg{display:flex;flex-wrap:wrap;gap:5px 12px;justify-content:center;margin-top:9px}
   .fbmx-leg .it{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
   .fbmx-leg .sw,.fbmx-sw{width:11px;height:11px;border-radius:3px}
@@ -377,7 +379,7 @@
       <div class="hp" id="hp"></div>
     </div>
     <div class="hud-right">
-      <div class="hud-score"><div class="score" id="score">0</div><div class="lvl" id="hudScene">现金 6人</div><div class="lvl" id="lvl">LV.1 · 0/50</div></div>
+      <div class="hud-score"><div class="score" id="score">0</div><div class="lvl" id="hudScene">现金 6人</div><div class="lvl" id="lvl">LV.1 · 0/20</div></div>
     </div>
   </div>
   <div class="hud2">

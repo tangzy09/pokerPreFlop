@@ -17,7 +17,7 @@
 - **Pro 解锁**（差异化能力）：🔍 个人画像 / 漏洞分析、🗓 训练计划、全部**自算 Nash 推弃档**（8–25bb / 6 人 / 单挑 HU / 面对全下）、算胜率计算器、将来的真数据导入。
 - **计费**：数字商品走 StoreKit（iOS）/ Play Billing（安卓），建议用 **RevenueCat** 统一两端 + 校验授权；定价把平台抽成 **15–30%** 算进去。一次性买断 ~$5–15；想要经常性收入可叠加「**带云同步的订阅**」（但订阅必须持续有新价值，否则退订/差评）。
 - **红线**：**绝不把现已免费的核心锁起来**——保住「诚实、可及」招牌；Pro 只锁 power features，不锁基础训练。
-- 代码侧用一个 `isPro` 功能门控（先本地开关，接 RevenueCat 时换成真授权）。
+- 代码侧用一个 `isPro` 功能门控（接 RevenueCat 时换成真授权）。**当前 `isPro()` 强制返回 `true` = 全部解锁**（推广期免费放开；上架收费时改回 `!!STORE.pro` 即恢复门控）。付费墙 UI（`showPaywall`/`PRO_VARIANTS`）已就绪，只是暂不触发。
 
 ---
 
@@ -41,13 +41,16 @@
 - 训练器：开局/防守/面对 3bet·4bet/挤压/冷跟/推弃 等模式（`MODES` 单一来源驱动）。
 - 范围图表（13×13 矩阵）、错题复习堆、生涯统计（`statsBySpot`）。
 - **频率地基（Phase 1）**：`handFreq(t,hand)` → 每手动作权重；`freqTable` 可被真数据覆盖；`src/confidence` 标签；测试锁死「频率支持集 == 判定支持集」。
-- **频率显示与评级（Phase 2/3）**：精确局面的混合点按真频率评级（最高频=最佳、次频=好棋；占位 50/50 仍并列「好棋」，不编造高下）；反馈与图表（`cInfo`）对精确局面显示真实百分比，其余维持定性。
-- **自算 Nash 数据（Phase 7）**：`tools/` 下自建 all-in equity 引擎 + HU/多人 push/fold Nash 求解器；**8/10/12/15/20bb 9 人推弃 + 单挑 HU 10/15/20bb 各位置已用自算 Nash 替换手搓范围**（`confidence:'precise'`，数据在 `js/data/pushfold.js`/`hu-pushfold.js`，离线 `node tools/gen-pushfold.js` 重算）。
+- **频率显示与评级（Phase 2/3）**：精确局面的混合点按真频率评级（最高频=最佳、次频=好棋）；占位局面不编造高下——**边缘牌答对记「两可」（绿色·两种都对）**、其余两路混合记「好棋」。反馈与图表（`cInfo`）对精确局面显示真实百分比，其余维持定性。
+- **智能出题（题库 + 类型均衡 + 难弃牌）**：默认「智能」发牌从各已解锁 spot 自动生成题库——范围内手牌按动作类型(弃/加/跟/全下/边缘/混合)分桶、整局各类型题数尽量相近；弃牌只取「紧贴范围/边缘、同型差一档」的临界牌（`adjacentFolds`），不再随机抽废牌；错题(弱项)优先。答错/混合点的反馈面板会弹出该局面范围表并高亮你这手牌。
+- **自算 Nash 数据（Phase 7）**：`tools/` 下自建 all-in equity 引擎 + HU/多人 push/fold Nash 求解器；已用自算 Nash 替换手搓范围的档位：**9 人 8/10/12/15/20bb 推弃、6 人 10/15/20bb 推弃、9 人 BB 面对 BTN 全下的跟注(call-off)、单挑 HU 5/8/10/12/15/20/25bb（SB 全下 + BB 跟）**（`confidence:'precise'`，数据在 `js/data/pushfold.js`/`hu-pushfold.js`）。生成器固定种子、并经 `tools/monotonic.js` 做**单调性修正**（按手牌支配关系，消除临界噪声造成的倒挂，如 KJo 弃而更弱的 KTo 推）；离线 `node tools/gen-pushfold.js` + `node tools/gen-hu-pushfold.js` 重算。
+- **双语 i18n（默认英文）**：新增 `js/i18n.js`（最先加载），全 UI 中英双语、默认英文、右上角 `中 | EN` 切换并记忆；数据文件保持中文为**唯一来源**，运行期 `L()`/`tr()` 仅做显示翻译（测试固定 `zh`，金快照不变）。
+- **已部署上线**：静态站托管在 EC2（nginx），正式地址 **https://pre-flop.ai-speeds.com/**（Let's Encrypt HTTPS）；`deploy.sh` 一键 push + 服务器 `git pull`。详见 [CLAUDE.md](CLAUDE.md) 的 Deployment 小节。
 - **画像 / 训练计划（Phase 6）**：「统计」页「🎯 个人画像」(风格倾向松/紧 + 打法倾向被动/激进 + 强弱档位) + 「🗓 训练计划」(按需练度排序、一键去练)；纯本地聚合，诚实标注 vs 参考范围、不编造 TAG/LAG。错误分类已细分到 太松/太紧/被动/过激/边缘/ICM（`addMistake` 存真实选择，`classifyMiss` 据此精确分类）。
 - **翻后胜率（带公共牌）**：「算胜率」计算器现支持填**牌面**（翻牌/转牌/河牌）算**翻后 equity**（`rangeEquityBoard`，纯枚举/蒙特卡洛，自动按组合加权 + 跳过冲突）；留空则仍是翻前全下。
 - **个性化漏洞分析（Phase 5）**：「统计」页新增「🔍 你的漏洞」——从错题堆按类型（太松/太紧/边缘/ICM）聚合排序 + 最常踩的坑 + 一键去练（`classifyMiss` 仅凭 spot+hand 判定，旧数据也能分析）。
 - **离线 HU 翻后 CFR+ solver 链**（`tools/solver/`，纯 Python）仍保留、由 `test/solver-spots.test.js` 验证，产物 `js/data/postflop-spots.js`（`python tools/gen-postflop-spots.py` 重算）。**App 内的「翻后GTO」展示页已移除**（产品决定）——离线链与数据留作管线/测试，不再进浏览器。
-- 工程：多文件拆分、零依赖 Node 回归测试（契约不变量 + 金快照 + equity/Nash + 翻后数据/board-equity 验证，38 项）、git。
+- 工程：多文件拆分、零依赖 Node 回归测试（契约不变量 + 金快照 + equity/Nash + 翻后数据/board-equity 验证，39 项）、git。
 
 ---
 
@@ -93,13 +96,14 @@
 
 ## 6. 数据与诚实原则
 
-**可信度三档**（每个 spot 的 `confidence` 字段）：
+**可信度档位**（每个 spot 的 `confidence` 字段）：
 
-| 档位 | 含义 | 能否显示精确 EV/% |
+| 档位 | 含义 | 界面标签 / 精确 EV·% |
 |---|---|---|
-| `precise` | 有 `freqTable` 真数据导入，或公开 Nash 解（如 10bb 推弃） | ✅ 可 |
-| `curated` | 手搓、核对过量级/形状，混合频率是 `MIX=0.5` 占位 | ❌ 只显示「约/混合」，不给精确数 |
-| `approx` | 最粗（ICM / 6 人估计） | ❌ 明确标「粗略估计」 |
+| `precise` | 自算 Nash（推弃 / 跟注等）或导入的真 `freqTable` | 显示**「Nash 博弈论最优 / Nash GTO」**标签；✅ 可显示真实 % |
+| `curated` | 手搓、核对过量级/形状，混合频率是 `MIX=0.5` 占位 | **不显示标签**；❌ 只「约/混合」，不给精确数 |
+
+> 注：早期的 `approx`（粗略估计）档已废弃——其标签从 UI 移除，ICM / 6 人开局等归为 `curated`（不显示标签）。当前界面只有「Nash 博弈论最优」一种可见标签。
 
 **频率模型**：`handFreq` 优先用 `freqTable`（真数据），否则从手搓 R/C/M 派生占位权重。真数据导入即覆盖派生值并升级 `confidence:precise`。
 
@@ -130,7 +134,7 @@
 | **Phase 8（额外）** ✅ | **HU 翻后 CFR+ solver 链**（`tools/solver/`，离线 Python）：CFR 引擎→河→多街→向量化→牌面抽象→CFR+，全程对已知答案验证；其产物经 `gen-postflop-spots.py` 生成 `js/data/postflop-spots.js`（离线产物，由 `test/solver-spots.test.js` 验证；**App 内展示页已移除**） | 详见 `tools/solver/README.md`。诚实边界：HU、单一下注尺寸、无加注；端到端真实翻前图需联合求解（开放难题），故未上线 |
 | **Phase 5** ✅ | **Leak Analyzer + 错误分类**：「🔍 你的漏洞」——错误类型(太松/太紧/被动/过激/边缘/ICM) + 最常踩的坑 + 一键去练 | 吃 `reviewPile`；`addMistake` 存真实选择，`classifyMiss` 据此精确分类，旧数据退回手型启发 |
 | **Phase 6** ✅ | **个人画像 + 训练计划**：「🎯 画像」(松紧/被动激进倾向 + 强弱档) + 「🗓 计划」(需练度排序 + 去练) | 纯本地聚合；标注 vs 参考范围、不编造 TAG/LAG |
-| **Phase 7** | 自算/导入真数据 → `freqTable`。✅ **8/10/12/15/20bb 9 人推弃 + 单挑 HU 10/15/20bb 已自算 Nash**（`js/equity.js`+`tools/pushfold.js`+`gen-pushfold.js`）；待办：GTO Wizard/CSV 导入器 | 逐 spot 升 `confidence:precise` |
+| **Phase 7** | 自算/导入真数据 → `freqTable`。✅ **已自算 Nash：9 人 8–20bb 推弃、6 人 10–20bb、9 人 BB 跟 BTN 全下、单挑 HU 5–25bb**（`js/equity.js`+`tools/pushfold.js`+`gen-pushfold.js`+`gen-hu-pushfold.js`+`monotonic.js`）；待办：GTO Wizard/CSV 导入器 | 逐 spot 升 `confidence:precise` |
 | **后续** | ICM 引擎、手牌历史导入、Speed Training 统计 | 🟡 较大 |
 
 ---

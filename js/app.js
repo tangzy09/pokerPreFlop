@@ -156,12 +156,12 @@ function pickHand(t,filter){
 
 /* ============ game state ============ */
 const G={};
-function unlocked(){const u=G.pack.filter(t=>t.tier<=G.level);return u.length?u:G.pack.filter(t=>t.tier===1);}
+function unlocked(){const u=G.pack.filter(t=>t.tier<=G.level);return u.length?u:G.pack;} // 兜底取整个 pack：有的变体最低 tier>1（如 co* 只有 tier2 一个 spot），不能只回退 tier===1（否则空→崩溃）
 
 /* ---- mistake review pile (session memory) ---- */
 let reviewPile=[];
 const MASTER_STREAK=2; // consecutive corrects in review needed before a spot leaves the pile
-const SESSION_HANDS=50; // a normal game = 50 hands (then 🎉 complete); HP=0 still ends it early
+const SESSION_HANDS=20; // a normal game = 20 hands (then 🎉 complete); HP=0 still ends it early
 function pileKey(fmt,v,tname,hand){return fmt+'|'+v+'|'+tname+'|'+hand;}
 function addMistake(choice){
  const key=pileKey(G.format,G.variant,G.table.name,G.hand);
@@ -253,7 +253,7 @@ function stopTimer(){if(timerRAF)cancelAnimationFrame(timerRAF);timerRAF=null;}
 
 /* ---- data-confidence labelling (honest per-spot provenance in the UI) ---- */
 const CONF={
- precise:{mark:'',txt:'精准',cls:'conf-precise',desc:'本工具 equity+Nash 求解器计算所得（非手搓）；属简化模型（无前注 / no-overcall / 类级 equity）的近似解，非真实牌桌精确——可剥削度见来源'},
+ precise:{mark:'',txt:'Nash 博弈论最优',cls:'conf-precise',desc:'本工具 equity+Nash 求解器计算所得（非手搓）；属简化模型（无前注 / no-overcall / 类级 equity）的近似解，非真实牌桌精确——可剥削度见来源'},
  curated:{mark:'≈',txt:'手搓参考',cls:'conf-curated',desc:'参考公开图表手工整理，核对过量级/形状；混合频率为占位，非 solver 精确'},
 };
 function confOf(t){return CONF[(t&&t.confidence)]||CONF.curated;}
@@ -274,27 +274,52 @@ function freqNote(t,hand,isMix,isEdge){
  return tr('fnPure');
 }
 
-// 智能出题：把已解锁局面的「范围内手牌（系统覆盖）」+约 50% 弃牌组成一副牌，
-// 你错过的手（错题堆）排到最前、且 2× 权重；无放回抽到一轮抽完再重建。
+// 紧贴范围/边缘、同型差一档的「难弃牌」候选：union 各手的同型 ±1 邻居中、本身不在 union 的牌
+// （如 A5s 打 → A4s/K5s；KJo 边缘 → KTo/QJo；88+ → 77）。这些是"看着能玩、其实该弃"的临界牌。
+function adjacentFolds(t){
+ const uni=new Set(t.union), out=new Set();
+ const put=(i,j,suf)=>{
+  if(i<0||i>12||j<0||j>12)return; let lab;
+  if(suf==='p'){ lab=RANKS[i]+RANKS[i]; }
+  else { if(i===j)return; const hi=Math.min(i,j),lo=Math.max(i,j); lab=RANKS[hi]+RANKS[lo]+suf; }
+  if(!uni.has(lab)) out.add(lab);
+ };
+ uni.forEach(h=>{
+  if(h.length===2){ const r=RIDX[h[0]]; put(r-1,r-1,'p'); put(r+1,r+1,'p'); }
+  else { const a=RIDX[h[0]],b=RIDX[h[1]],suf=h[2]; put(a-1,b,suf); put(a+1,b,suf); put(a,b-1,suf); put(a,b+1,suf); }
+ });
+ return [...out];
+}
+// 智能出题（题库 + 答案类型均衡 + 难弃牌）：
+//  · 题库 = 已解锁各 spot 的范围内手牌（按正确动作/边缘/混合归类）+ 难弃牌(adjacentFolds)
+//  · 整局把所有位置混在一起，各动作类型(弃/加/跟/全下/边缘/混合)题数尽量相近（每类上限 PER）
+//  · 错题(弱项)在各自类型内优先纳入；抽完一轮再重建
+const SMART_PER_TYPE=12;
 function buildSmartQueue(){
  const pool=unlocked();
  const weakKeys=new Set(reviewPile
   .filter(r=>r.fmt===G.format&&r.variant===G.variant)
   .map(r=>r.t.name+'|'+r.hand));
- const weak=[],rest=[];
+ const byType={};                                  // 动作类型 -> [{t,hand,weak}]
+ const add=(type,t,hand)=>{(byType[type]=byType[type]||[]).push({t,hand,weak:weakKeys.has(t.name+'|'+hand)});};
  pool.forEach(t=>{
-  const inrange=[...t.union];                 // 决策相关手：系统覆盖
-  const uni=new Set(t.union);
-  const folds=ALL169.filter(h=>!uni.has(h));
-  const nf=Math.max(2,Math.round(inrange.length*0.5));   // 掺约一半弃牌，保留弃牌纪律
-  const foldSample=shuffle(folds.slice()).slice(0,nf);
-  [...inrange,...foldSample].forEach(hand=>{
-   const item={t,hand};
-   if(weakKeys.has(t.name+'|'+hand))weak.push(item); else rest.push(item);
+  const M=MODES[t.mode];
+  [...t.union].forEach(hand=>{                      // 范围内手牌：按正确动作归类
+   const isR=t.R.has(hand),isC=t.C.has(hand),isM=t.M.has(hand);
+   const corr=M.correct(isR,isC,isM);
+   const type = isM ? 'edge' : (corr.length>1 ? 'mix' : corr[0]);   // corr[0]: raise/call/shove
+   add(type,t,hand);
   });
+  adjacentFolds(t).forEach(hand=> add('fold',t,hand));               // 难弃牌
  });
- const weakBoost=[];weak.forEach(it=>{weakBoost.push(it,it);}); // 弱项 2× 权重
- G.queue=shuffle(weakBoost).concat(shuffle(rest));            // 弱项排前，组内洗牌
+ let items=[];
+ Object.keys(byType).forEach(type=>{                // 各类型等量：weak 优先 + 上限 PER
+  const c=byType[type];
+  const ordered=shuffle(c.filter(x=>x.weak)).concat(shuffle(c.filter(x=>!x.weak)));
+  items=items.concat(ordered.slice(0,SMART_PER_TYPE));
+ });
+ G.queue=shuffle(items.map(x=>({t:x.t,hand:x.hand})));
+ if(!G.queue.length && pool.length){const t=pool[0];G.queue=[{t,hand:pickHand(t,'all')}];} // 兜底
  G.queueLevel=G.level;
 }
 
@@ -420,6 +445,7 @@ function nextHand(){
  buildActions(t.mode);
  document.getElementById('actions').style.display='';
  document.getElementById('feedback').classList.add('hide');
+ document.querySelector('.table').classList.remove('fb-hide');   // 新一手：恢复牌桌区
  // verdict reset
  document.getElementById('verdict').className='verdict';
 }
@@ -449,12 +475,12 @@ function actionColor(mode,a){
  return ACT_COLORS[cat];
 }
 // 答错时把该局面的范围表弹进反馈面板：红框标出你这手牌，表头用色块标注「你选的动作」
-function renderFbMatrix(t,hand,corrStr,choice,choiceName){
+function renderFbMatrix(t,hand,corrStr,choice,choiceName,wrong){
  const box=document.getElementById('fbMatrix'); if(!box)return;
  const edgeBg={'edge-raise':'var(--raise)','edge-shove':'var(--raise)','edge-call':'var(--call)'};
  let cells='';
  for(let r=0;r<13;r++)for(let c=0;c<13;c++){
-  const h=handLabel(r,c),cat=cellCat(t,h),now=h===hand?' now':'';
+  const h=handLabel(r,c),cat=cellCat(t,h),now=h===hand?(' now'+(wrong?'':' ok')):''; // 答错=红框，答对/两可=金框
   cells+=`<div class="ccell ${cat}${r===c?' pair':''}${now}">${now?`<span>${h}</span>`:''}</div>`;
  }
  let leg='';
@@ -500,7 +526,8 @@ function resolve(choice,btn,timedOut){
   G.correct++;G.combo++;G.best=Math.max(G.best,G.combo);
   const mult=Math.min(3,1+G.combo*0.1);
   const spd=1; // 倒计时已移除 → 无速度加成，得分只看正确性与连击
-  if(G.isMix && !hitTop){grade='好棋';gcolor='var(--good)';G.q.good++;pts=Math.round(85*mult*spd);}
+  if(G.isEdge && !freqGraded){grade='两可';gcolor='var(--best)';G.q.good++;pts=Math.round(85*mult*spd);} // 边缘占位混合：两种都对，不评高下（绿色=正确，同"最佳"）
+  else if(G.isMix && !hitTop){grade='好棋';gcolor='var(--good)';G.q.good++;pts=Math.round(85*mult*spd);}
   else{grade='最佳';gcolor='var(--best)';G.q.best++;pts=Math.round(100*mult*spd);big=true;}
   G.score+=pts;
   SFX[G.combo>=5?'great':'correct']();buzz(G.combo>=5?[20,40,20]:30);
@@ -564,7 +591,7 @@ function resolve(choice,btn,timedOut){
  }
 
  const dead = !G.reviewMode && G.hp<=0;
- const done = !G.reviewMode && !dead && G.hands>=SESSION_HANDS;   // finished the 50-hand session
+ const done = !G.reviewMode && !dead && G.hands>=SESSION_HANDS;   // finished the SESSION_HANDS-hand session
  const ending = dead || done;
  const quick = ok && !G.isMix && !ending; // pure best → auto advance
 
@@ -578,13 +605,14 @@ function resolve(choice,btn,timedOut){
  const youLine = ok ? '' : (timedOut ? tr('youTimeout') : tr('youChose',{c:L(nameMap[choice]||'弃牌')}));
  document.getElementById('fbReason').innerHTML=youLine+r;
  // wrong answer → pop the range table with this hand ringed; otherwise keep it hidden
- if(!ok) renderFbMatrix(t,hand,corrStr,choice,L(nameMap[choice]||'弃牌'));
+ if(!ok || G.isMix) renderFbMatrix(t,hand,corrStr,choice,L(nameMap[choice]||'弃牌'),!ok); // 答错 + 混合/两可点都显示范围表
  else document.getElementById('fbMatrix').classList.add('hide');
  const nextBtn=document.getElementById('fbNext');
  nextBtn.textContent = ending ? L('查看结果 →') : L('下一步 →');
  nextBtn.onclick = ()=>{ SFX.click(); if(ending){gameOver(done);} else advance(); };
  document.getElementById('actions').style.display='none';
- document.getElementById('feedback').classList.remove('hide');
+ document.querySelector('.table').classList.add('fb-hide');     // 收起牌桌区，反馈面板独占下方（可滚动）
+ const fbEl=document.getElementById('feedback'); fbEl.classList.remove('hide'); fbEl.scrollTop=0;
 }
 
 function advance(){
@@ -665,15 +693,15 @@ function showBanner(lv){const b=document.getElementById('banner');document.getEl
 
 /* ============ achievements ============ */
 const ACH_DEFS={
- '首杀':'😺','连击大师':'🔥','火力全开':'💥','钢铁神经':'🧊','五十手通关':'🏁','GTO 机器':'🤖','完美关卡':'🏆','巨牌漏着':'😱'
+ '首杀':'😺','连击大师':'🔥','火力全开':'💥','钢铁神经':'🧊','二十手通关':'🏁','GTO 机器':'🤖','完美关卡':'🏆','巨牌漏着':'😱'
 };
 function award(name,emoji){if(G.ach.has(name))return;G.ach.add(name);toast(name,emoji||ACH_DEFS[name]||'⭐');}
 function checkAch(){
  if(G.correct===1)award('首杀');
  if(G.best>=10)award('连击大师');
  if(G.best>=20)award('火力全开');
- if(G.hands>=SESSION_HANDS)award('五十手通关');
- if(G.hands>=40 && G.correct/G.hands>=0.9)award('GTO 机器');
+ if(G.hands>=SESSION_HANDS)award('二十手通关');
+ if(G.hands>=Math.round(SESSION_HANDS*0.8) && G.correct/G.hands>=0.9)award('GTO 机器');
 }
 let toastT=null;
 function toast(name,emoji,plain){const e=document.getElementById('toastEl')||(()=>{const d=document.createElement('div');d.className='toast';d.id='toastEl';document.body.appendChild(d);return d;})();
@@ -838,6 +866,7 @@ document.getElementById('againBtn').onclick=()=>{document.getElementById('startS
 function exitToMenu(){
  SFX.click();stopTimer();G.busy=true;G.over=true;
  document.getElementById('feedback').classList.add('hide');
+ document.querySelector('.table').classList.remove('fb-hide');
  document.getElementById('verdict').className='verdict';
  document.getElementById('startScreen').classList.remove('hide');
  updateReviewBtns();
@@ -848,6 +877,7 @@ document.getElementById('exitBtn').onclick=exitToMenu;
 function endTraining(){
  if(G.over)return;
  document.getElementById('feedback').classList.add('hide');
+ document.querySelector('.table').classList.remove('fb-hide');
  document.getElementById('verdict').className='verdict';
  G.busy=true;
  if(G.reviewMode) reviewComplete(); else gameOver('end');
