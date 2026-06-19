@@ -223,14 +223,23 @@ _tpl('calcErrSuffix', '{e}喵～', '{e}, nya~');
 // paywall
 _tpl('pwTitle', '解锁 Pro 🐿', 'Unlock Pro 🐿');
 _tpl('pwBuy', '解锁 Pro（一次性买断）', 'Unlock Pro (one-time)');
+_tpl('pwSub', '订阅 · $4.99 / 月', 'Subscribe · $4.99/mo');
+_tpl('pwSubNote', '随时取消', 'Cancel anytime');
+_tpl('pwBuyout', '一次买断 · $9.99', 'One-time · $9.99');
+_tpl('pwBuyoutNote', '买断永久 · 约两个月回本', 'Yours forever · pays off in ~2 months');
+_tpl('pwRestore', '恢复已购买', 'Restore purchases');
+_tpl('pwNoPurchase', '没找到可恢复的购买', 'No purchase to restore');
 _tpl('pwClose', '以后再说', 'Maybe later');
 _tpl('pwFoot', '核心训练永久免费 · Pro 只解锁进阶能力', 'Core training is free forever · Pro unlocks advanced features only');
 _tpl('pwWhyDefault', '这是 Pro 进阶功能', 'This is a Pro feature');
-_tpl('pwWhyPush', '这套「自算 Nash 推弃」训练属于 Pro', 'The solved-Nash jam/fold drills are Pro');
+_tpl('pwWhyPush', '这个进阶场景属于 Pro（每类场景前一半免费）', 'This advanced scenario is Pro (the first half of each category is free)');
 _tpl('pwWhyCalc', '算胜率计算器属于 Pro', 'The equity calculator is Pro');
 _tpl('pwLockNote', '{name}是 Pro 进阶分析——解锁后按你的真实错题给出。', '{name} is a Pro feature — unlocks based on your real mistakes.');
 _tpl('pwWhyFeature', '{name}属于 Pro', '{name} is Pro');
 _tpl('unlockPro', '解锁 Pro', 'Unlock Pro');
+_tpl('gateProfile', '🔓 解锁完整画像', '🔓 Unlock full profile');
+_tpl('gateLeak', '🔓 解锁全部漏洞 + 训练计划', '🔓 Unlock all leaks + plan');
+_tpl('gatePlan', '🔓 解锁训练计划', '🔓 Unlock training plan');
 _tpl('feat.profile', '个人画像', 'Profile'); _tpl('feat.plan', '训练计划', 'Training plan'); _tpl('feat.leak', '漏洞分析', 'Leak analysis');
 I18N_TPL.zh['pitch'] = [
  '🔍 个人画像 + 漏洞分析（最大漏洞 · 太松/太紧/被动/过激）',

@@ -324,6 +324,13 @@
     text-transform:uppercase;color:var(--gold);margin:11px 0 2px;border-top:1px solid var(--line);padding-top:9px}
   .opts-wrap .opt-group:first-child{border-top:0;margin-top:2px;padding-top:0}
   /* leak analyzer */
+  /* Pro 尝鲜：锁住的内容模糊 + 浮层解锁按钮 */
+  .pro-prev{position:relative}
+  .pro-locked{filter:blur(16px) saturate(.6);opacity:.45;pointer-events:none;user-select:none}
+  .pro-gate{position:absolute;left:50%;top:55%;transform:translate(-50%,-50%);z-index:3;appearance:none;
+    border:1px solid var(--gold);background:linear-gradient(180deg,var(--gold),var(--gold2));color:#16110a;
+    font-family:inherit;font-weight:700;font-size:13px;padding:9px 15px;border-radius:11px;cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.45);white-space:nowrap;max-width:92%}
   .leak-row{display:flex;align-items:center;gap:9px;margin:7px 0}
   .leak-lab{font-size:12.5px;min-width:118px;color:var(--ink)}
   .leak-trk{flex:1;height:12px;border-radius:6px;background:rgba(255,255,255,.06);overflow:hidden}
@@ -415,7 +422,7 @@
     <h1>GTO 翻前<b>训练</b></h1>
 
     <!-- live range preview: shown above Start, updates as you pick game type / scenario / variant -->
-    <div class="sel-group" id="startChartGroup" style="width:100%;max-width:430px">
+    <div class="sel-group" id="startChartGroup" style="width:100%;max-width:430px;position:relative">
       <div class="cmatrix-wrap">
         <div class="cmatrix-head"><span id="sName">—</span><span class="cmatrix-stat" id="sStat"></span></div>
         <div class="cmatrix-who" id="sWho"></div>
@@ -696,6 +703,7 @@
 <script src="js/data/pushfold.js"></script>
 <script src="js/data/hu-pushfold.js"></script>
 <script src="js/packs.js"></script>
+<script src="js/purchases.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

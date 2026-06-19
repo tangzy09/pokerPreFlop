@@ -11,13 +11,22 @@ function clearStore(){STORE={};try{localStorage.removeItem(STORE_KEY);}catch(e){
 /* ============ Pro 功能门控 + 付费墙 ============
    现在「解锁」只翻本地开关（占位）；上架时把 isPro()/解锁按钮换成 RevenueCat 授权校验即可。
    红线：核心训练永久免费，Pro 只锁进阶能力（自算推弃训练 / 算胜率 / 画像·漏洞·计划）。*/
-function isPro(){return true;}   // 全部解锁：付费墙关闭，所有进阶内容直接可用（上架前若要恢复门控改回 !!STORE.pro）
+// 原生 app(Android/iOS)：读 RevenueCat 'pro' entitlement 缓存；浏览器：永远解锁（网页不收费，仅演示）
+function isPro(){ if(typeof Pay!=='undefined' && Pay.native) return !!STORE.proEntitled; return true; }
 function setPro(v){STORE.pro=!!v;persist();
- try{buildVariants('selVariant','selVarLabel',selFormat,selVariant,k=>selVariant=k);}catch(e){} // 刷新锁标
+ try{buildVariants('selVariant','selVarLabel',selFormat,selVariant,k=>selVariant=k);markFormatLocks();renderStartChart();}catch(e){} // 刷新锁标/图表模糊
 }
-// Pro 变体 = 自算 Nash 的推弃/HU/6人/面对全下（开局/防守等参考范围免费）
-const PRO_VARIANTS=new Set(['d8p','d10','d12p','d15p','d20p','hu5','hu8','hu10','hu12','hu15','hu20','hu25','p6_10','p6_15','p6_20','co10','co15','co20']);
-function proVariant(fmt,variant){return fmt==='mtt'&&PRO_VARIANTS.has(variant);}
+// 免费/付费划分：每个游戏类型的「场景」前一半免费、后一半锁（未付费时）。
+//  现金：场景 = selFormat 列表(开局+防守/面对3bet/面对4bet/挤压/冷跟)；MTT：场景 = 变体分组(group)。
+//  锁住的：选择器加🔒、图表预览模糊、开始训练弹付费墙。
+function _lockedSlice(list){return list.slice(Math.ceil(list.length/2));}                       // 后一半=锁
+function _cashLockedFmts(){return new Set(_lockedSlice(GAMETYPES.cash.formats));}
+function _mttLockedGroups(){return new Set(_lockedSlice([...new Set(Object.values(VARIANTS.mtt).map(v=>v.group))]));}
+function spotLocked(fmt,variant){
+ if(isPro())return false;
+ if(gameOf(fmt)==='cash')return _cashLockedFmts().has(fmt);
+ const v=VARIANTS.mtt&&VARIANTS.mtt[variant]; return v?_mttLockedGroups().has(v.group):false;
+}
 const PRO_PITCH=[
  '🔍 个人画像 + 漏洞分析（最大漏洞 · 太松/太紧/被动/过激）',
  '🗓 训练计划（按需练度排序 · 一键去练）',
@@ -34,15 +43,28 @@ function showPaywall(why){
    <div style="font-family:'Space Grotesk';font-weight:700;font-size:21px;color:var(--gold,#e8c66a);text-align:center">${tr('pwTitle')}</div>
    <div id="pwWhy" style="text-align:center;color:var(--muted,#8fa79a);font-size:13px;margin:4px 0 14px"></div>
    <div id="pwList" style="display:flex;flex-direction:column;gap:9px;font-size:13.5px;color:var(--ink,#f1f5ee)"></div>
-   <button id="pwBuy" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:17px;color:#16110a;background:linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f));width:100%;padding:14px;border-radius:13px;margin-top:16px">${tr('pwBuy')}</button>
-   <button id="pwClose" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-size:14px;color:var(--muted,#8fa79a);background:transparent;width:100%;padding:10px;margin-top:4px">${tr('pwClose')}</button>
+   <button id="pwSub" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:#16110a;background:linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f));width:100%;padding:13px;border-radius:13px;margin-top:16px;display:flex;flex-direction:column;gap:1px;align-items:center">
+     <span>${tr('pwSub')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${tr('pwSubNote')}</small></button>
+   <button id="pwBuyout" style="appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:var(--gold,#e8c66a);background:transparent;border:1px solid var(--gold,#e8c66a);width:100%;padding:13px;border-radius:13px;margin-top:9px;display:flex;flex-direction:column;gap:1px;align-items:center">
+     <span>${tr('pwBuyout')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${tr('pwBuyoutNote')}</small></button>
+   <button id="pwRestore" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-size:13px;color:var(--muted,#8fa79a);background:transparent;width:100%;padding:8px;margin-top:8px;text-decoration:underline">${tr('pwRestore')}</button>
+   <button id="pwClose" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-size:14px;color:var(--muted,#8fa79a);background:transparent;width:100%;padding:10px;margin-top:2px">${tr('pwClose')}</button>
    <div style="text-align:center;color:var(--foldink,#54655a);font-size:11px;margin-top:6px">${tr('pwFoot')}</div>
   </div>`;
   document.body.appendChild(el);
   el.querySelector('#pwList').innerHTML=tRaw('pitch').map(s=>`<div>· ${s}</div>`).join('');
   el.querySelector('#pwClose').onclick=()=>{try{SFX.click();}catch(e){}el.remove();};
-  el.querySelector('#pwBuy').onclick=()=>{ // TODO: 接 RevenueCat purchase；现为本地解锁占位
-   try{SFX.level();}catch(e){}setPro(true);el.remove();try{toast(tr('proUnlocked'),'🐿',true);}catch(e){}};
+  const _close=()=>{el.remove();try{toast(tr('proUnlocked'),'🐿',true);}catch(e){}};
+  const _buy=async(kind)=>{ // 原生走 RevenueCat IAP；浏览器走本地占位（见 Pay.buy）
+   try{SFX.level();}catch(e){}
+   let ok=false; try{ ok = (typeof Pay!=='undefined') ? await Pay.buy(kind) : true; if(typeof Pay==='undefined') setPro(true); }catch(e){}
+   if(ok) _close();
+  };
+  el.querySelector('#pwSub').onclick=()=>_buy('sub');
+  el.querySelector('#pwBuyout').onclick=()=>_buy('lifetime');
+  const rb=el.querySelector('#pwRestore');
+  if(typeof Pay!=='undefined' && Pay.native){ rb.onclick=async()=>{try{SFX.click();}catch(e){} let ok=false; try{ok=await Pay.restore();}catch(e){} if(ok)_close(); else try{toast(tr('pwNoPurchase'),'🐿');}catch(e){}}; }
+  else rb.style.display='none';   // 浏览器演示不显示「恢复购买」
  }
  el.querySelector('#pwWhy').textContent=why||tr('pwWhyDefault');
  return false;
@@ -751,7 +773,7 @@ function buildVariants(varBoxId,varLabelId,format,current,pick){
    box.appendChild(h);lastGroup=v.group;
   }
   const b=document.createElement('button');b.className='opt';b.dataset.v=k;
-  const _lk=varBoxId==='selVariant'&&proVariant(format,k)&&!isPro();   // 训练选择器里给 Pro 档加锁标（图表免费看）
+  const _lk=varBoxId==='selVariant'&&spotLocked(format,k);   // MTT 锁定分组的档位加🔒（现金锁在场景按钮上）
   b.innerHTML=`${_lk?'🔒 ':''}${L(v.label)}${v.sub?`<small>${L(v.sub)}</small>`:''}`;
   b.setAttribute('aria-selected',k===String(current));
   b.onclick=()=>{aInit();SFX.click();pick(k);
@@ -808,6 +830,16 @@ function renderStartChart(){
   it.innerHTML=`<span class="sw" style="background:${bg};${cls==='fold'?'box-shadow:inset 0 0 0 1px var(--line)':''}"></span>${L(lab)}`;
   leg.appendChild(it);});
  if(!sChartSel)document.getElementById('sInfo').innerHTML=tr('cChartHint');
+ // Pro 锁定：图表预览整块模糊 + 浮层解锁按钮（点开 → 付费墙）
+ const grp=document.getElementById('startChartGroup'),wrap=grp&&grp.querySelector('.cmatrix-wrap'),locked=spotLocked(selFormat,selVariant);
+ if(wrap){
+  wrap.classList.toggle('pro-locked',locked);
+  let gate=document.getElementById('sChartGate');
+  if(locked){
+   if(!gate){gate=document.createElement('button');gate.id='sChartGate';gate.className='pro-gate';gate.onclick=()=>{try{SFX.click();}catch(e){}showPaywall(tr('pwWhyPush'));};grp.appendChild(gate);}
+   gate.textContent=tr('unlockPro');gate.style.display='';
+  } else if(gate){gate.style.display='none';}
+ }
 }
 function buildOpts(boxId,cfg,current,pick){
  const box=document.getElementById(boxId);box.innerHTML='';
@@ -833,7 +865,17 @@ function applyGame(g,keepFmt,wantVar){
  [...document.getElementById('selFormat').children].forEach(b=>{b.style.display=fmts.includes(b.dataset.v)?'':'none';});
  document.getElementById('fmtGroup').style.display=fmts.length>1?'':'none'; // 只有一个场景时（如 MTT）隐藏整栏，省去无意义的单选
  if(!keepFmt || !fmts.includes(selFormat)) selFormat=fmts[0];
+ markFormatLocks();
  startFmtPick(selFormat,wantVar);
+}
+// 现金的「场景」锁在 selFormat 按钮上（MTT 锁在 selVariant 档位上，由 buildVariants 处理）
+function markFormatLocks(){
+ [...document.getElementById('selFormat').children].forEach(b=>{
+  const f=b.dataset.v, locked=spotLocked(f,defVariant(f));
+  let lk=b.querySelector('.lk');
+  if(locked && !lk){lk=document.createElement('span');lk.className='lk';lk.textContent='🔒 ';b.insertBefore(lk,b.firstChild);}
+  else if(!locked && lk){lk.remove();}
+ });
 }
 [...document.getElementById('selFormat').children].forEach(b=>b.onclick=()=>{aInit();SFX.click();startFmtPick(b.dataset.v);});
 [...document.getElementById('selGame').children].forEach(b=>b.onclick=()=>{aInit();SFX.click();applyGame(b.dataset.g,false);});
@@ -851,7 +893,7 @@ updateReviewBtns();
 
 function launch(){
  aInit();SFX.click();
- if(proVariant(selFormat,selVariant)&&!isPro()){showPaywall(tr('pwWhyPush'));return;}
+ if(spotLocked(selFormat,selVariant)){showPaywall(tr('pwWhyPush'));return;}
  G.format=selFormat;G.variant=selVariant;G.handFilter=selDeal;
  persistPrefs();
  document.getElementById('startScreen').classList.add('hide');
@@ -951,7 +993,13 @@ function classifyMiss(rec){
  return (A[choice]||0)<(A[right]||0)?'passive':'aggro';
 }
 function leakDrill(label){SFX.click();document.getElementById('statsScreen').classList.add('hide');startReview(label);}
-function renderLeak(){
+// Pro 尝鲜：把锁住的内容模糊 + 浮一个解锁按钮（点了进付费墙）；免费露出的首行在 gate 之外
+function _proGate(lockedHtml,featKey,labelKey){
+ return `<div class="pro-prev"><div class="pro-locked">${lockedHtml}</div>`
+  +`<button class="pro-gate" data-feat="${featKey}">${tr(labelKey)}</button></div>`;
+}
+function _wireGates(body){[...body.querySelectorAll('.pro-gate')].forEach(b=>b.onclick=()=>{try{SFX.click();}catch(e){}showPaywall(tr('pwWhyFeature',{name:tr(b.dataset.feat)}));});}
+function renderLeak(preview){
  const body=document.getElementById('leakBody');
  if(!reviewPile.length){body.innerHTML=`<p class="cnote" style="margin:0">${tr('leakEmpty')}</p>`;return;}
  const types={};Object.keys(LEAK_TYPES).forEach(k=>types[k]=0);let total=0; // 含 passive/aggro 等全部桶
@@ -959,17 +1007,18 @@ function renderLeak(){
  const order=Object.keys(types).filter(k=>types[k]>0).sort((a,b)=>types[b]-types[a]);
  const max=Math.max(...order.map(k=>types[k]),1);
  const top=LEAK_TYPES[order[0]];
- let html=`<p class="cnote" style="margin:0 0 9px">${tr('leakTop',{c:top.color,name:L(top.name),n:total})}</p>`;
- html+=order.map(k=>{const T=LEAK_TYPES[k];
+ const head=`<p class="cnote" style="margin:0 0 9px">${tr('leakTop',{c:top.color,name:L(top.name),n:total})}</p>`; // 免费露出：最大漏洞那一条
+ let rest=order.map(k=>{const T=LEAK_TYPES[k];
   return `<div class="leak-row"><span class="leak-lab">${L(T.name)} · ${L(T.desc)}</span><span class="leak-trk"><i style="width:${Math.round(types[k]/max*100)}%;background:${T.color}"></i></span><span class="leak-n">${types[k]}</span></div>`;}).join('');
- html+=`<div class="leak-sub">${tr('leakWorst')}</div>`;
+ rest+=`<div class="leak-sub">${tr('leakWorst')}</div>`;
  [...reviewPile].sort((a,b)=>b.wrong-a.wrong).slice(0,5).forEach(r=>{
-  html+=`<div class="leak-hand"><span class="h">${r.hand}</span><span class="sp">${Lparts(r.label)}</span><span class="x">×${r.wrong}</span><button class="leak-drill" data-label="${r.label.replace(/"/g,'&quot;')}">${tr('drill')}</button></div>`;});
- body.innerHTML=html;
+  rest+=`<div class="leak-hand"><span class="h">${r.hand}</span><span class="sp">${Lparts(r.label)}</span><span class="x">×${r.wrong}</span><button class="leak-drill" data-label="${r.label.replace(/"/g,'&quot;')}">${tr('drill')}</button></div>`;});
+ if(preview){ body.innerHTML=head+_proGate(rest,'feat.leak','gateLeak'); _wireGates(body); return; } // 锁：露最大漏洞，其余模糊
+ body.innerHTML=head+rest;
  [...body.querySelectorAll('.leak-drill')].forEach(b=>b.onclick=()=>leakDrill(b.dataset.label));
 }
 /* ---- Phase 6: 个人画像 — 倾向(松/紧) + 准确率 + 强弱位置（全部 vs 参考范围）---- */
-function renderProfile(){
+function renderProfile(preview){
  const body=document.getElementById('profileBody'); if(!body)return;
  const bySpot=STORE.statsBySpot||{};
  let th=0,tc=0;Object.values(bySpot).forEach(e=>{th+=e.h;tc+=e.c;});
@@ -983,24 +1032,26 @@ function renderProfile(){
  else if(lo>=ti*1.6){tend=L('偏松');tdesc=tr('profLoose',{p:Math.round(lo/(lo+ti)*100)});tcolor='var(--mistake)';}
  else if(ti>=lo*1.6){tend=L('偏紧');tdesc=tr('profTight',{p:Math.round(ti/(lo+ti)*100)});tcolor='var(--good)';}
  else {tend=L('较均衡');tdesc=tr('profBal');tcolor='var(--gold)';}
- let html=`<div class="prof-row"><span class="prof-k">${L('风格倾向')}</span><b style="color:${tcolor}">${tend}</b><span class="prof-d">${tdesc}</span></div>`;
+ const head=`<div class="prof-row"><span class="prof-k">${L('风格倾向')}</span><b style="color:${tcolor}">${tend}</b><span class="prof-d">${tdesc}</span></div>`; // 免费露出：风格倾向一行
+ let rest='';
  if(pv+ag>=5){let pt,pd,pc;
   if(pv>=ag*1.6){pt=L('偏被动');pd=tr('profPassive');pc='#7f9cff';}
   else if(ag>=pv*1.6){pt=L('偏激进');pd=tr('profAggro');pc='var(--raise)';}
   else {pt=L('打法均衡');pd=tr('profAggBal');pc='var(--gold)';}
-  html+=`<div class="prof-row"><span class="prof-k">${L('打法倾向')}</span><b style="color:${pc}">${pt}</b><span class="prof-d">${pd}</span></div>`;}
- html+=`<div class="prof-row"><span class="prof-k">${L('准确率')}</span><b>${acc}%</b><span class="prof-d">${tr('profCum',{n:th})}</span></div>`;
+  rest+=`<div class="prof-row"><span class="prof-k">${L('打法倾向')}</span><b style="color:${pc}">${pt}</b><span class="prof-d">${pd}</span></div>`;}
+ rest+=`<div class="prof-row"><span class="prof-k">${L('准确率')}</span><b>${acc}%</b><span class="prof-d">${tr('profCum',{n:th})}</span></div>`;
  const keys=Object.keys(bySpot).filter(k=>bySpot[k].h>=8);
  if(keys.length){const pa=k=>Math.round(bySpot[k].c/bySpot[k].h*100);
   const sorted=keys.slice().sort((a,b)=>pa(b)-pa(a));const best=sorted[0],worst=sorted[sorted.length-1];
-  html+=`<div class="prof-row"><span class="prof-k">${L('最强')}</span><b style="color:var(--best)">${Lparts(best)}</b><span class="prof-d">${pa(best)}%</span></div>`;
-  if(worst!==best)html+=`<div class="prof-row"><span class="prof-k">${L('最弱')}</span><b style="color:var(--mistake)">${Lparts(worst)}</b><span class="prof-d">${pa(worst)}%</span></div>`;
+  rest+=`<div class="prof-row"><span class="prof-k">${L('最强')}</span><b style="color:var(--best)">${Lparts(best)}</b><span class="prof-d">${pa(best)}%</span></div>`;
+  if(worst!==best)rest+=`<div class="prof-row"><span class="prof-k">${L('最弱')}</span><b style="color:var(--mistake)">${Lparts(worst)}</b><span class="prof-d">${pa(worst)}%</span></div>`;
  }
- html+=`<p class="cnote" style="margin:8px 0 0">${tr('profNote')}</p>`;
- body.innerHTML=html;
+ rest+=`<p class="cnote" style="margin:8px 0 0">${tr('profNote')}</p>`;
+ if(preview){ body.innerHTML=head+_proGate(rest,'feat.profile','gateProfile'); _wireGates(body); return; } // 锁：露风格一行，其余模糊
+ body.innerHTML=head+rest;
 }
 /* ---- Phase 6: 训练计划 — 按 spot 分组排「最该练」(错得多 + 准确率低)，可一键去练 ---- */
-function renderPlan(){
+function renderPlan(preview){
  const body=document.getElementById('planBody'); if(!body)return;
  if(!reviewPile.length){body.innerHTML=`<p class="cnote" style="margin:0">${tr('planEmpty')}</p>`;return;}
  const bySpot=STORE.statsBySpot||{};
@@ -1012,23 +1063,17 @@ function renderPlan(){
  let html=`<p class="cnote" style="margin:0 0 8px">${tr('planHead')}</p>`;
  arr.slice(0,5).forEach((e,i)=>{const accTxt=e.acc!=null?tr('planAcc',{p:Math.round(e.acc*100)}):'';
   html+=`<div class="leak-hand"><span class="h">${i+1}</span><span class="sp">${Lparts(e.label)}<br><span style="color:var(--muted);font-size:11px">${accTxt}${tr('planErrs',{n:e.n})}</span></span><button class="leak-drill" data-label="${e.label.replace(/"/g,'&quot;')}">${tr('drill')}</button></div>`;});
+ if(preview){ body.innerHTML=_proGate(html,'feat.plan','gatePlan'); _wireGates(body); return; } // 计划整卡模糊
  body.innerHTML=html;
  [...body.querySelectorAll('.leak-drill')].forEach(b=>b.onclick=()=>leakDrill(b.dataset.label));
 }
+// 未付费时三块走「尝鲜」：免费露首行（画像风格 / 最大漏洞），其余模糊 + 浮层解锁；计划整卡模糊。基础统计仍全免费。
 function openStats(){aInit();SFX.click();
  renderStats();
- if(isPro()){renderProfile();renderPlan();renderLeak();}
- else proLockStats();
+ const pv=!isPro();
+ renderProfile(pv);renderLeak(pv);renderPlan(pv);
  document.getElementById('startScreen').classList.add('hide');
  document.getElementById('statsScreen').classList.remove('hide');
-}
-// 未解锁时，画像/计划/漏洞三块显示「解锁 Pro」占位（基础统计仍免费可见）
-function proLockStats(){
- const lock=(id,nameKey)=>{const name=tr(nameKey);const b=document.getElementById(id);if(b)b.innerHTML=
-  `<p class="cnote" style="margin:0 0 8px">${tr('pwLockNote',{name})}</p>`
-  +`<button class="leak-drill" id="pw_${id}">${tr('unlockPro')}</button>`;
-  const btn=document.getElementById('pw_'+id);if(btn)btn.onclick=()=>showPaywall(tr('pwWhyFeature',{name}));};
- lock('profileBody','feat.profile');lock('planBody','feat.plan');lock('leakBody','feat.leak');
 }
 function renderStats(){
  const st=STORE.stats||{};const bySpot=STORE.statsBySpot||{};
@@ -1217,6 +1262,7 @@ function rerenderUI(){
  try{
   buildVariants('selVariant','selVarLabel',selFormat,selVariant,k=>{selVariant=k;sChartIdx=0;sChartSel=null;renderStartChart();});
   buildOpts('selDeal',HANDFILTERS,selDeal,k=>selDeal=k);
+  markFormatLocks();
   renderStartChart();
   updateReviewBtns();
   const cs=document.getElementById('chartScreen');
@@ -1231,10 +1277,12 @@ function rerenderUI(){
    buildActions(G.table.mode);
   }
   const ss=document.getElementById('statsScreen');
-  if(ss && !ss.classList.contains('hide')){ renderStats(); if(isPro()){renderProfile();renderPlan();renderLeak();}else proLockStats(); }
+  if(ss && !ss.classList.contains('hide')){ renderStats(); const pv=!isPro(); renderProfile(pv);renderLeak(pv);renderPlan(pv); }
   const rs=document.getElementById('reviewScreen');
   if(rs && !rs.classList.contains('hide')) renderReviewDetail();
  }catch(e){}
 }
 // app.js loaded last → DOM + all builders ready; translate static HTML and dynamic UI now.
 try{ applyI18n(); }catch(e){}
+// 原生 app：配置 RevenueCat 并拉取购买状态（浏览器里 Pay.init 自动空跑）
+try{ if(typeof Pay!=='undefined') Pay.init(); }catch(e){}
