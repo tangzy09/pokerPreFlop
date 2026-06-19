@@ -1206,6 +1206,8 @@ function updateCalcCounts(){
 }
 function runCalc(){
  const out=document.getElementById('calcOut');
+ // 收起软键盘：否则移动端键盘会盖住「计算胜率」按钮与结果（胜率条）显示不全
+ try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}
  const hero=[...expand(document.getElementById('calcHero').value)];
  const vill=[...expand(document.getElementById('calcVill').value)];
  if(!hero.length||!vill.length){out.innerHTML=`<div class="calc-err">${tr('calcEmptyRange')}</div>`;return;}
@@ -1227,6 +1229,8 @@ function runCalc(){
    : tr('calcNotePre',{n:CALC_SAMPLES/10000});
   out.innerHTML=`<div class="calc-bars">${bar(L('你'),hp,'var(--best)')}${bar(L('对手'),vp,'var(--raise)')}</div>`
    +`<div class="calc-edge">${tr('calcResLine',{kind:L(board.length?'翻后胜率':'范围优势'),lead,note})}</div>`;
+  // 键盘收起后，把结果滚入视野（确保胜率条完整可见）
+  try{ out.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){}
  },20);
 }
 function openCalc(){aInit();SFX.click();
@@ -1265,6 +1269,7 @@ function rerenderUI(){
   markFormatLocks();
   renderStartChart();
   updateReviewBtns();
+  try{ if(typeof wireNotify==='function') wireNotify(); }catch(e){}
   const cs=document.getElementById('chartScreen');
   if(cs && !cs.classList.contains('hide')){
    buildVariants('cSelVariant','cSelVarLabel',cFormat,cVariant,k=>{cVariant=k;cIdx=0;cSel=null;renderCChips();renderMatrix();});
@@ -1286,3 +1291,19 @@ function rerenderUI(){
 try{ applyI18n(); }catch(e){}
 // 原生 app：配置 RevenueCat 并拉取购买状态（浏览器里 Pay.init 自动空跑）
 try{ if(typeof Pay!=='undefined') Pay.init(); }catch(e){}
+// 原生 app：每日训练提醒开关（浏览器隐藏；启动时重排已开启的提醒，更新/重装后仍有效）
+function wireNotify(){
+ const box=document.getElementById('notifySetting'); if(!box) return;
+ if(typeof Notify==='undefined' || !Notify.native){ box.style.display='none'; return; }
+ box.style.display='';
+ const lab=document.getElementById('notifyLabel'), btn=document.getElementById('notifyToggle');
+ const paint=()=>{ lab.textContent=tr('notifyLabel'); btn.textContent=tr(Notify.isOn()?'notifyStateOn':'notifyStateOff'); };
+ btn.onclick=async()=>{ try{SFX.click();}catch(e){}
+  if(Notify.isOn()){ await Notify.disable(); try{toast(tr('notifyOffToast'),'🐿');}catch(e){} }
+  else { const ok=await Notify.enable(); try{ ok?toast(tr('notifyOnToast'),'🔔',true):toast(tr('notifyDenied'),'🐿'); }catch(e){} }
+  paint();
+ };
+ paint();
+}
+try{ wireNotify(); }catch(e){}
+try{ if(typeof Notify!=='undefined') Notify.reschedule(); }catch(e){}

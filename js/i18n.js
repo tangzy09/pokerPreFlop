@@ -233,6 +233,16 @@ _tpl('pwClose', '以后再说', 'Maybe later');
 _tpl('pwFoot', '核心训练永久免费 · Pro 只解锁进阶能力', 'Core training is free forever · Pro unlocks advanced features only');
 _tpl('pwWhyDefault', '这是 Pro 进阶功能', 'This is a Pro feature');
 _tpl('pwWhyPush', '这个进阶场景属于 Pro（每类场景前一半免费）', 'This advanced scenario is Pro (the first half of each category is free)');
+// local notifications (app-only)
+_tpl('notifyTitle', '松鼠喊你练牌 🐿', 'Time to drill 🐿');
+_tpl('notifyBody', '花 2 分钟练几手翻前，保持手感', 'Spend 2 minutes on a few preflop hands');
+_tpl('notifyLabel', '每日训练提醒', 'Daily training reminder');
+_tpl('notifyHint', '每天 20:00 本地提醒 · 不联网', 'Local reminder at 20:00 · offline');
+_tpl('notifyOnToast', '已开启每日提醒 · 20:00', 'Daily reminder on · 20:00');
+_tpl('notifyOffToast', '已关闭每日提醒', 'Daily reminder off');
+_tpl('notifyDenied', '通知权限被关闭，请到系统设置开启', 'Notifications are off — enable them in system settings');
+_tpl('notifyStateOn', '🔔 开 · 每天 20:00', '🔔 On · 20:00 daily');
+_tpl('notifyStateOff', '🔕 关 · 点击开启', '🔕 Off · tap to enable');
 _tpl('pwWhyCalc', '算胜率计算器属于 Pro', 'The equity calculator is Pro');
 _tpl('pwLockNote', '{name}是 Pro 进阶分析——解锁后按你的真实错题给出。', '{name} is a Pro feature — unlocks based on your real mistakes.');
 _tpl('pwWhyFeature', '{name}属于 Pro', '{name} is Pro');

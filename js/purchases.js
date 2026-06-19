@@ -13,7 +13,7 @@
 (function(){
  // RevenueCat 公开 key。USE_TEST_STORE=true 时用 Test Store（模拟器/沙盒跑通购买，不需真实商店）；
  // 上线 Google Play 收钱时：把真实产品注册到 RC 的 Play Store app + 加进 offering，再把开关改 false。
- const USE_TEST_STORE = true;
+ const USE_TEST_STORE = false;
  const RC_API_KEY = {
   test:    'test_ScghqMYHRgjSpJgXDpNePkMHJII',  // ← RevenueCat Test Store（当前用它）
   android: 'goog_IHsbgwhdCaAzrZoZLrDbTpSyXQv',  // ← Google Play（上线用）

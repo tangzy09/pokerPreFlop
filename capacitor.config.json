@@ -1,5 +1,11 @@
 {
   "appId": "com.pokerpreflop.trainer",
   "appName": "GTO 翻前训练",
-  "webDir": "www"
+  "webDir": "www",
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_notify",
+      "iconColor": "#e8c66a"
+    }
+  }
 }

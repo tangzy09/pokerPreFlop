@@ -11,7 +11,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A zero-build, dependency-free web app: a **pre-flop poker GTO decision trainer** (Chinese UI). [gto-trainer.html](gto-trainer.html) holds the markup + CSS and loads plain classic scripts (no ES modules, no bundler — still double-click-to-run from `file://`):
 
 ```
-gto-trainer.html         markup + ~650 lines CSS, then 7 <script src> tags (order matters)
+gto-trainer.html         markup + ~650 lines CSS + INLINED fonts (Space Grotesk/Mono as base64 — fully
+                         offline, NO Google Fonts CDN; regen via tools/embed-fonts.js), then 8 <script src>
+                         tags + 2 data files (order matters)
 js/i18n.js               LOADS FIRST. Bilingual display layer (English default + 中文 toggle).
                          The DATA files stay Chinese = canonical source; translation is display-only:
                          L("中文")→en/zh by source lookup; tr(key,vars)→keyed bilingual templates;
@@ -25,10 +27,15 @@ js/data/pushfold.js      AUTO-GENERATED Nash (global PUSHFOLD): 9-max 8/10/12/15
                          (ring6), 9-max BB call-off vs BTN jam (calloff); loads before packs
 js/data/hu-pushfold.js   AUTO-GENERATED HU SB-vs-BB push/fold, jam + call, 5/8/10/12/15/20/25bb (global HU_PUSHFOLD)
 js/packs.js              PACKS range database (+ PREMIUM); overrides push/call spots with the computed data
+js/purchases.js          RevenueCat (Capacitor) IAP adapter via window.Capacitor.Plugins.Purchases (zero-build,
+                         no import). window.Pay = {init,buy,restore,refresh}; native only, browser no-ops.
+js/notify.js             local-notifications adapter via window.Capacitor.Plugins.LocalNotifications.
+                         window.Notify = {enable,disable,reschedule}; daily training reminder; native only.
 js/app.js                persistence, audio (synth SFX w/ master lowpass+compressor), confetti, hand helpers,
                          game engine, charts + start-screen live chart preview (renderStartChart) +
                          wrong-answer range table in feedback (renderFbMatrix) + 胜率计算器 +
-                         漏洞分析(Leak Analyzer) UI + Pro 门控(isPro — currently forced true = all unlocked), boot.
+                         漏洞分析(Leak Analyzer) UI + Pro 门控(isPro: web 恒 true=全解锁 / native 读 RevenueCat
+                         entitlements.active['pro']) + spotLocked(场景前半免费/后半锁) + wireNotify, boot.
                          All user-facing strings go through L()/tr(); the in-app 翻后GTO screen + the
                          bottom 图表 nav entry are removed (postflop-spots.js no longer <script>-loaded)
 tools/                   offline data computation — NOT shipped to the browser:
@@ -37,13 +44,18 @@ tools/                   offline data computation — NOT shipped to the browser
                          push/call range by hand domination (req'd by both gen-pushfold + gen-hu-pushfold)
   gen-pushfold.js        (Node) runs the solver + monotonic pass, writes js/data/pushfold.js (9-max + 6-max + calloff)
   gen-hu-pushfold.js     (Node) writes js/data/hu-pushfold.js (HU SB jam + BB call-off, 5–25bb)
+  build-www.js           (Node) assembles www/ for Capacitor (gto-trainer.html→index.html + js/ tree)
+  embed-fonts.js         (Node) inlines Space Grotesk/Mono latin woff2 as base64 into gto-trainer.html
+                         (removes the Google Fonts CDN — fully offline). Rerun if the font set changes.
+  gen-notify-icon.js     (Python/PIL) white ♠ status-bar icon ic_stat_notify (5 densities) for notifications
+  gen-store-assets.py    (Python/PIL) Google Play graphics → store-assets/ (icon, feature graphic, screenshots)
   gen-postflop-spots.py  (Python) solves canonical HU postflop spots with tools/solver (vectorized CFR+)
                          and writes js/data/postflop-spots.js (validated by test/solver-spots.test.js) —
                          kept as an offline artifact; no longer <script>-loaded (the 翻后GTO screen was removed)
   solver/                (Python) the experimental HU postflop CFR/CFR+ solver chain; see solver/README.md
 ```
 
-The scripts share one global scope (browser behaviour for classic scripts); load order is `i18n → equity → ranges → modes → packs → app` and is enforced by the `<script src>` order (`i18n.js` must be first so `L`/`tr` exist for everyone). `js/equity.js` is the one file used both in the browser (plain globals) and by Node tools (`require`, via the guarded `module.exports`). An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
+The scripts share one global scope (browser behaviour for classic scripts); load order is `i18n → equity → ranges → modes → packs → purchases → notify → app` and is enforced by the `<script src>` order (`i18n.js` must be first so `L`/`tr` exist for everyone). `js/equity.js` is the one file used both in the browser (plain globals) and by Node tools (`require`, via the guarded `module.exports`). An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
 
 ## Running & verifying (no build step)
 
@@ -106,7 +118,18 @@ The default **`smart`** filter builds a balanced **question bank** in `buildSmar
 
 ## Domain caveat (do not misrepresent)
 
-Most ranges are **hand-curated GTO approximations, not solver-exact output** (mix/edge frequencies are "~50%" placeholders; MTT/ICM/6-max are the roughest). The **exception** is the push/fold + jam-call spots, which are this tool's **own computed Nash** (`confidence:'precise'`, tagged「Nash 博弈论最优」/「Nash GTO」) — still a simplified-model approximation (chip-EV, no antes, no-overcall, class equity, Monte-Carlo), not table truth. The in-app "关于/About" screen documents every assumption. Keep new copy/features honest — never present output as solver-precise. UI is **bilingual (English default + 中文 toggle)** and written in a "松鼠/squirrel" persona in both. Pro gating exists (`isPro`) but is **currently forced `true`** = everything unlocked.
+Most ranges are **hand-curated GTO approximations, not solver-exact output** (mix/edge frequencies are "~50%" placeholders; MTT/ICM/6-max are the roughest). The **exception** is the push/fold + jam-call spots, which are this tool's **own computed Nash** (`confidence:'precise'`, tagged「Nash 博弈论最优」/「Nash GTO」) — still a simplified-model approximation (chip-EV, no antes, no-overcall, class equity, Monte-Carlo), not table truth. The in-app "关于/About" screen documents every assumption. Keep new copy/features honest — never present output as solver-precise. UI is **bilingual (English default + 中文 toggle)** and written in a "松鼠/squirrel" persona in both. Pro gating is **live** (`isPro`): the **web is always unlocked** (free — no `window.Capacitor`), the **Android app reads the real RevenueCat `pro` entitlement** (`STORE.proEntitled`). `spotLocked()` locks the **second half** of each game-type's scenarios behind Pro (first half free); core training stays free (PRODUCT.md red line).
+
+## Android app (Capacitor) — packaging, IAP, notifications
+
+The same web app is also wrapped as a **Capacitor 8** Android app (`android/`, `appId = com.pokerpreflop.trainer`, `webDir = www`). The web source is unchanged (`gto-trainer.html` still runs from `file://`); `www/` is a generated staging dir (gitignored). Real-money Play billing is **verified end-to-end** (2026-06-20: real charge → `pro` entitlement → unlock).
+
+- **Build an AAB:** `node tools/build-www.js` (assembles `www/`) → `npx cap copy android` (or **`cap sync`** after adding a native plugin — it also updates the gradle deps + `capacitor.plugins.json`) → `cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew bundleRelease`. Output: `android/app/build/outputs/bundle/release/app-release.aab`. SDK at `$LOCALAPPDATA/Android/Sdk`. **No cmdline-tools** → create AVDs in the Android Studio GUI.
+- **Versioning:** bump `versionCode`/`versionName` in `android/app/build.gradle` for **every** AAB uploaded to Play (duplicate versionCode is rejected). Currently **versionCode 4 / 1.3**.
+- **Signing (do not leak):** release is signed with `android/upload-keystore.jks` (creds in `android/keystore.properties`). **Both are gitignored and MUST NEVER be committed — the repo is public.** Back up the .jks + passwords offline; losing them blocks future app updates.
+- **In-app purchases (RevenueCat):** `js/purchases.js` → `window.Pay`. Products `pro_monthly` (sub, base plan `monthly` → shows as `pro_monthly:monthly`) + `pro_lifetime` (one-time, non-consumable), both attached to the `pro` entitlement and in the `default` offering **set as Current** (code reads `offerings.current`). `USE_TEST_STORE` (purchases.js top): `false` = real Play (`goog_` key, current), `true` = RevenueCat Test Store sandbox. **Test purchases with a Play License-testing account, else you are charged for real.** Gotcha: a product not attached to the entitlement → purchase succeeds + card charged but `entitlements.active['pro']` stays empty + no unlock (fix the attach, then 恢复购买/restart re-activates — no re-buy).
+- **Local notifications:** `js/notify.js` → `window.Notify` via `@capacitor/local-notifications`. Daily training reminder (20:00, inexact alarm → no SCHEDULE_EXACT_ALARM); toggle in startScreen 进阶设置 (native only, browser hides it); `reschedule()` on boot re-arms it after update/reinstall. White-♠ status-bar icon `ic_stat_notify` (`tools/gen-notify-icon.js`) wired via `capacitor.config.json` `plugins.LocalNotifications.smallIcon`.
+- **Store assets:** `store-assets/` (Play graphics via `tools/gen-store-assets.py` + trilingual listing copy), `privacy.html` (live at /privacy.html), `ANDROID_SETUP.md` (launch manual).
 
 ## Deployment (live site)
 
