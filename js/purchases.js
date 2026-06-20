@@ -7,8 +7,9 @@
    接入前你需要在 RevenueCat 控制台 + Google Play 后台配好，再把下面填上：
      RC_API_KEY.android = 'goog_xxx'   ← RevenueCat → Project → API keys 里的 Android 公开 key
      ENTITLEMENT        = 'pro'        ← RevenueCat 里建的 Entitlement 标识
-   产品匹配 MATCH 已做鲁棒：优先按 RevenueCat 的 package 类型(MONTHLY/LIFETIME)，
-   再按 product / package 标识兜底 —— 所以 Test Store 的 monthly/lifetime 与 Play 的自定义 id 都能命中。
+   产品匹配 MATCH 已做鲁棒：优先按 RevenueCat 的 package 类型(MONTHLY/ANNUAL)，
+   再按 product / package 标识兜底 —— 所以 Test Store 的 monthly/annual 与 Play 的自定义 id 都能命中。
+   两档都是订阅：sub=月 $4.99，year=年 $12.99（已去掉一次性买断 lifetime）。
 */
 (function(){
  // RevenueCat 公开 key。USE_TEST_STORE=true 时用 Test Store（模拟器/沙盒跑通购买，不需真实商店）；
@@ -22,8 +23,8 @@
  const ENTITLEMENT = 'pro';                                   // ← RevenueCat Entitlement 标识
  // 按钮 → 想买哪种 package：types=RevenueCat 预定义包类型；ids=可能的 product/package 标识（大小写不敏感）
  const MATCH = {
-  sub:      { types:['MONTHLY','ANNUAL','WEEKLY','TWO_MONTH','THREE_MONTH','SIX_MONTH'], ids:['pro_monthly','monthly'] },
-  lifetime: { types:['LIFETIME'], ids:['pro_lifetime','lifetime'] },
+  sub:  { types:['MONTHLY','WEEKLY','TWO_MONTH','THREE_MONTH','SIX_MONTH'], ids:['pro_monthly','monthly'] },
+  year: { types:['ANNUAL'], ids:['pro_yearly','pro_annual','annual','yearly'] },
  };
 
  function cap(){ return (typeof window!=='undefined') && window.Capacitor; }
@@ -55,7 +56,7 @@
    return on;
   },
 
-  /* 购买：kind = 'sub' | 'lifetime'，返回是否解锁成功 */
+  /* 购买：kind = 'sub'(月) | 'year'(年)，返回是否解锁成功 */
   async buy(kind){
    if(!native()){ try{ setPro(true); }catch(e){} return true; }   // 浏览器演示：本地占位解锁
    const P=plugin(); if(!P) return false;

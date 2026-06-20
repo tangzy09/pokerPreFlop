@@ -43,10 +43,10 @@ function showPaywall(why){
    <div style="font-family:'Space Grotesk';font-weight:700;font-size:21px;color:var(--gold,#e8c66a);text-align:center">${tr('pwTitle')}</div>
    <div id="pwWhy" style="text-align:center;color:var(--muted,#8fa79a);font-size:13px;margin:4px 0 14px"></div>
    <div id="pwList" style="display:flex;flex-direction:column;gap:9px;font-size:13.5px;color:var(--ink,#f1f5ee)"></div>
-   <button id="pwSub" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:#16110a;background:linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f));width:100%;padding:13px;border-radius:13px;margin-top:16px;display:flex;flex-direction:column;gap:1px;align-items:center">
+   <button id="pwYear" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:#16110a;background:linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f));width:100%;padding:13px;border-radius:13px;margin-top:16px;display:flex;flex-direction:column;gap:1px;align-items:center">
+     <span>${tr('pwYear')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${tr('pwYearNote')}</small></button>
+   <button id="pwSub" style="appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:var(--gold,#e8c66a);background:transparent;border:1px solid var(--gold,#e8c66a);width:100%;padding:13px;border-radius:13px;margin-top:9px;display:flex;flex-direction:column;gap:1px;align-items:center">
      <span>${tr('pwSub')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${tr('pwSubNote')}</small></button>
-   <button id="pwBuyout" style="appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:var(--gold,#e8c66a);background:transparent;border:1px solid var(--gold,#e8c66a);width:100%;padding:13px;border-radius:13px;margin-top:9px;display:flex;flex-direction:column;gap:1px;align-items:center">
-     <span>${tr('pwBuyout')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${tr('pwBuyoutNote')}</small></button>
    <button id="pwRestore" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-size:13px;color:var(--muted,#8fa79a);background:transparent;width:100%;padding:8px;margin-top:8px;text-decoration:underline">${tr('pwRestore')}</button>
    <button id="pwClose" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-size:14px;color:var(--muted,#8fa79a);background:transparent;width:100%;padding:10px;margin-top:2px">${tr('pwClose')}</button>
    <div style="text-align:center;color:var(--foldink,#54655a);font-size:11px;margin-top:6px">${tr('pwFoot')}</div>
@@ -60,8 +60,8 @@ function showPaywall(why){
    let ok=false; try{ ok = (typeof Pay!=='undefined') ? await Pay.buy(kind) : true; if(typeof Pay==='undefined') setPro(true); }catch(e){}
    if(ok) _close();
   };
+  el.querySelector('#pwYear').onclick=()=>_buy('year');
   el.querySelector('#pwSub').onclick=()=>_buy('sub');
-  el.querySelector('#pwBuyout').onclick=()=>_buy('lifetime');
   const rb=el.querySelector('#pwRestore');
   if(typeof Pay!=='undefined' && Pay.native){ rb.onclick=async()=>{try{SFX.click();}catch(e){} let ok=false; try{ok=await Pay.restore();}catch(e){} if(ok)_close(); else try{toast(tr('pwNoPurchase'),'🐿');}catch(e){}}; }
   else rb.style.display='none';   // 浏览器演示不显示「恢复购买」

@@ -222,11 +222,11 @@ _tpl('boardErrCount', '牌面要 3（翻牌）/4（转牌）/5（河牌）张，
 _tpl('calcErrSuffix', '{e}喵～', '{e}, nya~');
 // paywall
 _tpl('pwTitle', '解锁 Pro 🐿', 'Unlock Pro 🐿');
-_tpl('pwBuy', '解锁 Pro（一次性买断）', 'Unlock Pro (one-time)');
-_tpl('pwSub', '订阅 · $4.99 / 月', 'Subscribe · $4.99/mo');
+_tpl('pwBuy', '解锁 Pro', 'Unlock Pro');
+_tpl('pwYear', '年订阅 · $12.99 / 年', 'Yearly · $12.99/yr');
+_tpl('pwYearNote', '最划算 · 合约 $1.08 / 月', 'Best value · ~$1.08/mo');
+_tpl('pwSub', '月订阅 · $4.99 / 月', 'Monthly · $4.99/mo');
 _tpl('pwSubNote', '随时取消', 'Cancel anytime');
-_tpl('pwBuyout', '一次买断 · $9.99', 'One-time · $9.99');
-_tpl('pwBuyoutNote', '买断永久 · 约两个月回本', 'Yours forever · pays off in ~2 months');
 _tpl('pwRestore', '恢复已购买', 'Restore purchases');
 _tpl('pwNoPurchase', '没找到可恢复的购买', 'No purchase to restore');
 _tpl('pwClose', '以后再说', 'Maybe later');
