@@ -11,7 +11,7 @@
 
 - `js/purchases.js` —— RevenueCat 适配层（用 `window.Capacitor.Plugins.Purchases` 全局 bridge，无需打包）。
 - `isPro()` —— 原生读 RevenueCat `pro` entitlement 缓存（`STORE.proEntitled`），浏览器恒 true。
-- 付费墙两按钮接 `Pay.buy('sub')` / `Pay.buy('lifetime')` + 「恢复购买」`Pay.restore()`（仅原生显示）。
+- 付费墙两按钮接 `Pay.buy('year')`（年订阅·主推）/ `Pay.buy('sub')`（月订阅）+ 「恢复购买」`Pay.restore()`（仅原生显示）。
 - `@revenuecat/purchases-capacitor@13` 已安装并 `cap sync` 进 `android/`。
 
 ---
@@ -22,9 +22,9 @@
 注册 Play Console（一次性 $25）：https://play.google.com/console — 建应用，包名 **`com.pokerpreflop.trainer`**（见 `capacitor.config.json`，要一致）。
 
 ### 2. Play Console 建内购产品
-应用内 → 创建两个商品，**id 必须与 `js/purchases.js` 的 `PRODUCTS` 一致**：
-- **订阅** id `pro_monthly`，$4.99/月
-- **一次性商品（非消耗）** id `pro_lifetime`，$9.99
+应用内 → 创建**两个订阅**，**id 必须与 `js/purchases.js` 的 `MATCH` 兼容**：
+- **月订阅** id `pro_monthly`（base plan `monthly`），$4.99/月
+- **年订阅** id `pro_yearly`（base plan `annual`），$12.99/年（付费墙主推）
 
 （要先上传一个签名 APK/AAB 到内部测试轨道，Play 才允许配置内购。）
 
@@ -32,7 +32,7 @@
 https://app.revenuecat.com — 建 Project：
 1. 连接 **Google Play**（上传 Play 的 service account JSON 授权）。
 2. 建 **Entitlement**，标识填 **`pro`**。
-3. 建 **Offering**（如 `default`），把 `pro_monthly`、`pro_lifetime` 两个产品各加成一个 package，都挂到 `pro` entitlement。
+3. 建 **Offering**（如 `default`，设为 **Current**），把 `pro_monthly`、`pro_yearly` 两个订阅各加成一个 package（Monthly / Annual），都挂到 `pro` entitlement。
 4. 复制 **Android 公开 API key**（`goog_...`）。
 
 ### 4. 填 key
@@ -40,7 +40,7 @@ https://app.revenuecat.com — 建 Project：
 ```js
 const RC_API_KEY = { android:'goog_你的KEY', ios:'appl_REPLACE_ME' };
 ```
-（如果你的 RC 产品 id / entitlement 用了别的名字，同步改 `PRODUCTS` / `ENTITLEMENT`。）
+（如果你的 RC 产品 id / entitlement 用了别的名字，同步改 `MATCH` / `ENTITLEMENT`。）
 
 ---
 
