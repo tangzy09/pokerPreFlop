@@ -6,9 +6,8 @@
    文案走 tr()（i18n.js 先加载，双语）。 */
 (function(){
  const NID = 1001;                                   // 固定通知 id（每日提醒只此一条，重排前先 cancel）
- function cap(){ return (typeof window!=='undefined') && window.Capacitor; }
- function native(){ const c=cap(); return !!(c && c.isNativePlatform && c.isNativePlatform()); }
- function plugin(){ const c=cap(); return c && c.Plugins && c.Plugins.LocalNotifications; }
+ const native=CAP.native;                         // 共享桥接 helper（见 js/cap.js）
+ function plugin(){ return CAP.plugin('LocalNotifications'); }
  function T(k,d){ try{ return (typeof tr==='function') ? tr(k) : d; }catch(e){ return d; } }
 
  async function ensurePerm(){

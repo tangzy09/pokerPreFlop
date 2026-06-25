@@ -1296,13 +1296,16 @@ function wireNotify(){
  const box=document.getElementById('notifySetting'); if(!box) return;
  if(typeof Notify==='undefined' || !Notify.native){ box.style.display='none'; return; }
  box.style.display='';
- const lab=document.getElementById('notifyLabel'), btn=document.getElementById('notifyToggle');
- const paint=()=>{ lab.textContent=tr('notifyLabel'); btn.textContent=tr(Notify.isOn()?'notifyStateOn':'notifyStateOff'); };
+ const lab=document.getElementById('notifyLabel'), btn=document.getElementById('notifyToggle'), timeInp=document.getElementById('notifyTime');
+ const t=Notify.time(); if(timeInp) timeInp.value=String(t.h).padStart(2,'0')+':'+String(t.m).padStart(2,'0');
+ const parse=()=>{ const v=(timeInp&&timeInp.value)||'20:00'; const p=v.split(':'); return {h:(+p[0])||0,m:(+p[1])||0}; };
+ const paint=()=>{ lab.textContent=tr('notifyLabel'); btn.textContent=tr(Notify.isOn()?'notifyStateOn':'notifyStateOff'); if(timeInp) timeInp.style.display=Notify.isOn()?'':'none'; };
  btn.onclick=async()=>{ try{SFX.click();}catch(e){}
   if(Notify.isOn()){ await Notify.disable(); try{toast(tr('notifyOffToast'),'🐿');}catch(e){} }
-  else { const ok=await Notify.enable(); try{ ok?toast(tr('notifyOnToast'),'🔔',true):toast(tr('notifyDenied'),'🐿'); }catch(e){} }
+  else { const {h,m}=parse(); const ok=await Notify.enable(h,m); try{ ok?toast(tr('notifyOnToast'),'🔔',true):toast(tr('notifyDenied'),'🐿'); }catch(e){} }
   paint();
  };
+ if(timeInp) timeInp.onchange=async()=>{ if(Notify.isOn()){ const {h,m}=parse(); await Notify.enable(h,m); try{toast(tr('notifyOnToast'),'🔔',true);}catch(e){} } };
  paint();
 }
 try{ wireNotify(); }catch(e){}

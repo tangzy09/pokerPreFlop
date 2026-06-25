@@ -4,23 +4,21 @@
    Android 只用图标的 alpha 通道、把不透明部分涂成单色，所以必须白色透明，否则显示白方块。
    多密度输出到 android/app/src/main/res/drawable-*/。运行：python tools/gen-notify-icon.py
 """
-import os
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image, ImageDraw, ImageFont
+from _imgutil import font
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SIZES = {'mdpi': 24, 'hdpi': 36, 'xhdpi': 48, 'xxhdpi': 72, 'xxxhdpi': 96}
 
-def font(sz):
-    for p in ["C:/Windows/Fonts/seguisym.ttf", "C:/Windows/Fonts/arial.ttf", "C:/Windows/Fonts/Arial.ttf"]:
-        if os.path.exists(p):
-            return ImageFont.truetype(p, sz)
-    return ImageFont.load_default()
+# font() 已移到 tools/_imgutil.py（与 gen-store-assets 共用）
 
 for dens, S in SIZES.items():
     SS = 4  # 超采样抗锯齿
     img = Image.new("RGBA", (S*SS, S*SS), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    f = font(int(S*SS*0.86))
+    f = font(int(S*SS*0.86), symbol=True)
     bb = d.textbbox((0, 0), "♠", font=f)
     w, h = bb[2]-bb[0], bb[3]-bb[1]
     d.text(((S*SS-w)/2 - bb[0], (S*SS-h)/2 - bb[1]), "♠", font=f, fill=(255, 255, 255, 255))

@@ -4,8 +4,10 @@
    主题沿用 app：深绿底 + 金色 + 扑克牌。输出到 store-assets/。
    运行：python tools/gen-store-assets.py
 """
-import os, math
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from _imgutil import font
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "store-assets")
@@ -20,13 +22,7 @@ GREEN    = (90, 200, 140)
 RED      = (224, 96, 96)
 INK      = (240, 245, 238)
 
-def font(size, bold=True):
-    cands = ([ "C:/Windows/Fonts/arialbd.ttf", "C:/Windows/Fonts/Arialbd.ttf" ] if bold
-             else [ "C:/Windows/Fonts/arial.ttf" ])
-    for p in cands:
-        if os.path.exists(p):
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default()
+# font() 已移到 tools/_imgutil.py（与 gen-notify-icon 共用）
 
 def vgrad(w, h, top, bot):
     """竖直渐变背景"""

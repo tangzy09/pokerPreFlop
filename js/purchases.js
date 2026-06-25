@@ -27,9 +27,8 @@
   year: { types:['ANNUAL'], ids:['pro_yearly','pro_annual','annual','yearly'] },
  };
 
- function cap(){ return (typeof window!=='undefined') && window.Capacitor; }
- function native(){ const c=cap(); return !!(c && c.isNativePlatform && c.isNativePlatform()); }
- function plugin(){ const c=cap(); return c && c.Plugins && c.Plugins.Purchases; }
+ const cap=CAP.cap, native=CAP.native;           // 共享桥接 helper（见 js/cap.js）
+ function plugin(){ return CAP.plugin('Purchases'); }
  function apiKey(){ if(USE_TEST_STORE) return RC_API_KEY.test; const c=cap(); const p=c&&c.getPlatform&&c.getPlatform(); return p==='ios'?RC_API_KEY.ios:RC_API_KEY.android; }
 
  const Pay = {

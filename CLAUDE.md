@@ -27,6 +27,7 @@ js/data/pushfold.js      AUTO-GENERATED Nash (global PUSHFOLD): 9-max 8/10/12/15
                          (ring6), 9-max BB call-off vs BTN jam (calloff); loads before packs
 js/data/hu-pushfold.js   AUTO-GENERATED HU SB-vs-BB push/fold, jam + call, 5/8/10/12/15/20/25bb (global HU_PUSHFOLD)
 js/packs.js              PACKS range database (+ PREMIUM); overrides push/call spots with the computed data
+js/cap.js                Capacitor 桥接共享 helper (var/window.CAP = {cap,native,plugin(name)}); purchases + notify 复用
 js/purchases.js          RevenueCat (Capacitor) IAP adapter via window.Capacitor.Plugins.Purchases (zero-build,
                          no import). window.Pay = {init,buy,restore,refresh}; native only, browser no-ops.
 js/notify.js             local-notifications adapter via window.Capacitor.Plugins.LocalNotifications.
@@ -55,7 +56,7 @@ tools/                   offline data computation — NOT shipped to the browser
   solver/                (Python) the experimental HU postflop CFR/CFR+ solver chain; see solver/README.md
 ```
 
-The scripts share one global scope (browser behaviour for classic scripts); load order is `i18n → equity → ranges → modes → packs → purchases → notify → app` and is enforced by the `<script src>` order (`i18n.js` must be first so `L`/`tr` exist for everyone). `js/equity.js` is the one file used both in the browser (plain globals) and by Node tools (`require`, via the guarded `module.exports`). An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
+The scripts share one global scope (browser behaviour for classic scripts); load order is `i18n → equity → ranges → modes → packs → cap → purchases → notify → app` and is enforced by the `<script src>` order (`i18n.js` must be first so `L`/`tr` exist for everyone). `js/equity.js` is the one file used both in the browser (plain globals) and by Node tools (`require`, via the guarded `module.exports`). An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
 
 ## Running & verifying (no build step)
 
@@ -128,7 +129,7 @@ The same web app is also wrapped as a **Capacitor 8** Android app (`android/`, `
 - **Versioning:** bump `versionCode`/`versionName` in `android/app/build.gradle` for **every** AAB uploaded to Play (duplicate versionCode is rejected). Currently **versionCode 5 / 1.4**.
 - **Signing (do not leak):** release is signed with `android/upload-keystore.jks` (creds in `android/keystore.properties`). **Both are gitignored and MUST NEVER be committed — the repo is public.** Back up the .jks + passwords offline; losing them blocks future app updates.
 - **In-app purchases (RevenueCat):** `js/purchases.js` → `window.Pay`. **Two subscriptions** (the one-time `pro_lifetime` buyout was **removed 2026-06-23**): `pro_yearly` ($12.99/yr — paywall primary, `Pay.buy('year')`, `#pwYear`) + `pro_monthly` ($4.99/mo, base plan `monthly` → `pro_monthly:monthly`, `Pay.buy('sub')`, `#pwSub`). Both attached to the `pro` entitlement and in the `default` offering **set as Current** (code reads `offerings.current`; `MATCH.year` hits packageType `ANNUAL`, `MATCH.sub` hits `MONTHLY`). `USE_TEST_STORE` (purchases.js top): `false` = real Play (`goog_` key, current), `true` = RevenueCat Test Store sandbox. **Test purchases with a Play License-testing account, else you are charged for real.** Gotcha: a product not attached to the entitlement → purchase succeeds + card charged but `entitlements.active['pro']` stays empty + no unlock (fix the attach, then 恢复购买/restart re-activates — no re-buy).
-- **Local notifications:** `js/notify.js` → `window.Notify` via `@capacitor/local-notifications`. Daily training reminder (20:00, inexact alarm → no SCHEDULE_EXACT_ALARM); toggle in startScreen 进阶设置 (native only, browser hides it); `reschedule()` on boot re-arms it after update/reinstall. White-♠ status-bar icon `ic_stat_notify` (`tools/gen-notify-icon.js`) wired via `capacitor.config.json` `plugins.LocalNotifications.smallIcon`.
+- **Local notifications:** `js/notify.js` → `window.Notify` via `@capacitor/local-notifications`. Daily training reminder (user-settable time via `#notifyTime` → `Notify.enable(h,m)`, default 20:00; inexact alarm → no SCHEDULE_EXACT_ALARM); toggle + time picker in startScreen 进阶设置 (native only, browser hides it); `reschedule()` on boot re-arms it after update/reinstall. White-♠ status-bar icon `ic_stat_notify` (`tools/gen-notify-icon.js`) wired via `capacitor.config.json` `plugins.LocalNotifications.smallIcon`.
 - **Store assets:** `store-assets/` (Play graphics via `tools/gen-store-assets.py` + trilingual listing copy), `privacy.html` (live at /privacy.html), `ANDROID_SETUP.md` (launch manual).
 
 ## Deployment (live site)
