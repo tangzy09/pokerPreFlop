@@ -1371,3 +1371,22 @@ function wireNotify(){
 }
 try{ wireNotify(); }catch(e){}
 try{ if(typeof Notify!=='undefined') Notify.reschedule(); }catch(e){}
+
+/* ======== 主页菜单：6 个入口复用现有功能，不改任何现有逻辑 ======== */
+(function(){
+ const home=document.getElementById('homeScreen'), start=document.getElementById('startScreen');
+ if(!home||!start) return;
+ const goStart=()=>{ home.classList.add('hide'); start.classList.remove('hide'); };
+ const click=id=>{ const el=document.getElementById(id); if(el) el.click(); };
+ const chip=g=>{ const el=document.querySelector('#selGame [data-g="'+g+'"]'); if(el) el.click(); };
+ const bind=(id,fn)=>{ const el=document.getElementById(id); if(el) el.onclick=()=>{ try{SFX.click();}catch(e){} fn(); }; };
+ bind('homeCash',  ()=>{ goStart(); chip('cash'); });
+ bind('homeMtt',   ()=>{ goStart(); chip('mtt'); });
+ bind('homeReview',()=>{ goStart(); click('reviewBtn'); });
+ bind('homeNash',  ()=>{ goStart(); click('nashBtn'); });
+ bind('homeEquity',()=>{ goStart(); click('calcBtn'); });
+ bind('homeStats', ()=>{ goStart(); click('statsBtn'); });
+ bind('homeBack',  ()=>{ start.classList.add('hide'); home.classList.remove('hide'); });
+ // 启动时显示主页（startScreen 退居训练设置页）
+ home.classList.remove('hide'); start.classList.add('hide');
+})();
