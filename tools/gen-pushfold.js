@@ -35,10 +35,10 @@ const stacks = {}, exploit = {}, calloff = {};
 for (const S of STACKS) {
   const ring = solveRing(S, EQ, { nSeats: 9, ...SOLVE });
   exploit[S] = round(ringRegret(S, EQ, ring).maxRegret);
-  const seats = {};
-  for (const [name, idx] of Object.entries(SEAT_OF)) seats[name] = trim(ring.seats[idx].jam);
-  stacks[S] = { seats };
-  if (STACKS_CO.includes(S)) calloff[S] = { btn: trim(ring.seats[SEAT_OF.BTN].callers[8]) }; // BB(8) call vs BTN jam
+  const seats = {}, seatsEV = {};
+  for (const [name, idx] of Object.entries(SEAT_OF)) { seats[name] = trim(ring.seats[idx].jam); seatsEV[name] = ring.seats[idx].jamEV; }
+  stacks[S] = { seats, seatsEV };
+  if (STACKS_CO.includes(S)) calloff[S] = { btn: trim(ring.seats[SEAT_OF.BTN].callers[8]), btnEV: ring.seats[SEAT_OF.BTN].callerEV[8] }; // BB(8) call vs BTN jam
   console.log(`  9max ${S}bb: ` + Object.entries(SEAT_OF).map(([n, i]) => `${n} ${(ring.seats[i].jamPct * 100).toFixed(0)}%`).join('  ') + `  | exploit ${exploit[S]}bb`);
 }
 
@@ -47,9 +47,9 @@ const ring6 = {}, exploit6 = {};
 for (const S of STACKS6) {
   const ring = solveRing(S, EQ, { nSeats: 6, ...SOLVE });
   exploit6[S] = round(ringRegret(S, EQ, ring).maxRegret);
-  const seats = {};
-  for (const [name, idx] of Object.entries(SEAT_OF6)) seats[name] = trim(ring.seats[idx].jam);
-  ring6[S] = { seats };
+  const seats = {}, seatsEV = {};
+  for (const [name, idx] of Object.entries(SEAT_OF6)) { seats[name] = trim(ring.seats[idx].jam); seatsEV[name] = ring.seats[idx].jamEV; }
+  ring6[S] = { seats, seatsEV };
   console.log(`  6max ${S}bb: ` + Object.entries(SEAT_OF6).map(([n, i]) => `${n} ${(ring.seats[i].jamPct * 100).toFixed(0)}%`).join('  ') + `  | exploit ${exploit6[S]}bb`);
 }
 
@@ -66,6 +66,7 @@ fs.writeFileSync(out,
    Computed push/fold Nash (${data.meta.model}).
    PUSHFOLD.stacks[d].seats[pos] = 9-max jam freq; PUSHFOLD.ring6[d].seats[pos] = 6-max jam;
    PUSHFOLD.calloff[d].btn = 9-max BB call-off freq vs a BTN jam.
+   *.seatsEV[pos] / calloff[d].btnEV = per-hand EV in bb (action vs fold; >0 means +EV).
    Regenerate: node tools/gen-pushfold.js */
 const PUSHFOLD = ${JSON.stringify(data, null, 1)};
 if (typeof module !== 'undefined') module.exports = PUSHFOLD;

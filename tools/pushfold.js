@@ -85,13 +85,31 @@ function solveHU(S, EQ, { iters = 400, damp = 0.2 } = {}) {
     }
   }
   const round = (x) => Math.round(x * 1000) / 1000;
+  const round2 = (x) => Math.round(x * 100) / 100;
   const jamR = {}, callR = {};
   for (let k = 0; k < N; k++) { jamR[CLASSES[k]] = round(jam[k]); callR[CLASSES[k]] = round(call[k]); }
+  // --- 每手 EV（相对 fold 的增量，>0 即 +EV）给 Nash 查询器 ---
+  const totW = w.reduce((a, b) => a + b, 0);
+  let cw = 0; for (let v = 0; v < N; v++) cw += w[v] * call[v];
+  const pCall = cw / totW;
+  const eqCalled = cw > 0 ? matvec(EQ, w.map((wi, v) => wi * call[v])).map((x) => x / cw) : null;
+  const jamEV = {};
+  for (let h = 0; h < N; h++) {
+    const evJam = cw <= 0 ? 1 : (1 - pCall) + pCall * (S * (2 * eqCalled[h] - 1));
+    jamEV[CLASSES[h]] = round2(evJam - (-0.5));        // SB fold = -0.5
+  }
+  let jw = 0; for (let s = 0; s < N; s++) jw += w[s] * jam[s];
+  const eqVsJam = jw > 0 ? matvec(EQ, w.map((wi, s) => wi * jam[s])) : null;
+  const callEV = {};
+  for (let v = 0; v < N; v++) {
+    const eq = eqVsJam ? eqVsJam[v] / jw : 0;
+    callEV[CLASSES[v]] = round2(S * (2 * eq - 1) - (-1));  // BB fold = -1
+  }
   const pct = (f) => {
     let a = 0, b = 0; for (let k = 0; k < N; k++) { a += w[k] * f[CLASSES[k]]; b += w[k]; }
     return a / b;
   };
-  return { jam: jamR, call: callR, jamPct: pct(jamR), callPct: pct(callR) };
+  return { jam: jamR, call: callR, jamPct: pct(jamR), callPct: pct(callR), jamEV, callEV };
 }
 
 // matrix-vector product result[c] = sum_v EQ[c][v]*g[v]
@@ -165,11 +183,38 @@ function solveRing(S, EQ, { nSeats = 9, iters = 700, damp = 0.15 } = {}) {
       for (let c = 0; c < N; c++) jam[c] += damp * (brJam[c] - jam[c]);
     }
     const round = (x) => Math.round(x * 1000) / 1000;
+    const round2 = (x) => Math.round(x * 100) / 100;
     const jr = {}; for (let c = 0; c < N; c++) jr[CLASSES[c]] = round(jam[c]);
     const callers = {};
     for (const k of behind) { const cr = {}; for (let c = 0; c < N; c++) cr[CLASSES[c]] = round(call[k][c]); callers[k] = cr; }
     let a = 0; for (let c = 0; c < N; c++) a += w[c] * jam[c];
-    seats[i] = { jam: jr, jamPct: a / totW, callers };
+    // --- 收敛后导出每手 EV（相对 fold 的增量，>0 即该动作 +EV，对应绿色）给 Nash 查询器显示 ---
+    const pCallF = {}, eqKF = {};
+    for (const k of behind) {
+      let m = 0; for (let c = 0; c < N; c++) m += w[c] * call[k][c];
+      pCallF[k] = m / totW;
+      eqKF[k] = m > 0 ? matvec(EQ, w.map((wi, c) => wi * call[k][c])).map((x) => x / m) : null;
+    }
+    const jfEV = jammerFold(i), jamEV = {};
+    for (let c = 0; c < N; c++) {
+      let pAll = 1; for (const k of behind) pAll *= (1 - pCallF[k]);
+      let ev = pAll * netAllFold(i), reach = 1;
+      for (const k of behind) {
+        const eq = eqKF[k] ? eqKF[k][c] : 0;
+        ev += reach * pCallF[k] * (S * (2 * eq - 1) + eq * D(i, k));
+        reach *= (1 - pCallF[k]);
+      }
+      jamEV[CLASSES[c]] = round2(ev - jfEV);
+    }
+    let jwF = 0; for (let s = 0; s < N; s++) jwF += w[s] * jam[s];
+    const eqVsJamF = jwF > 0 ? matvec(EQ, w.map((wi, s) => wi * jam[s])) : null;
+    const callerEV = {};
+    for (const k of behind) {
+      const Dik = D(i, k), fEV = callerFold(k), ev = {};
+      for (let c = 0; c < N; c++) { const eq = eqVsJamF ? eqVsJamF[c] / jwF : 0; ev[CLASSES[c]] = round2(S * (2 * eq - 1) + eq * Dik - fEV); }
+      callerEV[k] = ev;
+    }
+    seats[i] = { jam: jr, jamPct: a / totW, callers, jamEV, callerEV };
   }
   return { seats, SB, BB, nSeats };
 }

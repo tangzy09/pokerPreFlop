@@ -1240,6 +1240,56 @@ function openCalc(){aInit();SFX.click();
  document.getElementById('calcOut').innerHTML='';
 }
 document.getElementById('calcBtn').onclick=()=>{ if(!isPro()){showPaywall(tr('pwWhyCalc'));return;} openCalc(); };
+
+/* ======== Nash 推弃图查询器：自算 Nash 每手 chip-EV，复用 PUSHFOLD/HU_PUSHFOLD（免费，展示差异化） ======== */
+const NASH_MODES=[
+ {key:'r9', tk:'nmR9', wk:'nwOpen',   src:'stacks',  stacks:[8,10,12,15,20],      pos:['UTG','MP','CO','BTN','SB'], act:'jamEV'},
+ {key:'r6', tk:'nmR6', wk:'nwOpen',   src:'ring6',   stacks:[10,15,20],           pos:['UTG','HJ','CO','BTN','SB'], act:'jamEV'},
+ {key:'hu', tk:'nmHU', wk:'nwHUjam',  src:'hu',      stacks:[5,8,10,12,15,20,25], pos:null,                          act:'jamEV'},
+ {key:'c9', tk:'nmC9', wk:'nwC9',     src:'calloff', stacks:[10,15,20],           pos:null,                          act:'btnEV'},
+ {key:'huc',tk:'nmHUC',wk:'nwHUcall', src:'hu',      stacks:[5,8,10,12,15,20,25], pos:null,                          act:'callEV'},
+];
+const NASH={mode:'r9',stack:15,pos:'BTN'};
+function nashMode(){ return NASH_MODES.find(x=>x.key===NASH.mode)||NASH_MODES[0]; }
+function nashData(){ const m=nashMode(); try{
+  if(m.src==='hu'){ const d=HU_PUSHFOLD.stacks[NASH.stack]; return d?d[m.act]:null; }
+  if(m.src==='calloff'){ const d=PUSHFOLD.calloff[NASH.stack]; return d?d.btnEV:null; }
+  const d=(m.src==='ring6'?PUSHFOLD.ring6:PUSHFOLD.stacks)[NASH.stack]; return d?d.seatsEV[NASH.pos]:null;
+ }catch(e){ return null; } }
+function nashColor(ev,scale){ const t=Math.max(-1,Math.min(1,ev/scale)); return t>=0?`rgba(74,184,120,${(0.12+0.8*t).toFixed(3)})`:`rgba(224,84,79,${(0.12-0.8*t).toFixed(3)})`; }
+function nashChips(boxId,items,cur,pick){ const box=document.getElementById(boxId); if(!box)return; box.innerHTML='';
+ items.forEach(it=>{ const b=document.createElement('button'); b.className='opt'; b.style.flex='none'; b.textContent=it.label;
+  b.setAttribute('aria-selected',it.val===cur); b.onclick=()=>{try{SFX.click();}catch(e){} pick(it.val);}; box.appendChild(b); }); }
+function renderNash(){
+ const m=nashMode();
+ nashChips('nMode', NASH_MODES.map(x=>({label:tr(x.tk),val:x.key})), NASH.mode, k=>{
+  NASH.mode=k; const nm=NASH_MODES.find(x=>x.key===k);
+  if(!nm.stacks.includes(NASH.stack)) NASH.stack=nm.stacks[Math.floor(nm.stacks.length/2)];
+  if(nm.pos && !nm.pos.includes(NASH.pos)) NASH.pos=nm.pos[nm.pos.length-1];
+  renderNash(); });
+ nashChips('nStack', m.stacks.map(s=>({label:s+'bb',val:s})), NASH.stack, k=>{NASH.stack=k;renderNash();});
+ const pg=document.getElementById('nPosGroup');
+ if(m.pos){ pg.style.display=''; nashChips('nPos', m.pos.map(p=>({label:p,val:p})), NASH.pos, k=>{NASH.pos=k;renderNash();}); }
+ else pg.style.display='none';
+ const ev=nashData(), mtx=document.getElementById('nMatrix'); mtx.innerHTML='';
+ document.getElementById('nName').textContent=tr(m.tk)+' · '+NASH.stack+'bb'+(m.pos?' · '+NASH.pos:'');
+ document.getElementById('nWho').textContent=tr(m.wk);
+ if(!ev){ document.getElementById('nStat').textContent=''; document.getElementById('nInfo').textContent=tr('nashNoData'); return; }
+ let scale=0.01; for(let r=0;r<13;r++)for(let c=0;c<13;c++){ const e=ev[handLabel(r,c)]; if(e!=null)scale=Math.max(scale,Math.abs(e)); }
+ let inC=0;
+ for(let r=0;r<13;r++)for(let c=0;c<13;c++){ const h=handLabel(r,c), e=ev[h];
+  const cell=document.createElement('div'); cell.className='ncell';
+  if(e==null){ cell.style.background='var(--fold)'; }
+  else { cell.style.background=nashColor(e,scale); if(e>0)inC+=combosOf(h);
+   cell.innerHTML=`<span class="h">${h}</span><span class="e">${e>0?'+':''}${e.toFixed(1)}</span>`; }
+  mtx.appendChild(cell); }
+ document.getElementById('nStat').textContent=tr('nashPct',{n:Math.round(inC),p:(inC/1326*100).toFixed(0)});
+ document.getElementById('nInfo').textContent=tr('nashInfo');
+}
+function openNash(){ try{aInit();SFX.click();}catch(e){} document.getElementById('nashScreen').classList.remove('hide'); renderNash(); }
+try{ document.getElementById('nashBtnLbl').textContent=tr('nashBtn'); }catch(e){}
+document.getElementById('nashBtn').onclick=openNash;
+document.getElementById('nashBack').onclick=()=>{ try{SFX.click();}catch(e){} document.getElementById('nashScreen').classList.add('hide'); };
 document.getElementById('calcBack').onclick=()=>{SFX.click();
  document.getElementById('calcScreen').classList.add('hide');
  document.getElementById('startScreen').classList.remove('hide');};
@@ -1270,6 +1320,7 @@ function rerenderUI(){
   renderStartChart();
   updateReviewBtns();
   try{ if(typeof wireNotify==='function') wireNotify(); }catch(e){}
+  try{ document.getElementById('nashBtnLbl').textContent=tr('nashBtn'); const ns=document.getElementById('nashScreen'); if(ns && !ns.classList.contains('hide') && typeof renderNash==='function') renderNash(); }catch(e){}
   const cs=document.getElementById('chartScreen');
   if(cs && !cs.classList.contains('hide')){
    buildVariants('cSelVariant','cSelVarLabel',cFormat,cVariant,k=>{cVariant=k;cIdx=0;cSel=null;renderCChips();renderMatrix();});
