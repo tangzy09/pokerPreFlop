@@ -1273,6 +1273,7 @@ function renderNash(){
   if(!nm.stacks.includes(NASH.stack)) NASH.stack=nm.stacks[Math.floor(nm.stacks.length/2)];
   if(nm.pos && !nm.pos.includes(NASH.pos)) NASH.pos=nm.pos[nm.pos.length-1];
   renderNash(); });
+ nashChips('nAnte', [{label:tr('nashNoAnte'),val:0},{label:'12.5% ante',val:0.125}], NASH.ante, k=>{NASH.ante=k;renderNash();});
  nashChips('nStack', m.stacks.map(s=>({label:s+'bb',val:s})), NASH.stack, k=>{NASH.stack=k;renderNash();});
  const pg=document.getElementById('nPosGroup');
  if(m.pos){ pg.style.display=''; nashChips('nPos', m.pos.map(p=>({label:p,val:p})), NASH.pos, k=>{NASH.pos=k;renderNash();}); }
@@ -1294,7 +1295,7 @@ function renderNash(){
 }
 function openNash(){ try{aInit();SFX.click();}catch(e){} document.getElementById('nashScreen').classList.remove('hide'); renderNash(); }
 try{ document.getElementById('nashBtnLbl').textContent=tr('nashBtn'); }catch(e){}
-document.getElementById('nashBtn').onclick=openNash;
+document.getElementById('nashBtn').onclick=()=>{ if(!isPro()){showPaywall(tr('pwWhyNash'));return;} openNash(); };
 document.getElementById('nashBack').onclick=()=>{ try{SFX.click();}catch(e){} document.getElementById('nashScreen').classList.add('hide'); };
 document.getElementById('calcBack').onclick=()=>{SFX.click();
  document.getElementById('calcScreen').classList.add('hide');
