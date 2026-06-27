@@ -256,6 +256,7 @@ _tpl('nwC9', 'BB 跟 BTN 全下', 'BB call-off vs BTN jam');
 _tpl('nwHUcall', 'BB 跟 SB 全下', 'BB call-off vs SB jam');
 _tpl('nashPct', '{n}/1326 手 +EV ({p}%)', '{n}/1326 hands +EV ({p}%)');
 _tpl('nashNoData', '该组合暂无数据', 'No data for this combo');
+_tpl('nashNoAnte', '无前注', 'No ante');
 _tpl('nashInfo', '绿=该动作 +EV（自算 Nash）· 数字=每手 chip-EV（bb，相对弃牌）', 'Green = +EV action (computed Nash) · number = per-hand chip-EV (bb, vs fold)');
 _tpl('pwWhyCalc', '算胜率计算器属于 Pro', 'The equity calculator is Pro');
 _tpl('pwLockNote', '{name}是 Pro 进阶分析——解锁后按你的真实错题给出。', '{name} is a Pro feature — unlocks based on your real mistakes.');

@@ -133,12 +133,13 @@ function matvec(EQ, g) {
  * fold to a jam -> win the dead blinds; on a heads-up all-in for S with equity
  * e and dead money D, the all-in player's net = S*(2e-1) + e*D.
  */
-function solveRing(S, EQ, { nSeats = 9, iters = 700, damp = 0.15 } = {}) {
+function solveRing(S, EQ, { nSeats = 9, ante = 0, iters = 700, damp = 0.15 } = {}) {
   const w = CLASSES.map(baseCount);
   const totW = w.reduce((a, b) => a + b, 0);
   const SB = nSeats - 2, BB = nSeats - 1;
-  const D = (i, k) => (SB !== i && SB !== k ? 0.5 : 0) + (BB !== i && BB !== k ? 1 : 0);
-  const netAllFold = (i) => (SB !== i ? 0.5 : 0) + (BB !== i ? 1 : 0);
+  const pot = nSeats * ante;        // 全员前注进底池=死钱；ante=0 时 pot=0，退化为原模型
+  const D = (i, k) => (SB !== i && SB !== k ? 0.5 : 0) + (BB !== i && BB !== k ? 1 : 0) + pot;
+  const netAllFold = (i) => (SB !== i ? 0.5 : 0) + (BB !== i ? 1 : 0) + pot;
   const jammerFold = (i) => (i === SB ? -0.5 : 0);
   const callerFold = (k) => (k === SB ? -0.5 : k === BB ? -1 : 0);
 
@@ -225,11 +226,12 @@ function solveRing(S, EQ, { nSeats = 9, iters = 700, damp = 0.15 } = {}) {
  * 0 == exact Nash within the model; small == converged. Checks every jammer
  * seat's hands and every caller's hands against the solution's opposing ranges.
  */
-function ringRegret(S, EQ, ring) {
+function ringRegret(S, EQ, ring, ante = 0) {
   const w = CLASSES.map(baseCount); const totW = w.reduce((a, b) => a + b, 0);
   const SB = ring.SB, BB = ring.BB;
-  const D = (i, k) => (SB !== i && SB !== k ? 0.5 : 0) + (BB !== i && BB !== k ? 1 : 0);
-  const netAllFold = (i) => (SB !== i ? 0.5 : 0) + (BB !== i ? 1 : 0);
+  const pot = ring.nSeats * ante;
+  const D = (i, k) => (SB !== i && SB !== k ? 0.5 : 0) + (BB !== i && BB !== k ? 1 : 0) + pot;
+  const netAllFold = (i) => (SB !== i ? 0.5 : 0) + (BB !== i ? 1 : 0) + pot;
   const jammerFold = (i) => (i === SB ? -0.5 : 0);
   const callerFold = (k) => (k === SB ? -0.5 : k === BB ? -1 : 0);
   const arr = (dict) => { const a = new Float64Array(N); for (let c = 0; c < N; c++) a[c] = dict[CLASSES[c]] || 0; return a; };
