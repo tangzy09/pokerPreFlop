@@ -1251,7 +1251,7 @@ const NASH_MODES=[
  {key:'c9', tk:'nmC9', wk:'nwC9',     src:'calloff', stacks:NASH_STACKS,    pos:null},
  {key:'huc',tk:'nmHUC',wk:'nwHUcall', src:'huCall',  stacks:NASH_STACKS_HU, pos:null},
 ];
-const NASH={mode:'r9',ante:0,stack:15,pos:'BTN'};
+const NASH={mode:'r9',ante:0,stack:20,pos:'BTN'};
 function nashMode(){ return NASH_MODES.find(x=>x.key===NASH.mode)||NASH_MODES[0]; }
 function nashData(){ const m=nashMode(), a=String(NASH.ante); try{
   const n=(typeof PUSHFOLD!=='undefined')&&PUSHFOLD.nash; if(!n) return null;
@@ -1274,7 +1274,10 @@ function renderNash(){
   if(nm.pos && !nm.pos.includes(NASH.pos)) NASH.pos=nm.pos[nm.pos.length-1];
   renderNash(); });
  nashChips('nAnte', [{label:tr('nashNoAnte'),val:0},{label:'12.5% ante',val:0.125}], NASH.ante, k=>{NASH.ante=k;renderNash();});
- nashChips('nStack', m.stacks.map(s=>({label:s+'bb',val:s})), NASH.stack, k=>{NASH.stack=k;renderNash();});
+ (()=>{ const sb=document.getElementById('nStack'); if(!sb)return; sb.innerHTML='';
+  const sel=document.createElement('select'); sel.className='calc-in'; sel.style.cssText='width:auto;min-width:140px;font-weight:700;cursor:pointer';
+  m.stacks.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s+'bb'; if(s===NASH.stack)o.selected=true; sel.appendChild(o); });
+  sel.onchange=()=>{ NASH.stack=+sel.value; renderNash(); }; sb.appendChild(sel); })();
  const pg=document.getElementById('nPosGroup');
  if(m.pos){ pg.style.display=''; nashChips('nPos', m.pos.map(p=>({label:p,val:p})), NASH.pos, k=>{NASH.pos=k;renderNash();}); }
  else pg.style.display='none';
