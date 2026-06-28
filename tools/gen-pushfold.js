@@ -59,6 +59,28 @@ for (const ante of ANTES) {
   console.log(` ante=${ante} done (${((Date.now() - ts) / 1000).toFixed(0)}s)`);
 }
 
+// ---- bb ante（大盲前注）：底池总前注固定 = 1bb，按桌上人数均摊到每人 = 1/nSeats ----
+{
+  const a = 'bb';
+  nash.jam9[a] = {}; nash.calloff[a] = {}; nash.jam6[a] = {}; nash.hu[a] = {};
+  const ts = Date.now();
+  for (const S of STACKS_FULL) {
+    const r9 = solveRing(S, EQ, { nSeats: 9, ante: 1 / 9, ...SOLVE_NASH });
+    const o9 = {}; for (const [n, idx] of Object.entries(SEAT9)) o9[n] = r9.seats[idx].jamEV;
+    nash.jam9[a][S] = o9;
+    nash.calloff[a][S] = r9.seats[SEAT9.BTN].callerEV[8];
+    const r6 = solveRing(S, EQ, { nSeats: 6, ante: 1 / 6, ...SOLVE_NASH });
+    const o6 = {}; for (const [n, idx] of Object.entries(SEAT6)) o6[n] = r6.seats[idx].jamEV;
+    nash.jam6[a][S] = o6;
+    process.stdout.write('.');
+  }
+  for (const S of STACKS_HU) {
+    const hu = solveRing(S, EQ, { nSeats: 2, ante: 1 / 2, ...SOLVE_NASH });
+    nash.hu[a][S] = { jamEV: hu.seats[0].jamEV, callEV: hu.seats[0].callerEV[1] };
+  }
+  console.log(` ante=bb done (${((Date.now() - ts) / 1000).toFixed(0)}s)`);
+}
+
 // ---- 既有 stacks/ring6/calloff (frequencies, packs 兼容, ante=0, 原档) ----
 const stacks = {}, exploit = {}, calloff = {};
 for (const S of STACKS_LEGACY) {
@@ -83,7 +105,7 @@ const data = {
     model: 'no-overcall chip-EV Nash equilibrium', equity: 'Monte-Carlo class equity (combo+board averaged)',
     samples: SAMPLES, seed: SEED, stacks: STACKS_LEGACY, stacks6: STACKS6_LEGACY, seatMap: SEAT_LEGACY, seatMap6: SEAT6,
     exploitability: exploit, exploitability6: exploit6,
-    nashAntes: ANTES, nashStacks: STACKS_FULL, nashStacksHU: STACKS_HU, nashSeat9: SEAT9, nashSeat6: SEAT6,
+    nashAntes: [...ANTES, 'bb'], nashStacks: STACKS_FULL, nashStacksHU: STACKS_HU, nashSeat9: SEAT9, nashSeat6: SEAT6,
   },
   stacks, ring6, calloff, nash,
 };
