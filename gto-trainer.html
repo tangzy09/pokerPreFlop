@@ -436,7 +436,8 @@
 
   <!-- HOME MENU（主页：6 个入口，复用现有功能、不改任何现有逻辑） -->
   <div class="screen" id="homeScreen">
-    <h1 class="brand" style="margin:30px 0 28px"><span>GTO</span> <span class="brand-acc">Preflop</span> <span>Trainer</span></h1>
+    <div class="logo-suit" style="margin-top:30px"><span class="blk">♠</span><span class="r">♥</span><span class="r">♦</span><span class="blk">♣</span></div>
+    <h1 style="margin:6px 0 28px">GTO 翻前<b>训练</b></h1>
     <div class="home-grid">
       <button class="home-card" id="homeCash"><span class="hc-ic">💵</span><span class="hc-t">现金局</span><span class="hc-s">100bb 深码</span></button>
       <button class="home-card" id="homeMtt"><span class="hc-ic">🏆</span><span class="hc-t">锦标赛</span><span class="hc-s">推弃 + ICM</span></button>
@@ -450,8 +451,6 @@
   <!-- START screen / TRAINING SETUP -->
   <div class="screen hide" id="startScreen">
     <button class="back-btn" id="homeBack" style="align-self:flex-start;margin:6px 0 2px">← 主页</button>
-    <div class="logo-suit"><span class="blk">♠</span><span class="r">♥</span><span class="r">♦</span><span class="blk">♣</span></div>
-    <h1>GTO 翻前<b>训练</b></h1>
 
     <!-- live range preview: shown above Start, updates as you pick game type / scenario / variant -->
     <div class="sel-group" id="startChartGroup" style="width:100%;max-width:430px;position:relative">
