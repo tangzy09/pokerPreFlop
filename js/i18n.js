@@ -451,31 +451,34 @@ function applyI18n(root){
 }
 // highlight the active segment in the 中|EN selector
 function _updateLangBtn(){
- const w=document.getElementById('langToggle'); if(!w) return;
- w.querySelectorAll('button[data-lang]').forEach(seg=>{
-  const on=seg.dataset.lang===LANG;
-  seg.style.background = on ? 'linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f))' : 'transparent';
-  seg.style.color = on ? '#16110a' : 'var(--muted,#8fa79a)';
+ ['langToggle','langToggle2'].forEach(tid=>{
+  const w=document.getElementById(tid); if(!w) return;
+  w.querySelectorAll('button[data-lang]').forEach(seg=>{
+   const on=seg.dataset.lang===LANG;
+   seg.style.background = on ? 'linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f))' : 'transparent';
+   seg.style.color = on ? '#16110a' : 'var(--muted,#8fa79a)';
+  });
  });
 }
 function setLang(l){ if(l!=='en'&&l!=='zh') return; LANG=l; try{localStorage.setItem('gtoLang',l);}catch(e){} applyI18n(); }
 function _mountLangToggle(){
  if(!_hasDOM()) return;
  try{
-  if(document.getElementById('langToggle')) return;
-  // live INSIDE the start screen, top-right, position:absolute → it scrolls away with
-  // the content (not a persistent fixed overlay) and stays within the app column.
-  const host=document.getElementById('startScreen'); if(!host) return;
-  const wrap=document.createElement('div'); wrap.id='langToggle'; wrap.title='Language / 语言';
-  wrap.style.cssText='position:absolute;top:calc(10px + env(safe-area-inset-top));right:14px;z-index:5;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
+  // 主页(homeScreen) + 训练设置页(startScreen) 各挂一个，右上角，跟随内容滚动
   const mk=(code,label)=>{
    const seg=document.createElement('button'); seg.type='button'; seg.dataset.lang=code; seg.textContent=label;
    seg.style.cssText='appearance:none;border:0;background:transparent;font:700 12px/1 system-ui;padding:5px 9px;border-radius:7px;cursor:pointer;transition:.15s';
    seg.onclick=()=>{ if(LANG===code) return; try{ if(typeof SFX!=='undefined') SFX.click(); }catch(e){} setLang(code); };
    return seg;
   };
-  wrap.appendChild(mk('zh','中')); wrap.appendChild(mk('en','EN'));
-  host.appendChild(wrap);
+  [['homeScreen','langToggle2'],['startScreen','langToggle']].forEach(([hostId,tid])=>{
+   if(document.getElementById(tid)) return;
+   const host=document.getElementById(hostId); if(!host) return;
+   const wrap=document.createElement('div'); wrap.id=tid; wrap.title='Language / 语言';
+   wrap.style.cssText='position:absolute;top:calc(10px + env(safe-area-inset-top));right:14px;z-index:5;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
+   wrap.appendChild(mk('zh','中')); wrap.appendChild(mk('en','EN'));
+   host.appendChild(wrap);
+  });
   _updateLangBtn();
  }catch(e){}
 }
