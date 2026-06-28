@@ -37,7 +37,7 @@ const I18N_EN = {
  '全部':'All','真实随机':'True random','好牌':'Good','价值/标准':'Value / standard',
  '边缘':'Edge','难点·混合':'Tough · mixed','坏牌':'Trash','练弃牌纪律':'Fold discipline',
  // —— over / common ——
- 'OUT · 出局':'OUT · busted','本局结束':'Game over','再来一局':'Play again','← 返回':'← Back',
+ 'OUT · 出局':'OUT · busted','本局结束':'Game over','再来一局':'Play again','← 返回':'← Back','← 主页':'← Home',
  '范围图表':'Range charts','关于数据与假设':'About data & assumptions','胜率计算器':'Equity calculator',
  '翻前主线 · 怎么练':'Preflop main line · how to train','错题复习堆':'Mistake review pile','生涯统计':'Career stats',
  '场景 / 位置':'Scenario / position','点格子查看每手牌的建议':'Tap a cell to see the suggestion',
