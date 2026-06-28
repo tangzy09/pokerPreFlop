@@ -22,7 +22,7 @@ const I18N_EN = {
  '错题':'Mistakes','图表':'Charts','算胜率':'Equity','统计':'Stats',
  // —— start screen ——
  'GTO 翻前对战 · 训练营':'GTO Preflop · Trainer','GTO 翻前':'GTO Preflop ','训练':'Training',
- '游戏类型':'Game type','场景':'Scenario','开始训练':'Start Training',
+ '游戏类型':'Game type','场景':'Scenario','开始训练':'Start Training','位置':'Position','筹码深度 (bb)':'Stack depth (bb)','前注':'Ante',
  '现金局':'Cash','100bb 深码':'100bb deep','锦标赛 MTT':'Tournament MTT','浅码 + ICM':'Short stacks + ICM',
  '锦标赛':'Tournament','推弃 + ICM':'Push/fold + ICM','错题复习':'Mistakes','复习答错的牌':'Review your misses','Nash 推弃图':'Nash Charts','每手 EV':'Per-hand EV','实时算牌':'Live equity','画像 + 漏洞':'Profile + leaks',
  '开局 + 防守':'Open + Defense','开局加注 · 大盲防守':'RFI · BB defense',
@@ -259,6 +259,7 @@ _tpl('nashPct', '{n}/1326 手 +EV ({p}%)', '{n}/1326 hands +EV ({p}%)');
 _tpl('nashNoData', '该组合暂无数据', 'No data for this combo');
 _tpl('nashNoAnte', '无前注', 'No ante');
 _tpl('nashBBAnte', '大盲前注', 'BB ante');
+_tpl('anteWord', '前注', 'ante');
 _tpl('pwWhyNash', '自算 Nash 推弃图查询器是 Pro 功能', 'The computed Nash push/fold charts are a Pro feature');
 _tpl('nashInfo', '绿=该动作 +EV（自算 Nash）· 数字=每手 chip-EV（bb，相对弃牌）', 'Green = +EV action (computed Nash) · number = per-hand chip-EV (bb, vs fold)');
 _tpl('pwWhyCalc', '算胜率计算器属于 Pro', 'The equity calculator is Pro');
