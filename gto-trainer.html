@@ -150,14 +150,16 @@
   .ncell .h{font-weight:700;color:#fff;font-size:clamp(5.5px,1.5vw,11px);text-shadow:0 1px 1px rgba(0,0,0,.45)}
   .ncell .e{color:rgba(255,255,255,.92);font-size:clamp(4.5px,1.2vw,9px);font-family:'Space Mono'}
   /* 主页：6 个入口卡片网格 */
-  .home-sub{color:var(--muted);font-size:13px;margin:2px 0 20px;text-align:center}
-  .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:430px;margin:0 auto}
-  .home-card{display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 10px;cursor:pointer;color:var(--ink);transition:transform .1s,border-color .15s}
-  .home-card:active{transform:scale(.96)}
-  .home-card:hover{border-color:var(--gold)}
-  .hc-ic{font-size:30px;line-height:1}
-  .hc-t{font-family:'Space Grotesk';font-weight:700;font-size:15.5px}
-  .hc-s{font-size:11px;color:var(--muted)}
+  .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:440px;margin:6px auto 0}
+  .home-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:9px;background:linear-gradient(165deg,#1b2a20,#131c16);border:1px solid var(--line);border-radius:20px;padding:26px 12px 22px;cursor:pointer;color:var(--ink);overflow:hidden;transition:transform .14s ease,border-color .18s,box-shadow .18s}
+  .home-card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.45;transition:opacity .18s}
+  .home-card:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 14px 28px -12px rgba(0,0,0,.65),0 0 0 1px rgba(232,198,106,.16)}
+  .home-card:hover::before{opacity:1}
+  .home-card:active{transform:translateY(-1px) scale(.98)}
+  .hc-ic{display:flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 50% 36%,rgba(232,198,106,.18),rgba(232,198,106,.04));font-size:29px;line-height:1}
+  .hc-t{font-family:'Space Grotesk';font-weight:700;font-size:16px;letter-spacing:.2px}
+  .hc-s{font-size:11.5px;color:var(--muted)}
+  .hc-pro{position:absolute;top:10px;right:10px;font-family:'Space Grotesk';font-weight:800;font-size:9px;letter-spacing:1px;color:#1a1208;background:linear-gradient(135deg,var(--gold),#b8902f);padding:2px 7px;border-radius:999px;box-shadow:0 2px 6px -2px rgba(0,0,0,.5)}
   .fbmx .ccell{cursor:default;font-size:0;border-radius:2px;min-height:0;min-width:0}
   .fbmx .ccell.now{font-size:7.5px;color:#fff;box-shadow:0 0 0 2px var(--blunder),0 0 0 4px rgba(255,255,255,.6);z-index:4}
   .fbmx .ccell.now.ok{box-shadow:0 0 0 2px var(--best),0 0 0 4px rgba(255,255,255,.6)}   /* 答对/两可：绿框 */
@@ -434,14 +436,13 @@
 
   <!-- HOME MENU（主页：6 个入口，复用现有功能、不改任何现有逻辑） -->
   <div class="screen" id="homeScreen">
-    <h1 class="brand" style="margin-top:24px"><span>GTO</span> <span class="brand-acc">Preflop</span> <span>Trainer</span></h1>
-    <div class="home-sub" id="homeSub">选择训练或工具</div>
+    <h1 class="brand" style="margin:30px 0 28px"><span>GTO</span> <span class="brand-acc">Preflop</span> <span>Trainer</span></h1>
     <div class="home-grid">
       <button class="home-card" id="homeCash"><span class="hc-ic">💵</span><span class="hc-t">现金局</span><span class="hc-s">100bb 深码</span></button>
       <button class="home-card" id="homeMtt"><span class="hc-ic">🏆</span><span class="hc-t">锦标赛</span><span class="hc-s">推弃 + ICM</span></button>
       <button class="home-card" id="homeReview"><span class="hc-ic">📕</span><span class="hc-t">错题复习</span><span class="hc-s">复习答错的牌</span></button>
-      <button class="home-card" id="homeNash"><span class="hc-ic">♠</span><span class="hc-t">Nash 推弃图</span><span class="hc-s">每手 EV · Pro</span></button>
-      <button class="home-card" id="homeEquity"><span class="hc-ic">🧮</span><span class="hc-t">算胜率</span><span class="hc-s">Equity · Pro</span></button>
+      <button class="home-card" id="homeNash"><span class="hc-pro">PRO</span><span class="hc-ic">♠</span><span class="hc-t">Nash 推弃图</span><span class="hc-s">每手 EV</span></button>
+      <button class="home-card" id="homeEquity"><span class="hc-pro">PRO</span><span class="hc-ic">🧮</span><span class="hc-t">算胜率</span><span class="hc-s">实时算牌</span></button>
       <button class="home-card" id="homeStats"><span class="hc-ic">📈</span><span class="hc-t">统计</span><span class="hc-s">画像 + 漏洞</span></button>
     </div>
   </div>

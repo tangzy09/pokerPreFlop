@@ -24,6 +24,7 @@ const I18N_EN = {
  'GTO 翻前对战 · 训练营':'GTO Preflop · Trainer','GTO 翻前':'GTO Preflop','训练':'Training',
  '游戏类型':'Game type','场景':'Scenario','开始训练':'Start Training',
  '现金局':'Cash','100bb 深码':'100bb deep','锦标赛 MTT':'Tournament MTT','浅码 + ICM':'Short stacks + ICM',
+ '锦标赛':'Tournament','推弃 + ICM':'Push/fold + ICM','错题复习':'Mistakes','复习答错的牌':'Review your misses','Nash 推弃图':'Nash Charts','每手 EV':'Per-hand EV','实时算牌':'Live equity','画像 + 漏洞':'Profile + leaks',
  '开局 + 防守':'Open + Defense','开局加注 · 大盲防守':'RFI · BB defense',
  '开局范围':'Open ranges','按深度 / 人数':'By depth / players',
  '面对 3-bet':'Vs 3-bet','你开局被反加':'You open, get 3-bet',
