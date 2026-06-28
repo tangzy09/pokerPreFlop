@@ -145,8 +145,8 @@
   /* 13×13 等分正方格：列+行都用 1fr + 容器正方形，格子不随内容变形 */
   .fbmx-grid{display:grid;grid-template-columns:repeat(13,1fr);grid-template-rows:repeat(13,1fr);gap:1px;aspect-ratio:1/1;width:100%}
   /* Nash 查询器：13×13 EV 格，显示手牌 + chip-EV，背景按 EV 绿红渐变 */
-  .nmatrix{display:grid;grid-template-columns:repeat(13,1fr);grid-template-rows:repeat(13,1fr);gap:1px;aspect-ratio:1/1;width:100%;margin-top:6px}
-  .ncell{border-radius:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;overflow:hidden;cursor:default}
+  .nmatrix{display:grid;grid-template-columns:repeat(13,1fr);grid-template-rows:repeat(13,1fr);gap:1px;aspect-ratio:1/1;width:100%;margin-top:6px;background:rgba(220,226,216,.5);border-radius:5px;overflow:hidden}
+  .ncell{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;overflow:hidden;cursor:default}
   .ncell .h{font-weight:700;color:inherit;font-size:clamp(5.5px,1.5vw,11px)}
   .ncell .e{color:inherit;opacity:.88;font-size:clamp(4.5px,1.2vw,9px);font-family:'Space Mono'}
   /* 主页：6 个入口卡片网格 */
