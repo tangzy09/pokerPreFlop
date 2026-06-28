@@ -1387,6 +1387,8 @@ try{ if(typeof Notify!=='undefined') Notify.reschedule(); }catch(e){}
  bind('homeEquity',()=>{ goStart(); click('calcBtn'); });
  bind('homeStats', ()=>{ goStart(); click('statsBtn'); });
  bind('homeBack',  ()=>{ start.classList.add('hide'); home.classList.remove('hide'); });
+ // 已解锁（网页恒解锁 / 已购 Pro）就去掉主页的 PRO 徽章——只在真正锁定时才显示
+ try{ if(typeof isPro==='function' && isPro()) home.querySelectorAll('.hc-pro').forEach(b=>b.remove()); }catch(e){}
  // 启动时显示主页（startScreen 退居训练设置页）
  home.classList.remove('hide'); start.classList.add('hide');
 })();
