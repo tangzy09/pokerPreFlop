@@ -216,6 +216,7 @@ function updateReviewBtns(){
 
 function newGame(){
  G.reviewMode=false;
+ G.diagMode=false; G.diagResults=[]; G.diagSceneKey=null; // 诊断隔离字段:由 coachStartDiagnosis 设置,newGame 重置
  G.pack=PACKS[G.format][G.variant];
  G.score=0;G.level=1;G.hp=5;G.maxhp=5;G.combo=0;G.best=0;
  G.hands=0;G.correct=0;G.handNo=0;G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
@@ -257,10 +258,14 @@ function renderHUD(){
  for(let i=0;i<G.maxhp;i++){const e=document.createElement('i');e.textContent='❤';if(i>=G.hp)e.className='dead';hp.appendChild(e);}
  document.getElementById('score').textContent=G.score.toLocaleString();
  // 3 lines: score (above) / 场景 / 等级·局数
- document.getElementById('hudScene').textContent = G.reviewMode
+ document.getElementById('hudScene').textContent = G.diagMode
+  ? spotLabel(G.format,G.variant)
+  : G.reviewMode
   ? L('复习模式')
   : spotLabel(G.format,G.variant);
- document.getElementById('lvl').textContent = G.reviewMode
+ document.getElementById('lvl').textContent = G.diagMode
+  ? L('实力诊断')+' · '+tr('coachDiagProgress',{cur:(G.handNo||0),tot:G.diagTotal||0})
+  : G.reviewMode
   ? tr('pendClear',{n:reviewPile.length})
   : tr('lvlLine',{lv:G.level,hand:(G.handNo||0),total:SESSION_HANDS});
  const c=document.getElementById('combo');
@@ -425,7 +430,12 @@ function nextHand(){
  G.busy=false;
  if(!G.reviewMode){G.handNo=(G.hands||0)+1;renderHUD();}   // advance the X/50 counter
  let t,hand;
- if(G.reviewMode){
+ if(G.diagMode){
+  // 实力诊断:从 coach 的诊断队列取题(场景已均衡)。牌桌/发牌/反馈全走练习同一套 UI。
+  if(!_coachDiagQueue || _coachDiagPos>=_coachDiagQueue.length){ coachFinishDiagnosis(); return; }
+  const it=_coachDiagQueue[_coachDiagPos];
+  t=it.t;hand=it.hand;G.format=it.format;G.variant=it.variant;G.diagSceneKey=it.sceneKey;
+ } else if(G.reviewMode){
   if(!G.reviewQueue.length){reviewComplete();return;}
   const rec=G.reviewQueue.shift();G.reviewRec=rec;
   t=rec.t;hand=rec.hand;G.format=rec.fmt;G.variant=rec.variant;
@@ -524,6 +534,9 @@ function resolve(choice,btn,timedOut){
  // a timeout means the player never decided in time → never counts as correct,
  // regardless of whether 'fold' happened to be the right play (consistent grading).
  const ok = !timedOut && correct.includes(choice);
+ // 诊断模式:复用练习的牌桌+评分+反馈,只把结果记进 diagResults 供报告聚合;
+ // 下面的 HP/统计/错题堆/升级/结算全部跳过(见各 !G.diagMode 守卫)。
+ if(G.diagMode) G.diagResults.push({ sceneKey:G.diagSceneKey, t, hand, choice, correct:ok, variant:G.variant });
  // frequency-aware grading: a precise spot carries real solved frequencies, so a
  // mix point HAS a majority line — reward matching it as 最佳, a secondary line as
  // 好棋. Curated mixes are placeholder ~50/50, so we cannot rank them (§6).
@@ -535,7 +548,7 @@ function resolve(choice,btn,timedOut){
  const hitTop = freqGraded && choice===topAct && !timedOut;
  G.hands++;
  // per-spot lifetime accuracy (normal play only)
- if(!G.reviewMode){
+ if(!G.reviewMode && !G.diagMode){
   const sk=FORMATS[G.format].tag+'·'+VARIANTS[G.format][G.variant].short;
   STORE.statsBySpot=STORE.statsBySpot||{};
   const e=STORE.statsBySpot[sk]||{h:0,c:0};
@@ -562,7 +575,7 @@ function resolve(choice,btn,timedOut){
    grade='漏着';gcolor='var(--blunder)';G.q.blunder++;hpHit=2;
    if(shouldPlay&&choice==='fold'&&PREMIUM.has(hand))award('巨牌漏着','😱');
   } else {grade='失误';gcolor='var(--mistake)';G.q.mistake++;hpHit=1;}
-  if(!G.reviewMode)G.hp-=hpHit;
+  if(!G.reviewMode && !G.diagMode)G.hp-=hpHit;
   SFX.wrong();buzz([60,30,60]);
  }
 
@@ -575,7 +588,7 @@ function resolve(choice,btn,timedOut){
    else {persistReview();G.reviewQueue.push(rec);}                       // 答对但未掌握 → 留堆，本轮再练一遍
   } else {rec.streak=0;persistReview();G.reviewQueue.push(rec);}          // 答错 → 清零重练
   updateReviewBtns();
- } else if(!ok){ addMistake(choice); updateReviewBtns(); }
+ } else if(!ok && !G.diagMode){ addMistake(choice); updateReviewBtns(); }
 
  // GTO answer string
  const nameMap=MODES[t.mode].names;
@@ -599,11 +612,11 @@ function resolve(choice,btn,timedOut){
   floatScore('+'+pts,r.left+r.width/2,r.top);}
  if(ok&&big&&G.combo>=3)burst(innerWidth/2,innerHeight*0.42,['#e8c66a','#34b074','#fff','#7fc6ff'],G.combo>=8?40:24);
 
- renderHUD();checkAch();
+ renderHUD();if(!G.diagMode)checkAch();
 
  // level up (deferred to advance) — skip in review mode
  G.pendingLevel=false;
- if(!G.reviewMode){
+ if(!G.reviewMode && !G.diagMode){
   const need=G.level*1000;
   if(G.score>=need && G.level<6){
    G.level++;G.pendingLevel=true;
@@ -612,10 +625,11 @@ function resolve(choice,btn,timedOut){
   }
  }
 
- const dead = !G.reviewMode && G.hp<=0;
- const done = !G.reviewMode && !dead && G.hands>=SESSION_HANDS;   // finished the SESSION_HANDS-hand session
+ const dead = !G.reviewMode && !G.diagMode && G.hp<=0;
+ const done = !G.reviewMode && !G.diagMode && !dead && G.hands>=SESSION_HANDS;   // finished the SESSION_HANDS-hand session
  const ending = dead || done;
- const quick = ok && !G.isMix && !ending; // pure best → auto advance
+ // 诊断:每手都要展示答案+解释(用户要求),绝不快进
+ const quick = ok && !G.isMix && !ending && !G.diagMode; // pure best → auto advance
 
  if(quick){ setTimeout(()=>{ if(!G.over) advance(); }, 1000); return; }
 
@@ -630,8 +644,14 @@ function resolve(choice,btn,timedOut){
  if(!ok || G.isMix) renderFbMatrix(t,hand,corrStr,choice,L(nameMap[choice]||'弃牌'),!ok); // 答错 + 混合/两可点都显示范围表
  else document.getElementById('fbMatrix').classList.add('hide');
  const nextBtn=document.getElementById('fbNext');
- nextBtn.textContent = ending ? L('查看结果 →') : L('下一步 →');
- nextBtn.onclick = ()=>{ SFX.click(); if(ending){gameOver(done);} else advance(); };
+ if(G.diagMode){
+  const last = !_coachDiagQueue || _coachDiagPos>=_coachDiagQueue.length-1;
+  nextBtn.textContent = last ? L('查看报告 →') : L('下一步 →');
+  nextBtn.onclick = ()=>{ SFX.click(); coachDiagAdvance(); };
+ } else {
+  nextBtn.textContent = ending ? L('查看结果 →') : L('下一步 →');
+  nextBtn.onclick = ()=>{ SFX.click(); if(ending){gameOver(done);} else advance(); };
+ }
  document.getElementById('actions').style.display='none';
  document.querySelector('.table').classList.add('fb-hide');     // 收起牌桌区，反馈面板独占下方（可滚动）
  const fbEl=document.getElementById('feedback'); fbEl.classList.remove('hide'); fbEl.scrollTop=0;
@@ -906,6 +926,7 @@ document.getElementById('againBtn').onclick=()=>{document.getElementById('startS
 // exit mid-game back to the start menu — no resume, so confirm only when a live
 // run would be abandoned (matches game-over → 再来一局 behaviour).
 function exitToMenu(){
+ if(G.diagMode){ SFX.click(); coachAbortDiagnosis(); return; }  // 诊断中途退出 → 放弃本次诊断,回 coach
  SFX.click();stopTimer();G.busy=true;G.over=true;
  document.getElementById('feedback').classList.add('hide');
  document.querySelector('.table').classList.remove('fb-hide');
@@ -918,6 +939,7 @@ document.getElementById('exitBtn').onclick=exitToMenu;
 // 结束训练（右上角）：结束本局并显示战绩（区别于左上角 ← 直接退回菜单）
 function endTraining(){
  if(G.over)return;
+ if(G.diagMode){ coachAbortDiagnosis(); return; }  // 诊断中途结束 → 放弃本次诊断,回 coach
  document.getElementById('feedback').classList.add('hide');
  document.querySelector('.table').classList.remove('fb-hide');
  document.getElementById('verdict').className='verdict';
@@ -1391,6 +1413,7 @@ try{ if(typeof Notify!=='undefined') Notify.reschedule(); }catch(e){}
  bind('homeNash',  ()=>{ goStart(); click('nashBtn'); });
  bind('homeEquity',()=>{ goStart(); click('calcBtn'); });
  bind('homeStats', ()=>{ goStart(); click('statsBtn'); });
+ bind('homePlan',  ()=>{ if(typeof coachOpen==='function') coachOpen(); });
  bind('homeBack',  ()=>{ start.classList.add('hide'); home.classList.remove('hide'); });
  // 已解锁（网页恒解锁 / 已购 Pro）就去掉主页的 PRO 徽章——只在真正锁定时才显示
  try{ if(typeof isPro==='function' && isPro()) home.querySelectorAll('.hc-pro').forEach(b=>b.remove()); }catch(e){}

@@ -25,6 +25,7 @@ const I18N_EN = {
  '游戏类型':'Game type','场景':'Scenario','开始训练':'Start Training','位置':'Position','筹码深度 (bb)':'Stack depth (bb)','前注':'Ante',
  '现金局':'Cash','100bb 深码':'100bb deep','锦标赛 MTT':'Tournament MTT','浅码 + ICM':'Short stacks + ICM',
  '锦标赛':'Tournament','推弃 + ICM':'Push/fold + ICM','错题复习':'Mistakes','复习答错的牌':'Review your misses','Nash 推弃图':'Nash Charts','每手 EV':'Per-hand EV','实时算牌':'Live equity','画像 + 漏洞':'Profile + leaks',
+ '训练计划':'Training Plan','诊断 + 20 天':'Diagnosis + 20 days','实力诊断':'Strength Test',
  '开局 + 防守':'Open + Defense','开局加注 · 大盲防守':'RFI · BB defense',
  '开局范围':'Open ranges','按深度 / 人数':'By depth / players',
  '面对 3-bet':'Vs 3-bet','你开局被反加':'You open, get 3-bet',
@@ -126,7 +127,7 @@ const I18N_EN = {
  '全下或弃':'jam or fold','SB 全下或弃':'SB jam or fold','面对 SB 全下':'vs SB jam','面对 BTN 全下':'vs BTN jam',
  '泡沫期 ~20bb':'bubble ~20bb','保命收紧':'survival tight','可施压':'can pressure',
  '终桌/短手':'final table / short','终桌浅码':'final table short',
- '你有位置':'in position','你无位置':'out of position','范围已很强':'range already strong','对手范围强':'opponent range strong','身后还有人（挤压风险）':'players behind (squeeze risk)',
+ '你有位置':'in position','你无位置':'out of position','有位置':'in position','无位置':'out of position','范围已很强':'range already strong','对手范围强':'opponent range strong','身后还有人（挤压风险）':'players behind (squeeze risk)',
  '你 BTN 开局 → 大盲 3-bet':'you open BTN → BB 3-bets','你 BTN 开局 → 小盲 3-bet':'you open BTN → SB 3-bets',
  '你 CO 开局 → 按钮位 3-bet':'you open CO → BTN 3-bets','你 CO 开局 → 大盲 3-bet':'you open CO → BB 3-bets','你 UTG/HJ 开局 → 被 3-bet':'you open UTG/HJ → 3-bet',
  '你按钮位 3-bet → 对手 4-bet':'your BTN 3-bet → 4-bet','你盲位 3-bet → 对手 4-bet':'your blind 3-bet → 4-bet',
@@ -401,6 +402,86 @@ _tpl('guide_save_p', '本地运行时，app 会自动记住你的<b>错题堆、
 // —— Calc note ——
 _tpl('calc_note', '<b>蒙特卡洛实算 · 真实数字</b>。范围用逗号分隔，如 <code>22+, AJs+, KQo</code>；单手 <code>AKs</code> 也行。<br>填了<b>牌面</b>就是<b>翻后胜率</b>（给定公共牌），留空则是<b>翻前全下</b>。',
  '<b>Real Monte-Carlo · actual numbers.</b> Comma-separate ranges, e.g. <code>22+, AJs+, KQo</code>; a single combo <code>AKs</code> works too.<br>Fill in a <b>board</b> for <b>postflop equity</b> (given community cards); leave it empty for a <b>preflop all-in</b>.');
+
+// —— coach 诊断+计划文案 ——
+_tpl('coachTitle','训练计划','Training Plan');
+_tpl('coachOnboardTitle','开始之前','Before we start');
+_tpl('coachOnboardSub','回答 4 个问题，生成你的专属诊断','Answer 4 questions to tailor your diagnosis');
+_tpl('coachChooseVariant','选择诊断版本','Choose diagnosis version');
+_tpl('coachSimple','⚡ 简化版','⚡ Quick');
+_tpl('coachSimpleSub','18 手 · 快速估算方向','18 hands · quick directional estimate');
+_tpl('coachFull','🔍 详细版','🔍 Detailed');
+_tpl('coachFullSub','45 手 · 更精确的场景分析','45 hands · more precise scene analysis');
+// 问卷题目
+_tpl('coachQ1','主战场','Main game');
+_tpl('coachQ2','自评水平','Self-rated level');
+_tpl('coachQ3','每天能练多久','Daily practice time');
+_tpl('coachQ4','主要目标','Main goal');
+// 问卷选项
+_tpl('coachLvNew','入门','Beginner');
+_tpl('coachLvMid','进阶','Intermediate');
+_tpl('coachLvAdv','高阶','Advanced');
+_tpl('coachMin5','5 分钟','5 min');
+_tpl('coachMin10','10 分钟','10 min');
+_tpl('coachMin20','20 分钟+','20 min+');
+_tpl('coachGoalLeak','攻克漏洞','Fix leaks');
+_tpl('coachGoalSystem','系统过一遍','Systematic review');
+// 诊断进度
+_tpl('coachDiagProgress','{cur} / {tot}','{cur} / {tot}');
+// 报告
+_tpl('coachTendLoose','偏松 · 入池过多','Loose-leaning · too many calls');
+_tpl('coachTendTight','偏紧 · 弃牌过多','Tight-leaning · folding too much');
+_tpl('coachTendBalanced','较均衡 · 方向正确','Balanced · on the right track');
+_tpl('coachScenePerf','各场景表现 · vs 参考范围','Scene accuracy · vs reference ranges');
+_tpl('coachTopLeaks','最该补的漏洞','Top leaks to fix');
+_tpl('coachStrengths','你的强项','Your strengths');
+_tpl('coachNoLeaks','暂无明显漏洞 🎉','No obvious leaks 🎉');
+_tpl('coachNoStrengths','继续练习，强项就来了','Keep drilling — strengths will show');
+_tpl('coachPlanPreview','为你定制的 20 天计划','Your personalised 20-day plan');
+_tpl('coachPlanFocus','主攻','Focus');
+_tpl('coachPlanMixed','全场景混合巩固','Mixed review — all scenes');
+_tpl('coachQuickEst','快速估计 · 仅供参考（简化版 18 手）','Quick estimate · directional only (quick 18-hand version)');
+_tpl('coachVsRef','基于 {n} 手诊断 · 全部 vs 参考范围，非 solver 精确解','Based on {n} hands · all vs reference ranges, not solver-exact');
+_tpl('coachStartDay1','开始 Day 1','Start Day 1');
+_tpl('coachStartDay1Sub','20 天个性化训练 · Pro 解锁','20-day personalised plan · Pro');
+_tpl('coachRedoDiag','重新诊断','Re-diagnose');
+// 漏洞类型名
+_tpl('leakType_loose','太松','Too loose');
+_tpl('leakType_tight','太紧','Too tight');
+_tpl('leakType_passive','被动','Passive');
+_tpl('leakType_aggro','过激','Over-aggressive');
+_tpl('leakType_mix','边缘混合','Marginal / mixed');
+_tpl('leakType_icm','ICM 保命','ICM survival');
+// 漏洞类型说明（报告详情）
+_tpl('leakTypeDesc_loose','该弃却入池，丢掉长期 EV','Playing hands that should be folded, leaking EV');
+_tpl('leakTypeDesc_tight','该入却弃，漏掉价值','Folding hands that should be played, missing value');
+_tpl('leakTypeDesc_passive','该加注却只跟注，放弃主动权','Just calling when you should raise, giving up initiative');
+_tpl('leakTypeDesc_aggro','该跟注却加注/全下，承担不必要的风险','Raising / jamming when you should call, taking excess risk');
+_tpl('leakTypeDesc_mix','边缘难点把握不准，这是正常的','Struggling with marginal spots — that\'s normal');
+_tpl('leakTypeDesc_icm','泡沫期手牌把握不准，需练 ICM 意识','Bubble hands off — ICM awareness needs work');
+// 付费墙文案
+_tpl('pwWhyPlan','20 天个性化训练计划是 Pro 功能','The 20-day personalised plan is a Pro feature');
+// 每日卡片
+_tpl('coachDayN','Day {d} / 20','Day {d} / 20');
+_tpl('coachStreak','🔥 {n} 天','🔥 {n} days');
+_tpl('coachDaySubtitle','vs 开局 · 你今天的主题','vs opens · your theme today');
+_tpl('coachTodayTask','今日任务','Today\'s tasks');
+_tpl('coachMainTraining','主题训练 · {n} 手','Theme drill · {n} hands');
+_tpl('coachSmartDeal','智能出题','Smart dealing');
+_tpl('coachReviewHands','复习错题 · {n} 手','Review mistakes · {n} hands');
+_tpl('coachReviewSub','前几天答错的牌，巩固记忆','Hands you missed, to reinforce memory');
+_tpl('coachDayProgress','今日完成 {done} / {total} 手','Today {done} / {total} hands done');
+_tpl('coachStartToday','开始今天','Start today');
+_tpl('coachHands','手','hands');
+_tpl('coachMarkDone','✓ 标记今日完成','✓ Mark today done');
+_tpl('coachWeekProg','本周进度','This week');
+_tpl('coachResetPlan','重置计划','Reset plan');
+_tpl('coachResetConfirm','确定要重置整个训练计划吗？所有进度将清除。','Reset the entire training plan? All progress will be lost.');
+_tpl('coachMixedTheme','全场景混合','Mixed scenes');
+// 完成页
+_tpl('coachComplete','🎉 20 天计划完成！','🎉 20-day plan complete!');
+_tpl('coachCompleteSub','厉害了！你把完整的诊断+训练走完了一遍。继续保持！','You finished the full diagnosis + training cycle. Keep it up!');
+_tpl('coachRestartPlan','重新开始','Start over');
 
 /* ---- core lookups ---- */
 function _interp(s, v){ return v ? String(s).replace(/\{(\w+)\}/g, (m,k)=> v[k]!=null ? v[k] : m) : s; }

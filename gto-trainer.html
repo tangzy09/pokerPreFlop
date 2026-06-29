@@ -217,6 +217,7 @@
   .chart-screen{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;
     background:radial-gradient(120% 80% at 50% 0%, rgba(20,70,58,.98), rgba(8,26,21,.99))}
   .chart-screen.hide{display:none}
+  #coachOnboard.hide,#coachDiag.hide,#coachReport.hide,#coachDay.hide{display:none}
   .chart-bar{display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top)) 16px 8px;border-bottom:1px solid var(--line);gap:8px}
   .chart-title{font-family:"Space Grotesk";font-weight:700;font-size:18px}
   .back-btn{appearance:none;border:0;background:transparent;cursor:pointer;color:var(--gold);font-family:inherit;font-weight:600;font-size:14px;padding:4px 2px}
@@ -392,6 +393,59 @@
   /* 矮屏（小手机 / 浏览器工具栏占位）逐级压缩牌桌，保证动作按钮始终可见 */
   @media (max-height:600px){.table{gap:10px}.felt{height:120px}.card{width:68px;height:96px}.card .pip-c{font-size:30px}.scene .who{margin-top:5px;font-size:11.5px}}
   @media (max-height:520px){.table{gap:6px;padding-top:4px}.felt{height:98px}.card{width:60px;height:84px}.card .pip-c{font-size:26px}.scene .badge{padding:5px 13px;font-size:13px}}
+
+  /* ---- coach 诊断+计划 UI ---- */
+  .coach-body{gap:12px}
+  .coach-card{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:6px}
+  .coach-lbl{color:var(--gold);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;font-weight:700;font-family:"Space Grotesk"}
+  .coach-verdict{font-family:"Space Grotesk";font-size:24px;font-weight:800;text-align:center;color:var(--gold)}
+  .coach-verdict small{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-top:4px}
+  .coach-note{font-size:10.5px;color:var(--muted);margin-top:8px;font-style:italic;line-height:1.5}
+  .coach-bar-row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .coach-bar-name{width:90px;font-size:12.5px;font-weight:600;flex:none;color:var(--ink)}
+  .coach-bar-track{flex:1;height:9px;background:rgba(255,255,255,.05);border-radius:6px;overflow:hidden}
+  .coach-bar-fill{height:100%;border-radius:6px;transition:width .4s ease}
+  .coach-bar-pct{width:36px;text-align:right;font-size:11.5px;font-family:"Space Grotesk";font-variant-numeric:tabular-nums;color:var(--muted)}
+  .coach-leak-item{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line)}
+  .coach-leak-item:first-of-type{border-top:none;padding-top:0}
+  .coach-leak-n{width:22px;height:22px;border-radius:50%;background:rgba(224,84,79,.18);color:var(--red);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px}
+  .coach-leak-t{font-size:13px;font-weight:700}
+  .coach-leak-d{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .coach-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(224,84,79,.16);color:var(--red);margin-left:6px;vertical-align:middle}
+  .coach-tag.g{background:rgba(74,184,120,.16);color:var(--green)}
+  .coach-strong{display:flex;gap:8px;flex-wrap:wrap}
+  .coach-chip{font-size:12px;font-weight:600;padding:6px 11px;border-radius:99px;background:rgba(74,184,120,.12);color:var(--green);border:1px solid rgba(74,184,120,.25)}
+  .coach-plan-row{display:flex;align-items:center;gap:10px;font-size:12.5px;padding:7px 0;border-top:1px solid var(--line)}
+  .coach-plan-row:first-child{border-top:none}
+  .coach-plan-day{width:54px;font-family:"Space Grotesk";font-weight:700;color:var(--gold);flex:none;font-size:12px}
+  .coach-big-btn{display:block;width:100%;text-align:center;margin-top:16px;padding:15px;border-radius:14px;
+    background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1208;
+    font-family:"Space Grotesk";font-weight:800;font-size:15px;border:none;cursor:pointer}
+  .coach-big-btn small{font-weight:600;opacity:.7;font-size:11px;display:block;margin-top:2px}
+  .coach-big-btn:active{transform:scale(.98)}
+  .coach-big-btn.ghost{background:transparent;border:1px solid var(--gold);color:var(--gold);margin-top:10px;font-size:13px;padding:12px}
+  .coach-q{margin-bottom:18px}
+  .coach-q-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px}
+  .coach-chips{display:flex;flex-wrap:wrap;gap:7px}
+  .coach-opt{appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;
+    color:var(--ink);background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);border-radius:999px;
+    padding:7px 13px;transition:.15s}
+  .coach-opt.sel{background:rgba(232,198,106,.16);border-color:var(--gold);color:var(--gold)}
+  /* day card */
+  .coach-day-hd{display:flex;justify-content:space-between;align-items:flex-start}
+  .coach-streak{font-size:13px;font-weight:700;color:var(--gold)}
+  .coach-theme{font-family:"Space Grotesk";font-size:21px;font-weight:800;margin:4px 0 2px}
+  .coach-seg{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+  .coach-seg:last-child{border-bottom:none}
+  .coach-seg-ic{width:40px;height:40px;border-radius:11px;background:rgba(232,198,106,.12);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+  .coach-seg-t{font-size:14px;font-weight:700}
+  .coach-seg-s{font-size:11.5px;color:var(--muted)}
+  .coach-prog{height:7px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden;margin:14px 0 4px}
+  .coach-prog-bar{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--green));border-radius:5px;transition:width .4s ease}
+  .coach-prog-txt{font-size:11px;color:var(--muted);text-align:right}
+  .coach-diag-prog{font-size:12px;color:var(--muted);text-align:center;letter-spacing:.08em;margin-bottom:8px}
+  .coach-scene-lbl{font-size:11px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:6px}
+  .coach-reset-link{display:block;text-align:center;font-size:11.5px;color:var(--muted);text-decoration:underline;cursor:pointer;margin-top:12px;background:none;border:none;font-family:inherit}
 </style>
 </head>
 <body>
@@ -445,6 +499,7 @@
       <button class="home-card" id="homeNash"><span class="hc-pro">PRO</span><span class="hc-ic">♠</span><span class="hc-t">Nash 推弃图</span><span class="hc-s">每手 EV</span></button>
       <button class="home-card" id="homeEquity"><span class="hc-pro">PRO</span><span class="hc-ic">🧮</span><span class="hc-t">算胜率</span><span class="hc-s">实时算牌</span></button>
       <button class="home-card" id="homeStats"><span class="hc-ic">📈</span><span class="hc-t">统计</span><span class="hc-s">画像 + 漏洞</span></button>
+      <button class="home-card" id="homePlan" style="grid-column:1/-1;max-width:50%;margin:0 auto"><span class="hc-pro">PRO</span><span class="hc-ic">🗓</span><span class="hc-t">训练计划</span><span class="hc-s">诊断 + 20 天</span></button>
     </div>
   </div>
 
@@ -752,6 +807,21 @@
       <p class="cnote">统计仅在正常训练时累计（复习模式不计入）。数据存在浏览器本地。</p>
     </div>
   </div>
+
+  <!-- COACH screen: 问卷 / 诊断答题 / 报告 / 每日卡片 -->
+  <div class="chart-screen hide" id="coachScreen">
+    <div class="chart-bar">
+      <button class="back-btn" id="coachBack">← 返回</button>
+      <div class="chart-title" id="coachTitle">训练计划</div>
+      <div class="back-btn" style="visibility:hidden">← 返回</div>
+    </div>
+    <div class="chart-body coach-body" id="coachBody">
+      <div id="coachOnboard" style="width:100%;max-width:430px"></div>
+      <div id="coachDiag" class="hide" style="width:100%;max-width:430px"></div>
+      <div id="coachReport" class="hide" style="width:100%;max-width:430px"></div>
+      <div id="coachDay" class="hide" style="width:100%;max-width:430px"></div>
+    </div>
+  </div>
 </div>
 
 <script src="js/i18n.js"></script>
@@ -765,6 +835,7 @@
 <script src="js/purchases.js"></script>
 <script src="js/notify.js"></script>
 <script src="js/app.js"></script>
+<script src="js/coach.js"></script>
 </body>
 </html>
 

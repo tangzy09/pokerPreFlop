@@ -45,6 +45,8 @@ const EXPORTS = [
   'FORMATS', 'VARIANTS', 'GAMETYPES', 'gameOf', 'HANDFILTERS',
   'classifyMiss', 'LEAK_TYPES',
   'L', 'tr', 'setLang', 'curLang',
+  'coachPlanDays', 'coachScenes', 'coachAggregate', 'coachVerdict', 'coachBuildPlan',
+  'coachHandsForMinutes', 'COACH_MIN_SAMPLE',
 ];
 
 function loadApp(htmlPath) {
@@ -83,7 +85,8 @@ function loadApp(htmlPath) {
   ctx.globalThis = ctx;
   vm.createContext(ctx);
 
-  const capture = `;globalThis.__app={${EXPORTS.join(',')}};`;
+  // 防御式捕获:逐个 try 取,vm 作用域里未声明的名字(尚未实现的函数)跳过而非抛 ReferenceError。
+  const capture = `;globalThis.__app={};` + EXPORTS.map((n) => `try{globalThis.__app[${JSON.stringify(n)}]=${n};}catch(e){}`).join('');
   vm.runInContext(code + capture, ctx, { filename: 'gto-trainer.bundle.js' });
   return ctx.__app;
 }
