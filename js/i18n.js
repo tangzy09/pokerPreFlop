@@ -32,6 +32,8 @@ const I18N_EN = {
  '面对 4-bet':'Vs 4-bet','你 3bet 被 4bet':'You 3-bet, get 4-bet',
  '挤压':'Squeeze','有人开+跟 · 你反加':'Open + call · you re-raise',
  '冷跟':'Cold-call','非盲位平跟入池':'Flat from non-blind',
+ // —— FORMATS[].label(选择页备用整串,token 也各自可译) ——
+ '现金局 · 深码':'Cash · 100bb deep','锦标赛 · MTT':'Tournament · MTT','面对反加 · 3-bet':'Vs 3-bet','挤压 Squeeze':'Squeeze','冷跟 · 非盲位':'Cold-call · non-blind',
  '⚙ 进阶设置 · 发牌偏好':'⚙ Advanced · deal preference','发牌偏好':'Deal preference','· 练哪类牌':'· which hands',
  // —— deal filters (HANDFILTERS) ——
  '智能':'Smart','弱项优先·系统覆盖':'Weak spots first · full coverage',
@@ -545,26 +547,34 @@ function _updateLangBtn(){
  });
 }
 function setLang(l){ if(l!=='en'&&l!=='zh') return; LANG=l; try{localStorage.setItem('gtoLang',l);}catch(e){} applyI18n(); }
+// 覆盖全部屏的列表（任意一个可见 = 处于菜单/覆盖屏；全 hide = 训练对局界面）
+const _LANG_SCREENS=['homeScreen','startScreen','overScreen','chartScreen','nashScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen','coachScreen'];
 function _mountLangToggle(){
  if(!_hasDOM()) return;
  try{
-  // 主页(homeScreen) + 训练设置页(startScreen) 各挂一个，右上角，跟随内容滚动
+  if(document.getElementById('langToggle')) return;
+  // 单个 body 级固定选择器，任何页面都可切换语言
   const mk=(code,label)=>{
    const seg=document.createElement('button'); seg.type='button'; seg.dataset.lang=code; seg.textContent=label;
    seg.style.cssText='appearance:none;border:0;background:transparent;font:700 12px/1 system-ui;padding:5px 9px;border-radius:7px;cursor:pointer;transition:.15s';
    seg.onclick=()=>{ if(LANG===code) return; try{ if(typeof SFX!=='undefined') SFX.click(); }catch(e){} setLang(code); };
    return seg;
   };
-  [['homeScreen','langToggle2'],['startScreen','langToggle']].forEach(([hostId,tid])=>{
-   if(document.getElementById(tid)) return;
-   const host=document.getElementById(hostId); if(!host) return;
-   const wrap=document.createElement('div'); wrap.id=tid; wrap.title='Language / 语言';
-   wrap.style.cssText='position:absolute;top:calc(10px + env(safe-area-inset-top));right:14px;z-index:5;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
-   wrap.appendChild(mk('zh','中')); wrap.appendChild(mk('en','EN'));
-   host.appendChild(wrap);
-  });
-  _updateLangBtn();
+  const wrap=document.createElement('div'); wrap.id='langToggle'; wrap.title='Language / 语言';
+  wrap.style.cssText='position:fixed;top:calc(7px + env(safe-area-inset-top));right:calc(14px + env(safe-area-inset-right));z-index:150;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
+  wrap.appendChild(mk('zh','中')); wrap.appendChild(mk('en','EN'));
+  document.body.appendChild(wrap);
+  const obs=new MutationObserver(_langBtnVis);
+  _LANG_SCREENS.forEach(id=>{const e=document.getElementById(id); if(e) obs.observe(e,{attributes:true,attributeFilter:['class']});});
+  _langBtnVis(); _updateLangBtn();
  }catch(e){}
+}
+function _langBtnVis(){
+ const b=document.getElementById('langToggle'); if(!b) return;
+ const onMenu=_LANG_SCREENS.some(id=>{const e=document.getElementById(id); return e && !e.classList.contains('hide');});
+ b.style.display='flex';                          // 任何页面都能切换语言
+ // 菜单/覆盖屏：右上角顶部（留白处）；训练对局中：下移到 HUD 第二行(End 行)右侧空区，避开右上角分数三行
+ b.style.top = onMenu ? 'calc(7px + env(safe-area-inset-top))' : 'calc(74px + env(safe-area-inset-top))';
 }
 
 /* boot: scripts sit at end of <body>, so the DOM is ready here. app.js (loaded
