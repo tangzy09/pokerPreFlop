@@ -47,10 +47,11 @@
 - **双语 i18n（默认英文）**：新增 `js/i18n.js`（最先加载），全 UI 中英双语、默认英文、右上角 `中 | EN` 切换并记忆；数据文件保持中文为**唯一来源**，运行期 `L()`/`tr()` 仅做显示翻译（测试固定 `zh`，金快照不变）。
 - **已部署上线**：静态站托管在 EC2（nginx），正式地址 **https://pre-flop.ai-speeds.com/**（Let's Encrypt HTTPS）；`deploy.sh` 一键 push + 服务器 `git pull`。详见 [CLAUDE.md](CLAUDE.md) 的 Deployment 小节。
 - **画像 / 训练计划（Phase 6）**：「统计」页「🎯 个人画像」(风格倾向松/紧 + 打法倾向被动/激进 + 强弱档位) + 「🗓 训练计划」(按需练度排序、一键去练)；纯本地聚合，诚实标注 vs 参考范围、不编造 TAG/LAG。错误分类已细分到 太松/太紧/被动/过激/边缘/ICM（`addMistake` 存真实选择，`classifyMiss` 据此精确分类）。
+- **翻前诊断 + 20 天训练计划（Phase 9）**：主页第 7 张卡「训练计划」——问卷（`coachScenes`）→ 诊断测试（简化 18 手 / 详细 45 手，`coachBuildDiagQueue`）**复用练习的真实牌桌 + 逐题答案解释 + 范围矩阵**（走 `G.diagMode`，`!G.diagMode` 守卫跳过 HP/统计/错题堆/升级）→ 个性化报告（评级 + Top 漏洞 + 优势 + 20 天计划，`coachAggregate`/`coachVerdict`）→ 每日可执行卡片 + 打卡 streak（`coachBuildPlan`/`coachMarkDayDone`）。新文件 `js/coach.js`（最后加载）。**诊断 + 报告免费，Start Day 1 计划执行 Pro**；诚实标注「vs 参考范围 / not solver-exact / 基于 {n} 手」，不编造 EV/频率/TAG-LAG。
 - **翻后胜率（带公共牌）**：「算胜率」计算器现支持填**牌面**（翻牌/转牌/河牌）算**翻后 equity**（`rangeEquityBoard`，纯枚举/蒙特卡洛，自动按组合加权 + 跳过冲突）；留空则仍是翻前全下。
 - **个性化漏洞分析（Phase 5）**：「统计」页新增「🔍 你的漏洞」——从错题堆按类型（太松/太紧/边缘/ICM）聚合排序 + 最常踩的坑 + 一键去练（`classifyMiss` 仅凭 spot+hand 判定，旧数据也能分析）。
 - **离线 HU 翻后 CFR+ solver 链**（`tools/solver/`，纯 Python）仍保留、由 `test/solver-spots.test.js` 验证，产物 `js/data/postflop-spots.js`（`python tools/gen-postflop-spots.py` 重算）。**App 内的「翻后GTO」展示页已移除**（产品决定）——离线链与数据留作管线/测试，不再进浏览器。
-- 工程：多文件拆分、零依赖 Node 回归测试（契约不变量 + 金快照 + equity/Nash + 翻后数据/board-equity 验证，39 项）、git。
+- 工程：多文件拆分、零依赖 Node 回归测试（契约不变量 + 金快照 + equity/Nash + 翻后数据/board-equity + coach 诊断/计划验证，47 项）、git。
 
 ---
 
@@ -134,6 +135,7 @@
 | **Phase 8（额外）** ✅ | **HU 翻后 CFR+ solver 链**（`tools/solver/`，离线 Python）：CFR 引擎→河→多街→向量化→牌面抽象→CFR+，全程对已知答案验证；其产物经 `gen-postflop-spots.py` 生成 `js/data/postflop-spots.js`（离线产物，由 `test/solver-spots.test.js` 验证；**App 内展示页已移除**） | 详见 `tools/solver/README.md`。诚实边界：HU、单一下注尺寸、无加注；端到端真实翻前图需联合求解（开放难题），故未上线 |
 | **Phase 5** ✅ | **Leak Analyzer + 错误分类**：「🔍 你的漏洞」——错误类型(太松/太紧/被动/过激/边缘/ICM) + 最常踩的坑 + 一键去练 | 吃 `reviewPile`；`addMistake` 存真实选择，`classifyMiss` 据此精确分类，旧数据退回手型启发 |
 | **Phase 6** ✅ | **个人画像 + 训练计划**：「🎯 画像」(松紧/被动激进倾向 + 强弱档) + 「🗓 计划」(需练度排序 + 去练) | 纯本地聚合；标注 vs 参考范围、不编造 TAG/LAG |
+| **Phase 9** ✅ | **翻前诊断 + 20 天训练计划**：问卷 → 诊断测试(简化 18/详细 45,复用 `G.diagMode` 真实牌桌+逐题反馈) → 个性化报告(评级+Top漏洞+优势+20天计划) → 每日卡片+打卡 streak | `js/coach.js`；诊断+报告免费、Pro 计划执行；诚实 vs 参考范围、带样本量、不编 EV/频率 |
 | **Phase 7** | 自算/导入真数据 → `freqTable`。✅ **已自算 Nash：9 人 8–20bb 推弃、6 人 10–20bb、9 人 BB 跟 BTN 全下、单挑 HU 5–25bb**（`js/equity.js`+`tools/pushfold.js`+`gen-pushfold.js`+`gen-hu-pushfold.js`+`monotonic.js`）；待办：GTO Wizard/CSV 导入器 | 逐 spot 升 `confidence:precise` |
 | **后续** | ICM 引擎、手牌历史导入、Speed Training 统计 | 🟡 较大 |
 

@@ -39,6 +39,13 @@ js/app.js                persistence, audio (synth SFX w/ master lowpass+compres
                          entitlements.active['pro']) + spotLocked(场景前半免费/后半锁) + wireNotify, boot.
                          All user-facing strings go through L()/tr(); the in-app 翻后GTO screen + the
                          bottom 图表 nav entry are removed (postflop-spots.js no longer <script>-loaded)
+js/coach.js              LOADS LAST. 翻前诊断 + 20 天训练计划 (主页第7张卡 homePlan → coachOpen).
+                         问卷 coachScenes(onboard) → 诊断测试 (简化18/详细45, coachBuildDiagQueue) 走
+                         G.diagMode 复用练习的真实牌桌/发牌/逐题反馈/范围矩阵 (app.js 的 nextHand/resolve
+                         里用 !G.diagMode 守卫跳过 HP/统计/错题堆/升级/结算; _coachDiagQueue/_coachDiagPos
+                         为模块级状态) → coachFinishDiagnosis 聚合 (coachAggregate/coachVerdict) 出报告 →
+                         coachBuildPlan 20 天每日计划 (coachMarkDayDone 打卡 + streak). 诊断+报告免费,
+                         Start Day 1 计划执行 Pro. 诚实红线: 全部 vs 参考范围、标 not solver-exact、不编 EV/频率
 tools/                   offline data computation — NOT shipped to the browser:
   pushfold.js            (Node) HU + multiway push/fold Nash solvers (buildEqMatrix, solveHU, solveRing); require()s ../js/equity
   monotonic.js           (Node) enforceMonotonic(table) — kills threshold-noise non-monotonicity in a
@@ -56,7 +63,7 @@ tools/                   offline data computation — NOT shipped to the browser
   solver/                (Python) the experimental HU postflop CFR/CFR+ solver chain; see solver/README.md
 ```
 
-The scripts share one global scope (browser behaviour for classic scripts); load order is `i18n → equity → ranges → modes → packs → cap → purchases → notify → app` and is enforced by the `<script src>` order (`i18n.js` must be first so `L`/`tr` exist for everyone). `js/equity.js` is the one file used both in the browser (plain globals) and by Node tools (`require`, via the guarded `module.exports`). An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
+The scripts share one global scope (browser behaviour for classic scripts); load order is `i18n → equity → ranges → modes → packs → cap → purchases → notify → app → coach` and is enforced by the `<script src>` order (`i18n.js` must be first so `L`/`tr` exist for everyone; `coach.js` loads last so it can call into `app.js`'s game loop — `nextHand`/`resolve`/`renderHUD`/`G` — by shared global scope). `js/equity.js` is the one file used both in the browser (plain globals) and by Node tools (`require`, via the guarded `module.exports`). An earlier single-file copy is archived at `C:\Users\tangz\Downloads\gto-trainer_1.html`.
 
 ## Running & verifying (no build step)
 

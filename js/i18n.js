@@ -17,7 +17,7 @@ function curLang(){ return LANG; }
 const I18N_EN = {
  // —— HUD / controls ——
  '退出训练':'Exit training','结束训练 · 查看战绩':'End training · view results','结束':'End',
- '复习模式':'Review mode','下一步 →':'Next →','查看结果 →':'See result →',
+ '复习模式':'Review mode','下一步 →':'Next →','查看结果 →':'See result →','查看报告 →':'See report →',
  // —— nav ——
  '错题':'Mistakes','图表':'Charts','算胜率':'Equity','统计':'Stats',
  // —— start screen ——
@@ -464,7 +464,7 @@ _tpl('pwWhyPlan','20 天个性化训练计划是 Pro 功能','The 20-day persona
 // 每日卡片
 _tpl('coachDayN','Day {d} / 20','Day {d} / 20');
 _tpl('coachStreak','🔥 {n} 天','🔥 {n} days');
-_tpl('coachDaySubtitle','vs 开局 · 你今天的主题','vs opens · your theme today');
+_tpl('coachDaySubtitle','你今天的主题','Your focus today');
 _tpl('coachTodayTask','今日任务','Today\'s tasks');
 _tpl('coachMainTraining','主题训练 · {n} 手','Theme drill · {n} hands');
 _tpl('coachSmartDeal','智能出题','Smart dealing');

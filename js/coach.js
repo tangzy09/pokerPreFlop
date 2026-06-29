@@ -476,7 +476,7 @@ function coachRenderDay(){
   if(goBtn) goBtn.onclick=()=>coachStartDayTraining(day);
 
   const markBtn=document.getElementById('coachMarkDone');
-  if(markBtn) markBtn.onclick=()=>coachMarkDayDone(plan.curDay>=0?1:0);
+  if(markBtn) markBtn.onclick=()=>coachMarkDayDone();
 
   const resetBtn=document.getElementById('coachResetAll');
   if(resetBtn) resetBtn.onclick=()=>{
@@ -540,12 +540,12 @@ function coachMarkDayDone(){
   const plan=coachLoadPlan(); if(!plan) return;
   const d=plan.days[plan.curDay]; if(!d) return;
   d.done=true;
-  // streak 连续逻辑：lastDoneDate=今天 → 续，否则重置为 1
+  // streak 连续逻辑：同一天重复打卡不重复计数；昨天打过→续；断更→重置为 1
   const today=new Date().toDateString();
-  if(plan.lastDoneDate){
-    const last=new Date(plan.lastDoneDate);
-    const now=new Date(today);
-    const diff=(now-last)/(1000*60*60*24);
+  if(plan.lastDoneDate===today){
+    plan.streak=plan.streak||1; // 当天已计过，保持不变(避免一天多卡虚高连胜)
+  } else if(plan.lastDoneDate){
+    const diff=Math.round((new Date(today)-new Date(plan.lastDoneDate))/(1000*60*60*24));
     plan.streak = (diff<=1) ? (plan.streak||0)+1 : 1;
   } else {
     plan.streak=1;
@@ -570,6 +570,7 @@ try{
 // 诊断出题:从 scenes 的 picks 里,按场景均衡抽够 total 手。
 // 每手 {sceneKey, format, variant, t, hand}。
 function coachBuildDiagQueue(scenes, total){
+  if(!scenes || !scenes.length) return []; // 防 total/0=Infinity:无可用场景→空队列(调用方据此提前结束)
   const perScene = Math.max(1, Math.round(total / scenes.length));
   const queue = [];
   scenes.forEach(s => {
@@ -631,7 +632,7 @@ function coachFinishDiagnosis(){
   G.diagMode=false; G.over=true; G.busy=true;
   _coachExitTable();
   const scr=document.getElementById('coachScreen'); if(scr) scr.classList.remove('hide');
-  const agg = coachAggregate(G.diagResults, G.diagScenes);
+  const agg = coachAggregate(G.diagResults||[], G.diagScenes||[]);
   const verdict = coachVerdict(agg, G.diagVariant);
   const diagnosis = { variant:G.diagVariant, agg, verdict, ts:0 };
   coachSaveDiagnosis(diagnosis);

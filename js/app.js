@@ -573,7 +573,7 @@ function resolve(choice,btn,timedOut){
   else if(G.isMix){grade='不准';gcolor='var(--inacc)';G.q.inacc++;hpHit=1;}
   else if((shouldPlay&&choice==='fold'&&PREMIUM.has(hand)) || (correct[0]==='fold'&&PREMIUM.has(hand)===false&&choice!=='fold'&&isTrash(hand))){
    grade='漏着';gcolor='var(--blunder)';G.q.blunder++;hpHit=2;
-   if(shouldPlay&&choice==='fold'&&PREMIUM.has(hand))award('巨牌漏着','😱');
+   if(!G.diagMode&&shouldPlay&&choice==='fold'&&PREMIUM.has(hand))award('巨牌漏着','😱'); // 诊断模式中性:不弹成就(与 578/615/623 守卫一致)
   } else {grade='失误';gcolor='var(--mistake)';G.q.mistake++;hpHit=1;}
   if(!G.reviewMode && !G.diagMode)G.hp-=hpHit;
   SFX.wrong();buzz([60,30,60]);
