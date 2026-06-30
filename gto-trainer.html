@@ -557,7 +557,10 @@
       </div>
     </details>
 
-    <div class="navrow">
+    <!-- 训练设置屏底部不再显示这排快捷入口(主页 home cards 已是入口);保留 DOM:
+         home cards 经 click('reviewBtn'/'nashBtn'/'calcBtn'/'statsBtn') 代理,且多处 onclick 绑定无 null 守卫,
+         故隐藏而非删除——display:none 元素的 .click() 仍会触发 onclick。 -->
+    <div class="navrow" style="display:none">
       <button class="navbtn" id="reviewBtn"><span class="ic">📕</span><span class="lbl">错题</span></button>
       <button class="navbtn" id="nashBtn"><span class="ic">♠</span><span class="lbl" id="nashBtnLbl">Nash图</span></button>
       <button class="navbtn" id="calcBtn"><span class="ic">🧮</span><span class="lbl">算胜率</span></button>

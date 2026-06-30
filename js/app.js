@@ -987,7 +987,8 @@ document.getElementById('overReviewBtn').onclick=openReviewDetail;
 document.getElementById('reviewAllBtn').onclick=()=>{ if(!reviewPile.length){toast(tr('pileEmptyToast'),'📕',true);return;} startReview(); };
 document.getElementById('reviewBack').onclick=()=>{SFX.click();
  document.getElementById('reviewScreen').classList.add('hide');
- document.getElementById('startScreen').classList.remove('hide');};
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('homeScreen').classList.remove('hide');};
 
 /* ---- career stats page ---- */
 /* ---- Phase 5: Leak Analyzer — classify the review-pile misses (all vs 参考范围) ---- */
@@ -1116,7 +1117,8 @@ function renderStats(){
 }
 document.getElementById('statsBack').onclick=()=>{SFX.click();
  document.getElementById('statsScreen').classList.add('hide');
- document.getElementById('startScreen').classList.remove('hide');};
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('homeScreen').classList.remove('hide');};
 document.getElementById('statsBtn').onclick=openStats;
 updateReviewBtns();
 
@@ -1326,10 +1328,11 @@ function renderNash(){
 function openNash(){ try{aInit();SFX.click();}catch(e){} document.getElementById('nashScreen').classList.remove('hide'); renderNash(); }
 try{ document.getElementById('nashBtnLbl').textContent=tr('nashBtn'); }catch(e){}
 document.getElementById('nashBtn').onclick=()=>{ if(!isPro()){showPaywall(tr('pwWhyNash'));return;} openNash(); };
-document.getElementById('nashBack').onclick=()=>{ try{SFX.click();}catch(e){} document.getElementById('nashScreen').classList.add('hide'); };
+document.getElementById('nashBack').onclick=()=>{ try{SFX.click();}catch(e){} document.getElementById('nashScreen').classList.add('hide'); document.getElementById('startScreen').classList.add('hide'); document.getElementById('homeScreen').classList.remove('hide'); };
 document.getElementById('calcBack').onclick=()=>{SFX.click();
  document.getElementById('calcScreen').classList.add('hide');
- document.getElementById('startScreen').classList.remove('hide');};
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('homeScreen').classList.remove('hide');};
 document.getElementById('calcRun').onclick=runCalc;
 document.getElementById('calcBoard').addEventListener('input',updateCalcCounts);
 document.getElementById('calcHero').addEventListener('input',updateCalcCounts);
