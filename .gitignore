@@ -10,6 +10,7 @@ Thumbs.db
 # scratch
 /tmp/
 *.log
+_uismoke_*.html
 
 # local deploy script (contains EC2 host + key path — keep out of the public repo)
 /deploy.sh

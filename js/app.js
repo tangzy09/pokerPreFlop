@@ -949,7 +949,10 @@ function endTraining(){
 document.getElementById('endBtn').onclick=endTraining;
 
 /* ---- review detail page ---- */
+let _reviewFrom='homeScreen'; // 错题覆盖屏关闭后回到的来源屏:从结算页进→回结算页,否则→主页
 function openReviewDetail(){aInit();SFX.click();
+ // 记住来源(在 hide overScreen 之前):结算页可见说明是从「📕 错题复习堆」进的
+ _reviewFrom = document.getElementById('overScreen').classList.contains('hide') ? 'homeScreen' : 'overScreen';
  renderReviewDetail();
  document.getElementById('startScreen').classList.add('hide');
  document.getElementById('overScreen').classList.add('hide');
@@ -988,7 +991,7 @@ document.getElementById('reviewAllBtn').onclick=()=>{ if(!reviewPile.length){toa
 document.getElementById('reviewBack').onclick=()=>{SFX.click();
  document.getElementById('reviewScreen').classList.add('hide');
  document.getElementById('startScreen').classList.add('hide');
- document.getElementById('homeScreen').classList.remove('hide');};
+ document.getElementById(_reviewFrom).classList.remove('hide');}; // 回来源屏(结算页/主页)
 
 /* ---- career stats page ---- */
 /* ---- Phase 5: Leak Analyzer — classify the review-pile misses (all vs 参考范围) ---- */

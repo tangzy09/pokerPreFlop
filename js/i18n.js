@@ -25,7 +25,10 @@ const I18N_EN = {
  '游戏类型':'Game type','场景':'Scenario','开始训练':'Start Training','位置':'Position','筹码深度 (bb)':'Stack depth (bb)','前注':'Ante',
  '现金局':'Cash','100bb 深码':'100bb deep','锦标赛 MTT':'Tournament MTT','浅码 + ICM':'Short stacks + ICM',
  '锦标赛':'Tournament','推弃 + ICM':'Push/fold + ICM','错题复习':'Mistakes','复习答错的牌':'Review your misses','Nash 推弃图':'Nash Charts','每手 EV':'Per-hand EV','实时算牌':'Live equity','画像 + 漏洞':'Profile + leaks',
- '训练计划':'Training Plan','诊断 + 20 天':'Diagnosis + 20 days','实力诊断':'Strength Test',
+ '训练计划':'Training Plan','诊断 + 20 天':'Diagnosis + 20 days','翻前诊断 + 20 天个性化计划':'Preflop diagnosis + 20-day plan','实力诊断':'Strength Test',
+ // —— 静态占位文本(多由 JS 动态覆盖;补译以消除英文模式初次渲染的中文闪现,并通过 HTML 静态扫描) ——
+ '现金 6人':'Cash 6-max','Nash图':'Nash','📕 错题复习堆 (0)':'📕 Mistakes pile (0)','▶ 开始复习全部':'▶ Review all',
+ '统计仅在正常训练时累计（复习模式不计入）。数据存在浏览器本地。':'Stats accrue only during normal training (review mode excluded). Data is stored locally in your browser.',
  '开局 + 防守':'Open + Defense','开局加注 · 大盲防守':'RFI · BB defense',
  '开局范围':'Open ranges','按深度 / 人数':'By depth / players',
  '面对 3-bet':'Vs 3-bet','你开局被反加':'You open, get 3-bet',
