@@ -9,6 +9,7 @@
     "test:solver": "python tools/solver/run_all.py",
     "test:ui": "node test/ui-smoke.js",
     "test:all": "node --test \"test/*.test.js\" && node test/ui-smoke.js && python tools/solver/run_all.py",
+    "shots": "node tools/gen-store-shots.js",
     "build:www": "node tools/build-www.js",
     "app:sync": "node tools/build-www.js && cap copy",
     "app:android": "node tools/build-www.js && cap copy android && cap open android"

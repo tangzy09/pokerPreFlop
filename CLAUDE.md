@@ -17,7 +17,8 @@ gto-trainer.html         markup + ~650 lines CSS + INLINED fonts (Space Grotesk/
 js/i18n.js               LOADS FIRST. Bilingual display layer (English default + 中文 toggle).
                          The DATA files stay Chinese = canonical source; translation is display-only:
                          L("中文")→en/zh by source lookup; tr(key,vars)→keyed bilingual templates;
-                         applyI18n() walks static HTML; floating 🌐 中|EN toggle lives in #startScreen
+                         applyI18n() walks static HTML; body-level fixed 中|EN segmented selector on
+                         EVERY screen + the in-hand view (drops below the HUD score during a hand)
 js/equity.js             dual-loaded equity engine (evaluate7, equityExact, classEquity,
                          rangeEquity, rangeEquityBoard = equity on a given 3/4/5-card board);
                          also require()d by tools/ — module.exports is guarded
@@ -38,7 +39,9 @@ js/app.js                persistence, audio (synth SFX w/ master lowpass+compres
                          漏洞分析(Leak Analyzer) UI + Pro 门控(isPro: web 恒 true=全解锁 / native 读 RevenueCat
                          entitlements.active['pro']) + spotLocked(场景前半免费/后半锁) + wireNotify, boot.
                          All user-facing strings go through L()/tr(); the in-app 翻后GTO screen + the
-                         bottom 图表 nav entry are removed (postflop-spots.js no longer <script>-loaded)
+                         bottom 图表 nav entry are removed (postflop-spots.js no longer <script>-loaded).
+                         Nav: homeScreen (主页卡片) is the single entry — cards goStart() then proxy the
+                         startScreen buttons; mistakes/nash/stats/equity back-buttons return to homeScreen
 js/coach.js              LOADS LAST. 翻前诊断 + 20 天训练计划 (主页第7张卡 homePlan → coachOpen).
                          问卷 coachScenes(onboard) → 诊断测试 (简化18/详细45, coachBuildDiagQueue) 走
                          G.diagMode 复用练习的真实牌桌/发牌/逐题反馈/范围矩阵 (app.js 的 nextHand/resolve
@@ -57,6 +60,9 @@ tools/                   offline data computation — NOT shipped to the browser
                          (removes the Google Fonts CDN — fully offline). Rerun if the font set changes.
   gen-notify-icon.js     (Python/PIL) white ♠ status-bar icon ic_stat_notify (5 densities) for notifications
   gen-store-assets.py    (Python/PIL) Google Play graphics → store-assets/ (icon, feature graphic, screenshots)
+  gen-store-shots.js     (Node) headless Chrome/Edge 截真实页面 → store-assets/ 商店截图(new-1..6-*.png
+                         1080×2280:主页中/英·训练·反馈·Nash·诊断报告)+ feature-1024x500.png(截
+                         store-assets/_feature.html);复用 ui-smoke 注入机制;无浏览器则 SKIP。npm run shots
   gen-postflop-spots.py  (Python) solves canonical HU postflop spots with tools/solver (vectorized CFR+)
                          and writes js/data/postflop-spots.js (validated by test/solver-spots.test.js) —
                          kept as an offline artifact; no longer <script>-loaded (the 翻后GTO screen was removed)
@@ -107,7 +113,7 @@ Read these relationships before editing:
 - `L("中文")` → English when `LANG==='en'`, the original Chinese when `'zh'` (lookup by the Chinese source string; unknown strings fall back to Chinese). Used for short labels, action names, spot `name`/`who` (the latter via `Lwho`/`Lparts` which split on ` · ` / tokens).
 - `tr(key, vars)` → keyed bilingual templates with `{var}` interpolation, for the interpolated prose (`reasonFor`, feedback, paywall) and inline-`<b>` HTML blocks. **Named `tr`, not `t`, because app.js uses `t` for the spot object.**
 - `applyI18n()` walks static HTML (`data-i18n-html` keyed blocks + simple text nodes) and is re-run on language switch; `setLang()` persists `gtoLang` to localStorage and calls `rerenderUI()` (defined in app.js) to rebuild dynamic UI.
-- Default is **English**; a floating `中 | EN` toggle is mounted inside `#startScreen` (scrolls with the page).
+- Default is **English**; the `中 | EN` selector is a **body-level `position:fixed` segmented toggle shown on every screen** (and the in-hand training view) — it highlights the active language and, during an active hand, drops to the HUD's second row (below the score/level lines) so it never overlaps the score. `_mountLangToggle()` builds it once on `<body>`; a `MutationObserver` on every screen's `class` drives `_langBtnVis()` to reposition it (menu = top-right; in-hand = below the HUD). Earlier it was inlined per-screen in `#startScreen`/`#homeScreen`, which left most screens with no selector — keep it body-level.
 - **Tests are pinned to `zh`** (`app.setLang('zh')` in `regression.test.js`) so the golden snapshot + prose assertions read the canonical language. `load-app.js` exports `L`/`tr`/`setLang`/`curLang`. Because data stays Chinese, adding i18n did **not** change the snapshot.
 
 ### Game loop & state
@@ -138,7 +144,7 @@ The same web app is also wrapped as a **Capacitor 8** Android app (`android/`, `
 - **Signing (do not leak):** release is signed with `android/upload-keystore.jks` (creds in `android/keystore.properties`). **Both are gitignored and MUST NEVER be committed — the repo is public.** Back up the .jks + passwords offline; losing them blocks future app updates.
 - **In-app purchases (RevenueCat):** `js/purchases.js` → `window.Pay`. **Two subscriptions** (the one-time `pro_lifetime` buyout was **removed 2026-06-23**): `pro_yearly` ($12.99/yr — paywall primary, `Pay.buy('year')`, `#pwYear`) + `pro_monthly` ($4.99/mo, base plan `monthly` → `pro_monthly:monthly`, `Pay.buy('sub')`, `#pwSub`). Both attached to the `pro` entitlement and in the `default` offering **set as Current** (code reads `offerings.current`; `MATCH.year` hits packageType `ANNUAL`, `MATCH.sub` hits `MONTHLY`). `USE_TEST_STORE` (purchases.js top): `false` = real Play (`goog_` key, current), `true` = RevenueCat Test Store sandbox. **Test purchases with a Play License-testing account, else you are charged for real.** Gotcha: a product not attached to the entitlement → purchase succeeds + card charged but `entitlements.active['pro']` stays empty + no unlock (fix the attach, then 恢复购买/restart re-activates — no re-buy).
 - **Local notifications:** `js/notify.js` → `window.Notify` via `@capacitor/local-notifications`. Daily training reminder (user-settable time via `#notifyTime` → `Notify.enable(h,m)`, default 20:00; inexact alarm → no SCHEDULE_EXACT_ALARM); toggle + time picker in startScreen 进阶设置 (native only, browser hides it); `reschedule()` on boot re-arms it after update/reinstall. White-♠ status-bar icon `ic_stat_notify` (`tools/gen-notify-icon.js`) wired via `capacitor.config.json` `plugins.LocalNotifications.smallIcon`.
-- **Store assets:** `store-assets/` (Play graphics via `tools/gen-store-assets.py` + trilingual listing copy), `privacy.html` (live at /privacy.html), `ANDROID_SETUP.md` (launch manual).
+- **Store assets:** `store-assets/` — screenshots + feature graphic via `tools/gen-store-shots.js` (`npm run shots`, headless Chrome/Edge of the live UI); trilingual listing copy (title/short/full × en·zh·ja + ASO keywords) in `store-assets/listing.md`; `icon-512.png`; `_feature.html` is the editable feature-graphic source. (Older `tools/gen-store-assets.py` PIL pipeline is superseded.) Also `privacy.html` (live at /privacy.html), `ANDROID_SETUP.md` (launch manual).
 
 ## Deployment (live site)
 
