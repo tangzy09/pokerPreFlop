@@ -563,6 +563,12 @@ function fbCompareHtml(t,hand,correct,choice,ok,timedOut){
    html+=`<span class="fb-cmp-freq"><span class="fb-cmp-bar">${bar}</span></span><span class="fb-cmp-freq">${lab}</span>`;
   }
  }
+ // 求解器真 EV(推弃档船运的每手 chip-EV,相对弃牌;§6:唯一允许显示 EV 的场景)
+ if(t.evTable && t.evTable[hand]!=null){
+  const ev=t.evTable[hand], actL=L(nm[t.evAct]||t.evAct);
+  const col=ev>0.049?'var(--best)':(ev<-0.049?'var(--raise)':'var(--gold)');
+  html+=`<span class="fb-cmp-freq" style="justify-content:center">${tr('fbEvLine',{act:actL,ev:(ev>0?'+':'')+ev.toFixed(2),c:col})}</span>`;
+ }
  return html;
 }
 
@@ -589,7 +595,14 @@ function resolve(choice,btn,timedOut){
   const sk=FORMATS[G.format].tag+'·'+VARIANTS[G.format][G.variant].short;
   STORE.statsBySpot=STORE.statsBySpot||{};
   const e=STORE.statsBySpot[sk]||{h:0,c:0};
-  e.h++; if(ok)e.c++; STORE.statsBySpot[sk]=e; persist();
+  e.h++; if(ok)e.c++; STORE.statsBySpot[sk]=e;
+  // 按天趋势采集（准确率趋势图的数据地基；只记正常训练,采集期之前的历史不可回溯）
+  const day=new Date(), dk=day.getFullYear()+'-'+String(day.getMonth()+1).padStart(2,'0')+'-'+String(day.getDate()).padStart(2,'0');
+  STORE.trend=STORE.trend||[];
+  let te=STORE.trend[STORE.trend.length-1];
+  if(!te||te.d!==dk){ te={d:dk,h:0,c:0}; STORE.trend.push(te); if(STORE.trend.length>180)STORE.trend.shift(); } // 保留最近 180 天
+  te.h++; if(ok)te.c++;
+  persist();
  }
 
  // grade
@@ -1150,11 +1163,36 @@ function renderPlan(preview){
 }
 // 未付费时三块走「尝鲜」：免费露首行（画像风格 / 最大漏洞），其余模糊 + 浮层解锁；计划整卡模糊。基础统计仍全免费。
 function openStats(){aInit();SFX.click();
- renderStats();
+ renderStats();renderTrend();
  const pv=!isPro();
  renderProfile(pv);renderLeak(pv);renderPlan(pv);
  document.getElementById('startScreen').classList.add('hide');
  document.getElementById('statsScreen').classList.remove('hide');
+}
+/* ---- 准确率趋势（按天,采集自 resolve;免费=留存钩子）---- */
+function renderTrend(){
+ const body=document.getElementById('trendBody'); if(!body)return;
+ const tr_=(STORE.trend||[]).filter(e=>e.h>0);
+ if(tr_.length<2){ body.innerHTML=`<p class="cnote" style="margin:0">${tr('trendEmpty')}</p>`; return; }
+ const days=tr_.slice(-30);                                   // 图上最多 30 天
+ const W=400,H=120,PL=30,PR=6,PT=10,PB=22, iw=W-PL-PR, ih=H-PT-PB;
+ const n=days.length, maxH=Math.max(...days.map(e=>e.h),1);
+ const x=i=>PL+(n===1?iw/2:i*iw/(n-1));
+ const y=p=>PT+ih-(p/100)*ih;
+ // 手数柱(背景,淡) + 准确率折线(前景)
+ const bw=Math.min(16,iw/n*0.55);
+ const bars=days.map((e,i)=>`<rect x="${(x(i)-bw/2).toFixed(1)}" y="${(PT+ih-(e.h/maxH)*ih).toFixed(1)}" width="${bw.toFixed(1)}" height="${((e.h/maxH)*ih).toFixed(1)}" rx="2" fill="rgba(232,198,106,.14)"/>`).join('');
+ const pts=days.map((e,i)=>`${x(i).toFixed(1)},${y(Math.round(e.c/e.h*100)).toFixed(1)}`);
+ const dots=days.map((e,i)=>{const p=Math.round(e.c/e.h*100);
+  return `<circle cx="${x(i).toFixed(1)}" cy="${y(p).toFixed(1)}" r="3" fill="var(--best)"/>`;}).join('');
+ const grid=[0,50,100].map(p=>`<line x1="${PL}" y1="${y(p).toFixed(1)}" x2="${W-PR}" y2="${y(p).toFixed(1)}" stroke="rgba(255,255,255,.08)"/>`
+  +`<text x="${PL-5}" y="${(y(p)+3).toFixed(1)}" text-anchor="end" font-size="8.5" fill="var(--muted)">${p}</text>`).join('');
+ const lbl=(i)=>days[i].d.slice(5).replace('-','/');
+ const xl=[0,n-1].filter((v,i,a)=>a.indexOf(v)===i).map(i=>`<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="8.5" fill="var(--muted)">${lbl(i)}</text>`).join('');
+ const last=days[n-1], lastAcc=Math.round(last.c/last.h*100);
+ body.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">${grid}${bars}`
+  +`<polyline points="${pts.join(' ')}" fill="none" stroke="var(--best)" stroke-width="2" stroke-linejoin="round"/>${dots}${xl}</svg>`
+  +`<p class="cnote" style="margin:6px 0 0">${tr('trendNote',{n:tr_.length,acc:lastAcc,h:last.h})}</p>`;
 }
 function renderStats(){
  const st=STORE.stats||{};const bySpot=STORE.statsBySpot||{};
@@ -1256,7 +1294,8 @@ document.getElementById('aboutBack').onclick=()=>{SFX.click();
  document.getElementById('startScreen').classList.remove('hide');};
 document.getElementById('guideBack').onclick=()=>{SFX.click();
  document.getElementById('guideScreen').classList.add('hide');
- document.getElementById('startScreen').classList.remove('hide');};
+ document.getElementById('startScreen').classList.add('hide');
+ document.getElementById('homeScreen').classList.remove('hide');};
 
 /* ---- Range vs Range 胜率计算器 (Phase 4) — real Monte-Carlo equity, zero data risk ---- */
 const CALC_SAMPLES=60000;
@@ -1460,7 +1499,63 @@ function wireNotify(){
 try{ wireNotify(); }catch(e){}
 try{ if(typeof Notify!=='undefined') Notify.reschedule(); }catch(e){}
 
-/* ======== 主页菜单：6 个入口复用现有功能，不改任何现有逻辑 ======== */
+/* ======== 推弃特训:快速选档直达(全 precise 档,反馈带求解器真 EV) ======== */
+document.getElementById('pushBack').onclick=()=>{SFX.click();
+ document.getElementById('pushScreen').classList.add('hide');
+ document.getElementById('homeScreen').classList.remove('hide');};
+document.querySelectorAll('#pushScreen .opt[data-pv]').forEach(b=>{
+ b.onclick=()=>{ SFX.click();
+  document.getElementById('pushScreen').classList.add('hide');
+  guideLaunch('mtt', b.dataset.pv);                          // 复用导览的直达逻辑
+ };
+});
+
+/* ======== 学习路径:导览页(决策树)注入按 format 聚合的真实准确率 ======== */
+function renderGuideAcc(){
+ const bySpot=STORE.statsBySpot||{};
+ document.querySelectorAll('#guideScreen .gd-node').forEach(node=>{
+  const fmt=node.dataset.fmt; if(!fmt||!FORMATS[fmt])return;
+  const pre=FORMATS[fmt].tag+'·';
+  let h=0,c=0; Object.keys(bySpot).forEach(k=>{ if(k.startsWith(pre)){h+=bySpot[k].h;c+=bySpot[k].c;} });
+  let chip=node.querySelector('.gd-acc');
+  if(!chip){ chip=document.createElement('span'); chip.className='gd-acc';
+   const b=node.querySelector('.gd-txt b'); if(b)b.appendChild(chip); else node.querySelector('.gd-txt').appendChild(chip); }
+  if(!h){ chip.textContent=tr('pathNew'); chip.style.color='var(--muted)'; }
+  else { const acc=Math.round(c/h*100);
+   chip.textContent=`${acc}% · ${h}`;
+   chip.style.color = acc>=80?'var(--best)':acc>=60?'var(--gold)':'var(--mistake)'; }
+ });
+}
+
+/* ======== 新手引导(首启一次,3 步;任何关闭都不再弹) ======== */
+function maybeIntro(){
+ try{
+  if(STORE.seenIntro) return;
+  let th=0; Object.values(STORE.statsBySpot||{}).forEach(e=>{th+=e.h;});
+  if(th>0){ STORE.seenIntro=1; persist(); return; }           // 老用户不打扰
+  const seen=()=>{ STORE.seenIntro=1; persist(); };
+  const ov=document.createElement('div'); ov.className='intro-ov'; ov.id='introOv';
+  const card=document.createElement('div'); card.className='intro-card'; ov.appendChild(card);
+  document.body.appendChild(ov);
+  let step=0;
+  const close=()=>{ seen(); ov.remove(); };
+  const render=()=>{
+   const dots=[0,1,2].map(i=>`<i class="${i===step?'on':''}"></i>`).join('');
+   const body=tr('intro'+step);
+   const btns = step<2
+    ? `<button class="ib" id="inSkip">${tr('introSkip')}</button><button class="ib pri" id="inNext">${tr('introNext')}</button>`
+    : `<button class="ib" id="inLook">${tr('introLook')}</button><button class="ib pri" id="inGo">${tr('introGo')}</button>`;
+   card.innerHTML=body+`<div class="intro-dots">${dots}</div><div class="intro-btns">${btns}</div>`;
+   const on=(id,fn)=>{ const el=card.querySelector('#'+id); if(el)el.onclick=()=>{ try{SFX.click();}catch(e){} fn(); }; };
+   on('inSkip',close); on('inLook',close);
+   on('inNext',()=>{ step++; render(); });
+   on('inGo',()=>{ close(); guideLaunch('cash','6'); });      // 第一课:现金 6 人 RFI+防守
+  };
+  render();
+ }catch(e){}
+}
+
+/* ======== 主页菜单：入口复用现有功能，不改任何现有逻辑 ======== */
 (function(){
  const home=document.getElementById('homeScreen'), start=document.getElementById('startScreen');
  if(!home||!start) return;
@@ -1475,9 +1570,12 @@ try{ if(typeof Notify!=='undefined') Notify.reschedule(); }catch(e){}
  bind('homeEquity',()=>{ goStart(); click('calcBtn'); });
  bind('homeStats', ()=>{ goStart(); click('statsBtn'); });
  bind('homePlan',  ()=>{ if(typeof coachOpen==='function') coachOpen(); });
+ bind('homePush',  ()=>{ home.classList.add('hide'); document.getElementById('pushScreen').classList.remove('hide'); });
+ bind('homePath',  ()=>{ renderGuideAcc(); home.classList.add('hide'); document.getElementById('guideScreen').classList.remove('hide'); });
  bind('homeBack',  ()=>{ start.classList.add('hide'); home.classList.remove('hide'); });
  // 已解锁（网页恒解锁 / 已购 Pro）就去掉主页的 PRO 徽章——只在真正锁定时才显示
  try{ if(typeof isPro==='function' && isPro()) home.querySelectorAll('.hc-pro').forEach(b=>b.remove()); }catch(e){}
  // 启动时显示主页（startScreen 退居训练设置页）
  home.classList.remove('hide'); start.classList.add('hide');
+ maybeIntro();                                                // 新手引导(首启一次)
 })();

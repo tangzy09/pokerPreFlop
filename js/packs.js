@@ -264,12 +264,15 @@ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
   if(t.pf && t.pfStack!=null){                               // 9-max jam (push)
    const s=PUSHFOLD.stacks[t.pfStack], tbl=s&&s.seats[t.pf]; if(!tbl)return;
    fill(t,tbl,'shove',`computed ${t.pfStack}bb Nash (${model}${dis(exp,t.pfStack)})`);
+   if(s.seatsEV&&s.seatsEV[t.pf]){t.evTable=s.seatsEV[t.pf];t.evAct='shove';} // 求解器每手 EV(bb,相对弃牌)
   } else if(t.pf6 && t.pfStack!=null){                        // 6-max jam (push)
    const s=PUSHFOLD.ring6&&PUSHFOLD.ring6[t.pfStack], tbl=s&&s.seats[t.pf6]; if(!tbl)return;
    fill(t,tbl,'shove',`computed ${t.pfStack}bb 6人 Nash${dis(exp6,t.pfStack)}`);
+   if(s.seatsEV&&s.seatsEV[t.pf6]){t.evTable=s.seatsEV[t.pf6];t.evAct='shove';}
   } else if(t.calloff && t.coStack!=null){                    // 9-max BB call-off vs a jam (callshove)
    const s=PUSHFOLD.calloff&&PUSHFOLD.calloff[t.coStack], tbl=s&&s[t.calloff]; if(!tbl)return;
    fill(t,tbl,'call',`computed ${t.coStack}bb 跟注 Nash${dis(exp,t.coStack)}`);
+   if(s[t.calloff+'EV']){t.evTable=s[t.calloff+'EV'];t.evAct='call';}
   }
  })));
 })();
@@ -292,6 +295,8 @@ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
   }
   t.R=R; t.C=C; t.M=M; t.union=[...new Set([...R,...C,...M])];
   t.freqTable=freqTable; t.confidence='precise';
+  const ev=jam?st.jamEV:st.callEV;                            // 求解器每手 EV(bb,相对弃牌)
+  if(ev){t.evTable=ev;t.evAct=act;}
   const reg=HU_PUSHFOLD.meta.exploitability && HU_PUSHFOLD.meta.exploitability[t.huStack];
   t.src=`computed ${t.huStack}bb HU Nash`+(reg!=null?` · 可剥削度~${reg}bb/手`:'');
  })));

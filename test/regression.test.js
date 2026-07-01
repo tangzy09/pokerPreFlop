@@ -91,6 +91,15 @@ test('computed push spots (8/10/12/15/20bb) loaded as precise with freqTable', (
       assert.match(t.src, /可剥削度~[\d.]+bb/, `${v}/${t.name}: src discloses exploitability`);
     }
   }
+  // 求解器船运的每手 EV 表(evTable)应挂到全部 precise 推弃档(反馈面板的真 EV 行依赖它)
+  for (const v of ['d10', 'hu10', 'p6_10', 'co10']) {
+    for (const t of PACKS.mtt[v]) {
+      assert.ok(t.evTable && Object.keys(t.evTable).length >= 100, `${v}/${t.name}: evTable missing/thin`);
+      assert.ok(['shove', 'call'].includes(t.evAct), `${v}/${t.name}: bad evAct "${t.evAct}"`);
+      assert.equal(typeof t.evTable.AA, 'number', `${v}/${t.name}: evTable.AA not a number`);
+      assert.ok(t.evTable.AA > 0, `${v}/${t.name}: AA 的 ${t.evAct} 应为 +EV`);
+    }
+  }
   const sb = (v) => PACKS.mtt[v].find((t) => t.pf === 'SB');
   const utg = (v) => PACKS.mtt[v].find((t) => t.pf === 'UTG');
   // within a stack: SB jams wider than UTG; premiums in, trash out

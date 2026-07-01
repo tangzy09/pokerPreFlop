@@ -43,7 +43,13 @@ js/app.js                persistence, audio (synth SFX w/ master lowpass+compres
                          All user-facing strings go through L()/tr(); the in-app 翻后GTO screen + the
                          bottom 图表 nav entry are removed (postflop-spots.js no longer <script>-loaded).
                          Nav: homeScreen (主页卡片) is the single entry — cards goStart() then proxy the
-                         startScreen buttons; mistakes/nash/stats/equity back-buttons return to homeScreen
+                         startScreen buttons; mistakes/nash/stats/equity/guide/push back-buttons return to
+                         homeScreen. Newer: renderTrend (per-day accuracy SVG, data = STORE.trend collected
+                         in resolve), pushScreen (推弃特训 quick picker → guideLaunch('mtt',variant)),
+                         renderGuideAcc (学习路径 real per-format accuracy chips on guideScreen),
+                         maybeIntro (first-launch 3-step onboarding, STORE.seenIntro), and the solver-EV
+                         feedback line (t.evTable/t.evAct wired in packs.js from shipped seatsEV/jamEV/
+                         callEV/btnEV — the ONLY place EV numbers are shown, per PRODUCT.md §6)
 js/coach.js              LOADS LAST. 翻前诊断 + 20 天训练计划 (主页顶部横幅卡 homePlan → coachOpen).
                          问卷 coachScenes(onboard) → 诊断测试 (简化18/详细45, coachBuildDiagQueue) 走
                          G.diagMode 复用练习的真实牌桌/发牌/逐题反馈/范围矩阵 (app.js 的 nextHand/resolve

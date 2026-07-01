@@ -416,6 +416,27 @@
     font-size:10.5px;font-family:"Space Mono";opacity:.6}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.05ms!important}}
   @media (max-height:680px){.card{width:74px;height:104px}.card .pip-c{font-size:34px}.screen h1{font-size:28px}}
+  /* 推弃特训选档 chips */
+  .push-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .push-chips .opt{flex:0 1 auto;min-width:64px;padding:9px 14px}
+  /* 学习路径:导览节点上的真实准确率 chip */
+  .gd-acc{display:inline-block;margin-left:7px;font-family:"Space Mono";font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.35);vertical-align:1px}
+  /* 新手引导(首启一次) */
+  .intro-ov{position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;
+    background:rgba(6,14,10,.72);backdrop-filter:blur(3px);padding:20px}
+  .intro-card{width:min(400px,94vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:22px 20px calc(18px + env(safe-area-inset-bottom));box-shadow:0 18px 50px rgba(0,0,0,.55)}
+  .intro-card h3{margin:0 0 10px;font-size:18px}
+  .intro-card p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.65}
+  .intro-card p b{color:var(--ink)}
+  .intro-dots{display:flex;gap:6px;justify-content:center;margin:16px 0 14px}
+  .intro-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18)}
+  .intro-dots i.on{background:var(--gold)}
+  .intro-btns{display:flex;gap:10px}
+  .intro-btns .ib{flex:1;appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:14.5px;
+    border-radius:11px;padding:12px 8px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--muted)}
+  .intro-btns .ib.pri{background:linear-gradient(180deg,var(--gold),var(--gold2));border:0;color:#16110a}
   /* 矮屏（小手机 / 浏览器工具栏占位）逐级压缩牌桌，保证动作按钮始终可见 */
   @media (max-height:600px){.table{gap:10px}.felt{height:120px}.card{width:68px;height:96px}.card .pip-c{font-size:30px}.scene .who{margin-top:5px;font-size:11.5px}}
   @media (max-height:520px){.table{gap:6px;padding-top:4px}.felt{height:98px}.card{width:60px;height:84px}.card .pip-c{font-size:26px}.scene .badge{padding:5px 13px;font-size:13px}}
@@ -524,10 +545,51 @@
       <button class="home-card wide" id="homePlan"><span class="hc-pro">PRO</span><span class="hc-ic">🗓</span><span class="hc-txt"><span class="hc-t">训练计划</span><span class="hc-s">翻前诊断 + 20 天个性化计划</span></span></button>
       <button class="home-card" id="homeCash"><span class="hc-ic">💵</span><span class="hc-t">现金局</span><span class="hc-s">100bb 深码</span></button>
       <button class="home-card" id="homeMtt"><span class="hc-ic">🏆</span><span class="hc-t">锦标赛</span><span class="hc-s">推弃 + ICM</span></button>
+      <button class="home-card" id="homePush"><span class="hc-ic">♠</span><span class="hc-t">推弃特训</span><span class="hc-s">Nash 精确 · 带真 EV</span></button>
       <button class="home-card" id="homeReview"><span class="hc-ic">📕</span><span class="hc-t">错题复习</span><span class="hc-s">复习答错的牌</span></button>
       <button class="home-card" id="homeNash"><span class="hc-pro">PRO</span><span class="hc-ic">♠</span><span class="hc-t">Nash 推弃图</span><span class="hc-s">每手 EV</span></button>
       <button class="home-card" id="homeEquity"><span class="hc-pro">PRO</span><span class="hc-ic">🧮</span><span class="hc-t">算胜率</span><span class="hc-s">实时算牌</span></button>
+      <button class="home-card" id="homePath"><span class="hc-ic">🧭</span><span class="hc-t">学习路径</span><span class="hc-s">从开局到 MTT · 看进度</span></button>
       <button class="home-card" id="homeStats"><span class="hc-ic">📈</span><span class="hc-t">统计</span><span class="hc-s">画像 + 漏洞</span></button>
+    </div>
+  </div>
+
+  <!-- 推弃特训：快速选档直达（全部 precise 自算 Nash,反馈带求解器真 EV） -->
+  <div class="chart-screen hide" id="pushScreen">
+    <div class="chart-bar">
+      <button class="back-btn" id="pushBack">← 返回</button>
+      <div class="chart-title">推弃特训</div>
+      <div class="back-btn" style="visibility:hidden">← 返回</div>
+    </div>
+    <div class="chart-body about">
+      <p class="cnote" style="margin:0">全部为本工具自算 Nash（标「精准」）· 反馈附求解器每手真 EV</p>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>9 人桌 · 全下或弃</h3>
+        <div class="push-chips" data-group="d">
+          <button class="opt" data-pv="d8p">8bb</button><button class="opt" data-pv="d10">10bb</button>
+          <button class="opt" data-pv="d12p">12bb</button><button class="opt" data-pv="d15p">15bb</button>
+          <button class="opt" data-pv="d20p">20bb</button>
+        </div>
+      </div>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>6 人终桌 · 全下或弃</h3>
+        <div class="push-chips">
+          <button class="opt" data-pv="p6_10">10bb</button><button class="opt" data-pv="p6_15">15bb</button>
+          <button class="opt" data-pv="p6_20">20bb</button>
+        </div>
+      </div>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>单挑 HU · SB 全下 + BB 跟注</h3>
+        <div class="push-chips">
+          <button class="opt" data-pv="hu5">5bb</button><button class="opt" data-pv="hu8">8bb</button>
+          <button class="opt" data-pv="hu10">10bb</button><button class="opt" data-pv="hu12">12bb</button>
+          <button class="opt" data-pv="hu15">15bb</button><button class="opt" data-pv="hu20">20bb</button>
+          <button class="opt" data-pv="hu25">25bb</button>
+        </div>
+      </div>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>BB 跟注 · 面对 BTN 全下</h3>
+        <div class="push-chips">
+          <button class="opt" data-pv="co10">10bb</button><button class="opt" data-pv="co15">15bb</button>
+          <button class="opt" data-pv="co20">20bb</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -823,6 +885,9 @@
     </div>
     <div class="chart-body about">
       <div class="stats" id="statsTiles" style="width:100%;max-width:430px"></div>
+      <div class="ab-card" id="trendCard" style="width:100%;max-width:430px"><h3>📈 准确率趋势</h3>
+        <div id="trendBody"></div>
+      </div>
       <div class="ab-card" id="profileCard" style="width:100%;max-width:430px"><h3>🎯 个人画像</h3>
         <div id="profileBody"></div>
       </div>

@@ -48,6 +48,13 @@ const I18N_EN = {
  '翻前主线 · 怎么练':'Preflop main line · how to train','错题复习堆':'Mistake review pile','生涯统计':'Career stats',
  '场景 / 位置':'Scenario / position','点格子查看每手牌的建议':'Tap a cell to see the suggestion',
  '🎯 个人画像':'🎯 Profile','🗓 训练计划':'🗓 Training plan','🔍 你的漏洞':'🔍 Your leaks','📊 各档位准确率':'📊 Accuracy by spot',
+ '📈 准确率趋势':'📈 Accuracy trend',
+ // —— 主页新卡 + 推弃特训屏 + 学习路径 ——
+ '推弃特训':'Push/Fold Camp','Nash 精确 · 带真 EV':'Solved Nash · real EV',
+ '学习路径':'Learning path','从开局到 MTT · 看进度':'RFI to MTT · see progress',
+ '全部为本工具自算 Nash（标「精准」）· 反馈附求解器每手真 EV':'All solved by this app’s own Nash solver (tagged “Exact”) · feedback shows the solver’s real per-hand EV',
+ '9 人桌 · 全下或弃':'9-max · jam or fold','6 人终桌 · 全下或弃':'6-max final table · jam or fold',
+ '单挑 HU · SB 全下 + BB 跟注':'Heads-up · SB jam + BB call','BB 跟注 · 面对 BTN 全下':'BB call-off · vs BTN jam',
  // —— calc ——
  '牌面':'Board','你的范围':'Your range','对手范围':'Opp range','对战':'vs','计算胜率':'Run equity','· 留空=翻前':'· empty = preflop',
  '翻牌':'Flop','转牌':'Turn','河牌':'River','你':'You','对手':'Opp','翻后胜率':'Postflop equity','范围优势':'Range advantage',
@@ -169,6 +176,23 @@ _tpl('fbmxHead', '高亮：你这手 <b>{hand}</b> · 正确 <b>{correct}</b> ·
 _tpl('fbCmpRef', '参考', 'GTO ref'); _tpl('fbCmpYou', '你', 'You');
 _tpl('fbLeakLine', '你的毛病：<b style="color:{c}">{name}</b>（{desc}）· 已第 {n} 次', 'Your leak: <b style="color:{c}">{name}</b> ({desc}) · #{n}');
 _tpl('fbLeakDrill', '练这类 ▶', 'Drill this ▶');
+// 求解器真 EV 行(仅推弃 precise 档;§6 唯一允许显示 EV 的场景)
+_tpl('fbEvLine', '求解器 EV：{act} <b style="color:{c}">{ev}bb</b> · 相对弃牌（简化模型 chip-EV）',
+ 'Solver EV: {act} <b style="color:{c}">{ev}bb</b> · vs folding (simplified-model chip-EV)');
+// 准确率趋势
+_tpl('trendEmpty', '还没有趋势数据——正常训练会按天记录准确率喵 🐿', 'No trend data yet — normal training records daily accuracy, nya 🐿');
+_tpl('trendNote', '已记录 {n} 天 · 最近一天 {acc}%（{h} 手）', '{n} days recorded · latest day {acc}% ({h} hands)');
+// 学习路径
+_tpl('pathNew', '未开始', 'not started');
+// 新手引导(首启 3 步)
+_tpl('intro0', '<h3>🐿 欢迎来翻前训练营</h3><p>德州扑克 80% 的坑在<b>翻前</b>。这里每手牌给你一个真实局面：<b>该加注、跟注还是弃牌？</b>答完立刻看到参考答案和原因。</p>',
+ '<h3>🐿 Welcome to Preflop Camp</h3><p>Most poker mistakes happen <b>preflop</b>. Each hand puts you in a real spot: <b>raise, call, or fold?</b> Answer and instantly see the reference play and why.</p>');
+_tpl('intro1', '<h3>📊 看懂范围表就赢了一半</h3><p>13×13 矩阵 = 全部 169 种起手牌：左下<b>不同花</b>、右上<b>同花</b>、对角线<b>对子</b>，颜色 = 动作。答错时范围表会弹出来，教你这手牌在边界的哪一侧。</p>',
+ '<h3>📊 Read the range grid, win half the battle</h3><p>The 13×13 grid = all 169 starting hands: <b>offsuit</b> lower-left, <b>suited</b> upper-right, <b>pairs</b> on the diagonal; color = action. Miss a hand and the grid pops up to show which side of the boundary it sits on.</p>');
+_tpl('intro2', '<h3>🎯 从第一课开始</h3><p>建议从<b>现金局 6 人桌</b>练起：先把「什么位置开什么牌」练成直觉，再进阶 3-bet 与锦标赛推弃。错题会自动进复习堆。</p>',
+ '<h3>🎯 Start with lesson one</h3><p>Begin with <b>6-max cash</b>: make “what to open from where” instinct first, then move on to 3-bets and tournament push/fold. Misses land in your review pile automatically.</p>');
+_tpl('introSkip', '跳过', 'Skip'); _tpl('introNext', '下一步', 'Next');
+_tpl('introLook', '随便看看', 'Just browsing'); _tpl('introGo', '开始第一课 ▶', 'Start lesson 1 ▶');
 // freqNote
 _tpl('fnPrecise', '（计算频率：{f}）', '(solved freq: {f})');
 _tpl('fnEdge', '（边缘 · 占位频率）', '(edge · placeholder freq)');
@@ -555,7 +579,7 @@ function _updateLangBtn(){
 }
 function setLang(l){ if(l!=='en'&&l!=='zh') return; LANG=l; try{localStorage.setItem('gtoLang',l);}catch(e){} applyI18n(); }
 // 覆盖全部屏的列表（任意一个可见 = 处于菜单/覆盖屏；全 hide = 训练对局界面）
-const _LANG_SCREENS=['homeScreen','startScreen','overScreen','chartScreen','nashScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen','coachScreen'];
+const _LANG_SCREENS=['homeScreen','startScreen','overScreen','chartScreen','nashScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen','coachScreen','pushScreen'];
 function _mountLangToggle(){
  if(!_hasDOM()) return;
  try{

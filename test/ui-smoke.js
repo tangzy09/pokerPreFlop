@@ -45,6 +45,11 @@ const INJECT = `
   try{
     add('boot: 主页可见', vis('homeScreen'));
     add('boot: 默认英文', typeof LANG!=='undefined' && LANG==='en');
+    // 新手引导:全新档案首启应弹出,跳过后消失且不再弹
+    var iv=document.getElementById('introOv');
+    add('新手引导首启弹出', !!iv);
+    if(iv){ var sk=iv.querySelector('#inSkip'); if(sk)sk.click(); }
+    add('引导跳过后消失', !document.getElementById('introOv'));
     add('语言选择器存在', !!document.getElementById('langToggle'));
     var lt=document.getElementById('langToggle');
     add('语言选择器有 中/EN 两段', lt && lt.querySelectorAll('button[data-lang]').length===2);
@@ -59,6 +64,20 @@ const INJECT = `
       document.getElementById(back).click();
       add(open+' 返回回主页', opened && vis('homeScreen') && !vis(scr) && !vis('startScreen'));
     });
+    // 推弃特训:主页卡 → 选档屏 → 返回回主页
+    document.getElementById('homePush').click();
+    var pushOpened=vis('pushScreen');
+    document.getElementById('pushBack').click();
+    add('推弃特训 打开+返回回主页', pushOpened && vis('homeScreen') && !vis('pushScreen'));
+    // 学习路径:主页卡 → 导览屏(带准确率 chip) → 返回回主页
+    document.getElementById('homePath').click();
+    var pathOpened=vis('guideScreen'), hasAcc=document.querySelectorAll('#guideScreen .gd-acc').length>0;
+    document.getElementById('guideBack').click();
+    add('学习路径 打开+有进度chip+返回回主页', pathOpened && hasAcc && vis('homeScreen') && !vis('guideScreen'));
+    // 统计页:趋势卡存在
+    document.getElementById('homeStats').click();
+    add('统计页有趋势卡', vis('statsScreen') && !!document.getElementById('trendBody'));
+    document.getElementById('statsBack').click();
     // 训练对局界面(所有覆盖屏隐藏)语言选择器仍在
     ['homeScreen','startScreen','overScreen','chartScreen','nashScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen','coachScreen'].forEach(function(id){var e=document.getElementById(id);if(e)e.classList.add('hide');});
     if(typeof _langBtnVis==='function')_langBtnVis();
