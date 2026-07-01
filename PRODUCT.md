@@ -47,13 +47,14 @@
 - **双语 i18n（默认英文）**：新增 `js/i18n.js`（最先加载），全 UI 中英双语、默认英文；右上角 `中 | EN` 选择器**所有页面可用**（body 级固定、活动语言金色高亮、训练对局中自动下移到 HUD 第二行避开分数）并记忆；数据文件保持中文为**唯一来源**，运行期 `L()`/`tr()` 仅做显示翻译（测试固定 `zh`，金快照不变）。
 - **已部署上线**：静态站托管在 EC2（nginx），正式地址 **https://pre-flop.ai-speeds.com/**（Let's Encrypt HTTPS）；`deploy.sh` 一键 push + 服务器 `git pull`。详见 [CLAUDE.md](CLAUDE.md) 的 Deployment 小节。
 - **画像 / 训练计划（Phase 6）**：「统计」页「🎯 个人画像」(风格倾向松/紧 + 打法倾向被动/激进 + 强弱档位) + 「🗓 训练计划」(按需练度排序、一键去练)；纯本地聚合，诚实标注 vs 参考范围、不编造 TAG/LAG。错误分类已细分到 太松/太紧/被动/过激/边缘/ICM（`addMistake` 存真实选择，`classifyMiss` 据此精确分类）。
-- **翻前诊断 + 20 天训练计划（Phase 9）**：主页第 7 张卡「训练计划」——问卷（`coachScenes`）→ 诊断测试（简化 18 手 / 详细 45 手，`coachBuildDiagQueue`）**复用练习的真实牌桌 + 逐题答案解释 + 范围矩阵**（走 `G.diagMode`，`!G.diagMode` 守卫跳过 HP/统计/错题堆/升级）→ 个性化报告（评级 + Top 漏洞 + 优势 + 20 天计划，`coachAggregate`/`coachVerdict`）→ 每日可执行卡片 + 打卡 streak（`coachBuildPlan`/`coachMarkDayDone`）。新文件 `js/coach.js`（最后加载）。**诊断 + 报告免费，Start Day 1 计划执行 Pro**；诚实标注「vs 参考范围 / not solver-exact / 基于 {n} 手」，不编造 EV/频率/TAG-LAG。
+- **翻前诊断 + 20 天训练计划（Phase 9）**：主页顶部横幅卡「训练计划」——问卷（`coachScenes`）→ 诊断测试（简化 18 手 / 详细 45 手，`coachBuildDiagQueue`）**复用练习的真实牌桌 + 逐题答案解释 + 范围矩阵**（走 `G.diagMode`，`!G.diagMode` 守卫跳过 HP/统计/错题堆/升级）→ 个性化报告（评级 + Top 漏洞 + 优势 + 20 天计划，`coachAggregate`/`coachVerdict`）→ 每日可执行卡片 + 打卡 streak（`coachBuildPlan`/`coachMarkDayDone`）。新文件 `js/coach.js`（最后加载）。**诊断 + 报告免费，Start Day 1 计划执行 Pro**；诚实标注「vs 参考范围 / not solver-exact / 基于 {n} 手」，不编造 EV/频率/TAG-LAG。
 - **翻后胜率（带公共牌）**：「算胜率」计算器现支持填**牌面**（翻牌/转牌/河牌）算**翻后 equity**（`rangeEquityBoard`，纯枚举/蒙特卡洛，自动按组合加权 + 跳过冲突）；留空则仍是翻前全下。
 - **个性化漏洞分析（Phase 5）**：「统计」页新增「🔍 你的漏洞」——从错题堆按类型（太松/太紧/边缘/ICM）聚合排序 + 最常踩的坑 + 一键去练（`classifyMiss` 仅凭 spot+hand 判定，旧数据也能分析）。
 - **离线 HU 翻后 CFR+ solver 链**（`tools/solver/`，纯 Python）仍保留、由 `test/solver-spots.test.js` 验证，产物 `js/data/postflop-spots.js`（`python tools/gen-postflop-spots.py` 重算）。**App 内的「翻后GTO」展示页已移除**（产品决定）——离线链与数据留作管线/测试，不再进浏览器。
 - 工程：多文件拆分、零依赖 Node 回归测试（契约不变量 + 金快照 + equity/Nash + 翻后数据/board-equity + coach 诊断/计划 + i18n 英文无中文校验，50 项）+ **headless Chrome UI 冒烟测试**（`npm run test:ui`：导航返回回主页、语言选择器全页面、切换生效；用系统 Chrome、不引依赖、不进 `npm test`、无 Chrome 则跳过——专堵纯逻辑测试看不到的 UI 回归）、git。
 - **导航 / 主页**：`homeScreen`（主页卡片）为统一入口；mistakes / nash / stats / equity 四个功能页的返回键都回主页（非训练设置页）。
 - **移动端竖屏适配**：`.table{min-height:0}` + 短屏断点逐级压缩牌桌/手牌，保证矮屏（小手机 / 浏览器工具栏占位）下动作按钮始终可见、不溢出。
+- **反馈学习闭环（Phase 10）**：答错/混合点的反馈面板从「标一手错牌」升级为完整闭环——① **视觉动作对比条**「参考 ■X ↔ 你 ■Y」（`fbCompareHtml`，复用 `actionColor`）；② **错误归因**「你的毛病：太紧/太松/被动/过激 · 已第 N 次」+ **一键专练这类**（`startReview` 扩展为支持谓词过滤，按 `classifyMiss` 类型）；③ **范围矩阵邻牌高亮**（`neighborsOf` + `.ccell.adj`，展示范围切在哪个边界）；④ **precise 局面附真频率条**（solved freq，仅 `confidence==='precise'`），curated 只定性、绝不编假 %。全前端、零数据风险；诚实红线贯穿——别人给可能编造的 EV 数字，我们给**行为归因**。形成「评级→对比→为什么→你的毛病→去练」闭环。
 
 ---
 

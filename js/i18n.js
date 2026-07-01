@@ -165,6 +165,10 @@ _tpl('answerLine', '正确打法：<b>{ans}</b> {freq} {chip}', 'Correct play: <
 _tpl('youTimeout', '<span class="you">超时未操作 —— 本手作废喵～</span>', '<span class="you">No action in time — this hand is void, nya~</span>');
 _tpl('youChose', '<span class="you">你选了「{c}」。</span>', '<span class="you">You chose “{c}”.</span>');
 _tpl('fbmxHead', '高亮：你这手 <b>{hand}</b> · 正确 <b>{correct}</b> · 你选 {you}', 'Highlight: your hand <b>{hand}</b> · correct <b>{correct}</b> · you chose {you}');
+// 动作对比条 + 你的毛病（学习闭环）
+_tpl('fbCmpRef', '参考', 'GTO ref'); _tpl('fbCmpYou', '你', 'You');
+_tpl('fbLeakLine', '你的毛病：<b style="color:{c}">{name}</b>（{desc}）· 已第 {n} 次', 'Your leak: <b style="color:{c}">{name}</b> ({desc}) · #{n}');
+_tpl('fbLeakDrill', '练这类 ▶', 'Drill this ▶');
 // freqNote
 _tpl('fnPrecise', '（计算频率：{f}）', '(solved freq: {f})');
 _tpl('fnEdge', '（边缘 · 占位频率）', '(edge · placeholder freq)');

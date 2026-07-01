@@ -137,6 +137,24 @@
   .fb-reason{font-size:14px;line-height:1.6;color:var(--ink);background:rgba(0,0,0,.26);
     border:1px solid var(--line);border-radius:12px;padding:12px 14px}
   .fb-reason .you{color:var(--muted);display:block;margin-bottom:5px;font-size:12.5px}
+  /* 你的选择 vs 参考：视觉动作对比条 */
+  .fb-cmp{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+    background:rgba(0,0,0,.26);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14.5px;font-weight:700}
+  .fb-cmp.hide{display:none}
+  .fb-cmp-side{display:inline-flex;align-items:center;gap:6px}
+  .fb-cmp-side i{font-style:normal;font-weight:400;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+  .fb-cmp-vs{color:var(--muted);font-weight:400;font-size:15px}
+  .fb-cmp-ok{color:var(--best);font-size:12px}
+  .fb-cmp-freq{flex-basis:100%;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:400;color:var(--muted);margin-top:2px}
+  .fb-cmp-bar{flex:1;height:9px;border-radius:5px;overflow:hidden;display:flex;background:rgba(0,0,0,.4)}
+  .fb-cmp-bar i{display:block;height:100%}
+  /* 你的毛病：错误类型归因 + 累计 + 去练（串到漏洞分析） */
+  .fb-leak{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+  .fb-leak.hide{display:none}
+  .fb-leak b{font-weight:700}
+  .fb-leak-go{margin-left:auto;appearance:none;border:1px solid var(--line);background:rgba(255,255,255,.05);
+    color:var(--ink);font-family:inherit;font-weight:700;font-size:12px;border-radius:8px;padding:5px 11px;cursor:pointer;white-space:nowrap}
+  .fb-leak-go:active{transform:scale(.97)}
   /* wrong-answer range table popped into the feedback panel */
   .fbmx{width:100%;max-width:300px;margin:0 auto;background:rgba(0,0,0,.24);border:1px solid var(--line);border-radius:12px;padding:11px 11px 9px}
   .fbmx.hide{display:none}
@@ -149,7 +167,7 @@
   .ncell{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;overflow:hidden;cursor:default}
   .ncell .h{font-weight:700;color:inherit;font-size:clamp(5.5px,1.5vw,11px)}
   .ncell .e{color:inherit;opacity:.88;font-size:clamp(4.5px,1.2vw,9px);font-family:'Space Mono'}
-  /* 主页：6 个入口卡片网格 */
+  /* 主页：训练计划顶部横幅 + 6 个功能卡网格 */
   .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:440px;margin:6px auto 0}
   .home-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:9px;background:linear-gradient(165deg,#1b2a20,#131c16);border:1px solid var(--line);border-radius:20px;padding:26px 12px 22px;cursor:pointer;color:var(--ink);overflow:hidden;transition:transform .14s ease,border-color .18s,box-shadow .18s}
   .home-card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.45;transition:opacity .18s}
@@ -170,6 +188,7 @@
   .fbmx .ccell{cursor:default;font-size:0;border-radius:2px;min-height:0;min-width:0}
   .fbmx .ccell.now{font-size:7.5px;color:#fff;box-shadow:0 0 0 2px var(--blunder),0 0 0 4px rgba(255,255,255,.6);z-index:4}
   .fbmx .ccell.now.ok{box-shadow:0 0 0 2px var(--best),0 0 0 4px rgba(255,255,255,.6)}   /* 答对/两可：绿框 */
+  .fbmx .ccell.adj{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.5);z-index:2}          /* 邻牌：展示范围边界 */
   .fbmx-leg{display:flex;flex-wrap:wrap;gap:5px 12px;justify-content:center;margin-top:9px}
   .fbmx-leg .it{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
   .fbmx-leg .sw,.fbmx-sw{width:11px;height:11px;border-radius:3px}
@@ -490,12 +509,14 @@
   <div class="actions n2" id="actions"></div>
   <div class="feedback hide" id="feedback">
     <div class="fb-top"><span class="fb-grade" id="fbGrade"></span><span class="fb-ans" id="fbAns"></span></div>
+    <div class="fb-cmp hide" id="fbCompare"></div>
     <div class="fb-reason" id="fbReason"></div>
+    <div class="fb-leak hide" id="fbLeak"></div>
     <div class="fbmx hide" id="fbMatrix"></div>
     <button class="fb-next" id="fbNext">下一步 →</button>
   </div>
 
-  <!-- HOME MENU（主页：6 个入口，复用现有功能、不改任何现有逻辑） -->
+  <!-- HOME MENU（主页：训练计划顶部横幅 + 6 个功能卡，复用现有功能、不改任何现有逻辑） -->
   <div class="screen" id="homeScreen">
     <div class="logo-suit" style="margin-top:30px"><span class="blk">♠</span><span class="r">♥</span><span class="r">♦</span><span class="blk">♣</span></div>
     <h1 style="margin:6px 0 28px">GTO 翻前<b>训练</b></h1>

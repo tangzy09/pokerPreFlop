@@ -35,14 +35,16 @@ js/notify.js             local-notifications adapter via window.Capacitor.Plugin
                          window.Notify = {enable,disable,reschedule}; daily training reminder; native only.
 js/app.js                persistence, audio (synth SFX w/ master lowpass+compressor), confetti, hand helpers,
                          game engine, charts + start-screen live chart preview (renderStartChart) +
-                         wrong-answer range table in feedback (renderFbMatrix) + 胜率计算器 +
+                         wrong-answer range table in feedback (renderFbMatrix, with adjacent-hand
+                         boundary highlight via neighborsOf) + 反馈学习闭环 (fbCompareHtml 动作对比条 +
+                         classifyMiss 错误归因 + precise 真频率条) + 胜率计算器 +
                          漏洞分析(Leak Analyzer) UI + Pro 门控(isPro: web 恒 true=全解锁 / native 读 RevenueCat
                          entitlements.active['pro']) + spotLocked(场景前半免费/后半锁) + wireNotify, boot.
                          All user-facing strings go through L()/tr(); the in-app 翻后GTO screen + the
                          bottom 图表 nav entry are removed (postflop-spots.js no longer <script>-loaded).
                          Nav: homeScreen (主页卡片) is the single entry — cards goStart() then proxy the
                          startScreen buttons; mistakes/nash/stats/equity back-buttons return to homeScreen
-js/coach.js              LOADS LAST. 翻前诊断 + 20 天训练计划 (主页第7张卡 homePlan → coachOpen).
+js/coach.js              LOADS LAST. 翻前诊断 + 20 天训练计划 (主页顶部横幅卡 homePlan → coachOpen).
                          问卷 coachScenes(onboard) → 诊断测试 (简化18/详细45, coachBuildDiagQueue) 走
                          G.diagMode 复用练习的真实牌桌/发牌/逐题反馈/范围矩阵 (app.js 的 nextHand/resolve
                          里用 !G.diagMode 守卫跳过 HP/统计/错题堆/升级/结算; _coachDiagQueue/_coachDiagPos
@@ -140,7 +142,7 @@ Most ranges are **hand-curated GTO approximations, not solver-exact output** (mi
 The same web app is also wrapped as a **Capacitor 8** Android app (`android/`, `appId = com.pokerpreflop.trainer`, `webDir = www`). The web source is unchanged (`gto-trainer.html` still runs from `file://`); `www/` is a generated staging dir (gitignored). Real-money Play billing is **verified end-to-end** (2026-06-20: real charge → `pro` entitlement → unlock).
 
 - **Build an AAB:** `node tools/build-www.js` (assembles `www/`) → `npx cap copy android` (or **`cap sync`** after adding a native plugin — it also updates the gradle deps + `capacitor.plugins.json`) → `cd android && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew bundleRelease`. Output: `android/app/build/outputs/bundle/release/app-release.aab`. SDK at `$LOCALAPPDATA/Android/Sdk`. **No cmdline-tools** → create AVDs in the Android Studio GUI.
-- **Versioning:** bump `versionCode`/`versionName` in `android/app/build.gradle` for **every** AAB uploaded to Play (duplicate versionCode is rejected). Currently **versionCode 5 / 1.4**.
+- **Versioning:** bump `versionCode`/`versionName` in `android/app/build.gradle` for **every** AAB uploaded to Play (duplicate versionCode is rejected). Currently **versionCode 10 / 1.9**（2026-06-30 打包,AAB 追平网页,待上传 Play）.
 - **Signing (do not leak):** release is signed with `android/upload-keystore.jks` (creds in `android/keystore.properties`). **Both are gitignored and MUST NEVER be committed — the repo is public.** Back up the .jks + passwords offline; losing them blocks future app updates.
 - **In-app purchases (RevenueCat):** `js/purchases.js` → `window.Pay`. **Two subscriptions** (the one-time `pro_lifetime` buyout was **removed 2026-06-23**): `pro_yearly` ($12.99/yr — paywall primary, `Pay.buy('year')`, `#pwYear`) + `pro_monthly` ($4.99/mo, base plan `monthly` → `pro_monthly:monthly`, `Pay.buy('sub')`, `#pwSub`). Both attached to the `pro` entitlement and in the `default` offering **set as Current** (code reads `offerings.current`; `MATCH.year` hits packageType `ANNUAL`, `MATCH.sub` hits `MONTHLY`). `USE_TEST_STORE` (purchases.js top): `false` = real Play (`goog_` key, current), `true` = RevenueCat Test Store sandbox. **Test purchases with a Play License-testing account, else you are charged for real.** Gotcha: a product not attached to the entitlement → purchase succeeds + card charged but `entitlements.active['pro']` stays empty + no unlock (fix the attach, then 恢复购买/restart re-activates — no re-buy).
 - **Local notifications:** `js/notify.js` → `window.Notify` via `@capacitor/local-notifications`. Daily training reminder (user-settable time via `#notifyTime` → `Notify.enable(h,m)`, default 20:00; inexact alarm → no SCHEDULE_EXACT_ALARM); toggle + time picker in startScreen 进阶设置 (native only, browser hides it); `reschedule()` on boot re-arms it after update/reinstall. White-♠ status-bar icon `ic_stat_notify` (`tools/gen-notify-icon.js`) wired via `capacitor.config.json` `plugins.LocalNotifications.smallIcon`.

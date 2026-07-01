@@ -225,8 +225,11 @@ function newGame(){
  renderHUD();nextHand();
 }
 
-function startReview(filterLabel){
- const pool = filterLabel ? reviewPile.filter(r=>r.label===filterLabel) : reviewPile.slice();
+// filter: 无=全部 · 字符串=按 spot label · 函数=任意谓词(如按 classifyMiss 错误类型)
+function startReview(filter){
+ const pool = !filter ? reviewPile.slice()
+  : typeof filter==='function' ? reviewPile.filter(filter)
+  : reviewPile.filter(r=>r.label===filter);
  if(!pool.length)return;
  G.reviewMode=true;G.over=false;G.busy=false;
  G.score=0;G.combo=0;G.best=0;G.hands=0;G.correct=0;
@@ -316,6 +319,16 @@ function adjacentFolds(t){
   else { const a=RIDX[h[0]],b=RIDX[h[1]],suf=h[2]; put(a-1,b,suf); put(a+1,b,suf); put(a,b-1,suf); put(a,b+1,suf); }
  });
  return [...out];
+}
+// 单手的 ±1 rank 同型邻牌（反馈矩阵里高亮，展示范围切在哪个边界）
+function neighborsOf(hand){
+ const out=[];
+ const push=(i,j,suf)=>{ if(i<0||i>12||j<0||j>12)return;
+  if(suf==='p'){ out.push(RANKS[i]+RANKS[i]); }
+  else { if(i===j)return; const hi=Math.min(i,j),lo=Math.max(i,j); out.push(RANKS[hi]+RANKS[lo]+suf); } };
+ if(hand.length===2){ const r=RIDX[hand[0]]; push(r-1,r-1,'p'); push(r+1,r+1,'p'); }
+ else { const a=RIDX[hand[0]],b=RIDX[hand[1]],suf=hand[2]; push(a-1,b,suf); push(a+1,b,suf); push(a,b-1,suf); push(a,b+1,suf); }
+ return out;
 }
 // 智能出题（题库 + 答案类型均衡 + 难弃牌）：
 //  · 题库 = 已解锁各 spot 的范围内手牌（按正确动作/边缘/混合归类）+ 难弃牌(adjacentFolds)
@@ -510,10 +523,12 @@ function actionColor(mode,a){
 function renderFbMatrix(t,hand,corrStr,choice,choiceName,wrong){
  const box=document.getElementById('fbMatrix'); if(!box)return;
  const edgeBg={'edge-raise':'var(--raise)','edge-shove':'var(--raise)','edge-call':'var(--call)'};
+ const nbrs = hand ? new Set(neighborsOf(hand)) : new Set();   // 邻牌：展示范围边界
  let cells='';
  for(let r=0;r<13;r++)for(let c=0;c<13;c++){
   const h=handLabel(r,c),cat=cellCat(t,h),now=h===hand?(' now'+(wrong?'':' ok')):''; // 答错=红框，答对/两可=金框
-  cells+=`<div class="ccell ${cat}${r===c?' pair':''}${now}">${now?`<span>${h}</span>`:''}</div>`;
+  const adj=(!now && nbrs.has(h))?' adj':'';                   // 邻牌微高亮
+  cells+=`<div class="ccell ${cat}${r===c?' pair':''}${now}${adj}">${now?`<span>${h}</span>`:''}</div>`;
  }
  let leg='';
  MODES[t.mode].legend.forEach(([cls,lab])=>{
@@ -527,6 +542,28 @@ function renderFbMatrix(t,hand,corrStr,choice,choiceName,wrong){
  box.innerHTML=`<div class="fbmx-h">${tr('fbmxHead',{hand,correct:corrStr,you:youSw+choiceName})}</div>`
   +`<div class="fbmx-grid">${cells}</div><div class="fbmx-leg">${leg}</div>`;
  box.classList.remove('hide');
+}
+
+// 反馈面板的「参考 vs 你」视觉动作对比条。诚实：curated 只给定性色块+动作名；
+// precise 局面(推弃 Nash)额外附真频率条——只有 precise 才显示 %，绝不给手搓占位频率编数字。
+function fbCompareHtml(t,hand,correct,choice,ok,timedOut){
+ const nm=MODES[t.mode].names;
+ const chip=(act)=>`<span class="fbmx-sw" style="background:${actionColor(t.mode,act)}"></span>${L(nm[act]||act)}`;
+ const ref=correct.map(chip).join(' / ');
+ const you=timedOut?L('超时'):chip(choice);
+ const okMark=ok?' <span class="fb-cmp-ok">✓</span>':'';
+ let html=`<span class="fb-cmp-side"><i>${tr('fbCmpRef')}</i>${ref}</span>`
+  +`<span class="fb-cmp-vs">↔</span>`
+  +`<span class="fb-cmp-side"><i>${tr('fbCmpYou')}</i>${you}${okMark}</span>`;
+ if(t.confidence==='precise'){                    // 真频率条(仅 precise)
+  const f=handFreq(t,hand), segs=Object.keys(f).filter(k=>f[k]>0).sort((a,b)=>f[b]-f[a]);
+  if(segs.length>1){
+   const bar=segs.map(k=>`<i style="width:${Math.round(f[k]*100)}%;background:${actionColor(t.mode,k)}"></i>`).join('');
+   const lab=segs.map(k=>`${L(nm[k]||k)} ${Math.round(f[k]*100)}%`).join('　');
+   html+=`<span class="fb-cmp-freq"><span class="fb-cmp-bar">${bar}</span></span><span class="fb-cmp-freq">${lab}</span>`;
+  }
+ }
+ return html;
 }
 
 function resolve(choice,btn,timedOut){
@@ -640,6 +677,24 @@ function resolve(choice,btn,timedOut){
  document.getElementById('fbAns').innerHTML=tr('answerLine',{ans:corrStr,freq:freq,chip:confChip(t)});
  const youLine = ok ? '' : (timedOut ? tr('youTimeout') : tr('youChose',{c:L(nameMap[choice]||'弃牌')}));
  document.getElementById('fbReason').innerHTML=youLine+r;
+ // 视觉动作对比条（参考 vs 你），precise 附真频率条
+ const cmpEl=document.getElementById('fbCompare');
+ cmpEl.innerHTML=fbCompareHtml(t,hand,correct,choice,ok,timedOut); cmpEl.classList.remove('hide');
+ // 你的毛病：错误类型归因 + 累计次数 + 一键专练这类（串到漏洞分析）
+ const leakEl=document.getElementById('fbLeak');
+ if(!ok && !G.diagMode){
+  const type=classifyMiss({t,hand,choice,variant:G.variant}), T=LEAK_TYPES[type];
+  let n=0; reviewPile.forEach(x=>{ if(classifyMiss(x)===type) n+=(x.wrong||1); }); if(!n)n=1;
+  leakEl.innerHTML=tr('fbLeakLine',{c:T.color,name:L(T.name),desc:L(T.desc),n})
+   +`<button class="fb-leak-go" type="button">${tr('fbLeakDrill')}</button>`;
+  leakEl.querySelector('.fb-leak-go').onclick=()=>{ SFX.click();
+   document.getElementById('feedback').classList.add('hide');
+   document.getElementById('actions').style.display='';
+   document.querySelector('.table').classList.remove('fb-hide');
+   startReview(x=>classifyMiss(x)===type);
+  };
+  leakEl.classList.remove('hide');
+ } else leakEl.classList.add('hide');
  // wrong answer → pop the range table with this hand ringed; otherwise keep it hidden
  if(!ok || G.isMix) renderFbMatrix(t,hand,corrStr,choice,L(nameMap[choice]||'弃牌'),!ok); // 答错 + 混合/两可点都显示范围表
  else document.getElementById('fbMatrix').classList.add('hide');
