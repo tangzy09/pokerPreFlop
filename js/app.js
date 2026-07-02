@@ -221,8 +221,8 @@ function updateReviewBtns(){
 
 function newGame(){
  clearTimeout(G._advT);                            // 掐掉上一局残留的快进/升级定时器(1s/1.5s 窗口内重开会双重发牌)
- G.reviewMode=false;
- G.diagMode=false; G.diagResults=[]; G.diagSceneKey=null; // 诊断隔离字段:由 coachStartDiagnosis 设置,newGame 重置
+ setMode('normal');                                // 模式单缝:布尔+sink 原子绑定
+ G.diagResults=[]; G.diagSceneKey=null;
  G.pack=PACKS[G.format][G.variant];
  G.score=0;G.level=1;G.hp=5;G.maxhp=5;G.combo=0;G.best=0;
  G.hands=0;G.correct=0;G.handNo=0;G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
@@ -237,7 +237,7 @@ function startReview(filter){
   : typeof filter==='function' ? reviewPile.filter(filter)
   : reviewPile.filter(r=>r.label===filter);
  if(!pool.length)return;
- G.reviewMode=true;G.over=false;G.busy=false;
+ setMode('review');G.over=false;G.busy=false;
  G.score=0;G.combo=0;G.best=0;G.hands=0;G.correct=0;
  G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};G.fastCorrect=0;G.ach=new Set();
  G.hp=5;G.maxhp=5;
@@ -247,7 +247,7 @@ function startReview(filter){
  renderHUD();nextHand();
 }
 function reviewComplete(){
- G.over=true;G.reviewMode=false;stopTimer();SFX.level();
+ G.over=true;setMode('normal');stopTimer();SFX.level();
  const acc=G.hands?Math.round(G.correct/G.hands*100):0;
  document.getElementById('overTitle').innerHTML=tr('reviewDone');
  document.getElementById('overStats').innerHTML=`
@@ -575,73 +575,103 @@ function fbCompareHtml(t,hand,correct,choice,ok,timedOut){
  return html;
 }
 
-function resolve(choice,btn,timedOut){
- const t=G.table,correct=G.correct_set,hand=G.hand;
- // a timeout means the player never decided in time → never counts as correct,
- // regardless of whether 'fold' happened to be the right play (consistent grading).
- const ok = !timedOut && correct.includes(choice);
- // 诊断模式:复用练习的牌桌+评分+反馈,只把结果记进 diagResults 供报告聚合;
- // 下面的 HP/统计/错题堆/升级/结算全部跳过(见各 !G.diagMode 守卫)。
- if(G.diagMode) G.diagResults.push({ sceneKey:G.diagSceneKey, t, hand, choice, correct:ok, variant:G.variant });
- // frequency-aware grading: a precise spot carries real solved frequencies, so a
- // mix point HAS a majority line — reward matching it as 最佳, a secondary line as
- // 好棋. Curated mixes are placeholder ~50/50, so we cannot rank them (§6).
- const fmap=handFreq(t,hand);
- const topAct=Object.keys(fmap).sort((a,b)=>fmap[b]-fmap[a])[0];
- const freqGraded = t.confidence==='precise' && G.isMix;
- // "played the majority line" — only a real, non-timed-out choice earns 最佳 (a
- // timeout auto-folds and must never be celebrated as the best play).
- const hitTop = freqGraded && choice===topAct && !timedOut;
- G.hands++;
- // per-spot lifetime accuracy (normal play only)
- if(!G.reviewMode && !G.diagMode){
+/* ---- 评级纯函数:只算判定与数值,不碰任何状态(test/resolve-sink 可单测) ----
+   超时永不算对;PREMIUM 该打却弃 / 垃圾牌该弃却打 = 漏着(扣2);其余失误扣1。 */
+const Q_OF={'最佳':'best','两可':'good','好棋':'good','不准':'inacc','失误':'mistake','超时':'mistake','漏着':'blunder'};
+function gradeHand(i){
+ const ok=!i.timedOut && i.correct.includes(i.choice);
+ let grade,gcolor,hpHit=0,pts=0,big=false,combo=i.combo,monsterFold=false;
+ if(ok){
+  combo++;
+  const mult=Math.min(3,1+combo*0.1);          // 连击加成(倒计时已移除,无速度加成)
+  if(i.isEdge && !i.freqGraded){grade='两可';gcolor='var(--best)';pts=Math.round(85*mult);}  // 边缘占位混合:两种都对,不评高下
+  else if(i.isMix && !i.hitTop){grade='好棋';gcolor='var(--good)';pts=Math.round(85*mult);}
+  else{grade='最佳';gcolor='var(--best)';pts=Math.round(100*mult);big=true;}
+ } else {
+  combo=0;
+  const shouldPlay=i.correct.includes('raise')||i.correct.includes('call')||i.correct.includes('shove');
+  monsterFold=shouldPlay&&i.choice==='fold'&&PREMIUM.has(i.hand);
+  if(i.timedOut){grade='超时';gcolor='var(--mistake)';hpHit=1;}            // 超时统一按失误,不评漏着
+  else if(i.isMix){grade='不准';gcolor='var(--inacc)';hpHit=1;}
+  else if(monsterFold || (i.correct[0]==='fold'&&!PREMIUM.has(i.hand)&&i.choice!=='fold'&&isTrash(i.hand))){grade='漏着';gcolor='var(--blunder)';hpHit=2;}
+  else{grade='失误';gcolor='var(--mistake)';hpHit=1;}
+ }
+ return {ok,grade,gcolor,hpHit,pts,big,combo,monsterFold,choice:i.choice};
+}
+
+/* ---- 结算沉淀器(sink):resolve 只算结果,数据写到哪由 G.sink.settle(r) 这一条缝决定 ----
+   新的持久化/进度副作用只能加进 SINKS.normal.settle;诊断/复习的隔离由此成为结构性的
+   (test/resolve-sink.test.js 用全景 STORE 快照断言守着),不再靠在 resolve 里逐处贴
+   !G.diagMode 守卫。settle 返回 {dead,done} 供流程段决定结算。 */
+const SINKS={
+ normal:{settle(r){
+  // 生涯统计 + 按天趋势(只记正常训练)
   const sk=FORMATS[G.format].tag+'·'+VARIANTS[G.format][G.variant].short;
   STORE.statsBySpot=STORE.statsBySpot||{};
   const e=STORE.statsBySpot[sk]||{h:0,c:0};
-  e.h++; if(ok)e.c++; STORE.statsBySpot[sk]=e;
-  // 按天趋势采集（准确率趋势图的数据地基；只记正常训练,采集期之前的历史不可回溯）
+  e.h++; if(r.ok)e.c++; STORE.statsBySpot[sk]=e;
   const day=new Date(), dk=day.getFullYear()+'-'+String(day.getMonth()+1).padStart(2,'0')+'-'+String(day.getDate()).padStart(2,'0');
   STORE.trend=STORE.trend||[];
   let te=STORE.trend[STORE.trend.length-1];
   if(!te||te.d!==dk){ te={d:dk,h:0,c:0}; STORE.trend.push(te); if(STORE.trend.length>180)STORE.trend.shift(); } // 保留最近 180 天
-  te.h++; if(ok)te.c++;
+  te.h++; if(r.ok)te.c++;
   persist();
- }
-
- // grade
- let grade,gcolor,hpHit=0,pts=0,big=false;
- if(ok){
-  G.correct++;G.combo++;G.best=Math.max(G.best,G.combo);
-  const mult=Math.min(3,1+G.combo*0.1);
-  const spd=1; // 倒计时已移除 → 无速度加成，得分只看正确性与连击
-  if(G.isEdge && !freqGraded){grade='两可';gcolor='var(--best)';G.q.good++;pts=Math.round(85*mult*spd);} // 边缘占位混合：两种都对，不评高下（绿色=正确，同"最佳"）
-  else if(G.isMix && !hitTop){grade='好棋';gcolor='var(--good)';G.q.good++;pts=Math.round(85*mult*spd);}
-  else{grade='最佳';gcolor='var(--best)';G.q.best++;pts=Math.round(100*mult*spd);big=true;}
-  G.score+=pts;
-  SFX[G.combo>=5?'great':'correct']();buzz(G.combo>=5?[20,40,20]:30);
- } else {
-  G.combo=0;G.levelMistakes++;
-  const shouldPlay=correct.includes('raise')||correct.includes('call')||correct.includes('shove');
-  if(timedOut){grade='超时';gcolor='var(--mistake)';G.q.mistake++;hpHit=1;} // didn't act in time — uniform miss, no 漏着 award
-  else if(G.isMix){grade='不准';gcolor='var(--inacc)';G.q.inacc++;hpHit=1;}
-  else if((shouldPlay&&choice==='fold'&&PREMIUM.has(hand)) || (correct[0]==='fold'&&PREMIUM.has(hand)===false&&choice!=='fold'&&isTrash(hand))){
-   grade='漏着';gcolor='var(--blunder)';G.q.blunder++;hpHit=2;
-   if(!G.diagMode&&shouldPlay&&choice==='fold'&&PREMIUM.has(hand))award('巨牌漏着','😱'); // 诊断模式中性:不弹成就(与 578/615/623 守卫一致)
-  } else {grade='失误';gcolor='var(--mistake)';G.q.mistake++;hpHit=1;}
-  if(!G.reviewMode && !G.diagMode)G.hp-=hpHit;
-  SFX.wrong();buzz([60,30,60]);
- }
-
- // mistake pile bookkeeping
- if(G.reviewMode){
+  if(!r.ok){ G.hp-=r.hpHit; addMistake(r.choice); updateReviewBtns(); }    // HP + 错题堆
+  checkAch(); if(r.monsterFold)award('巨牌漏着','😱');                      // 成就
+  G.pendingLevel=false;                                                     // 升级(横幅由 advance 播)
+  if(G.score>=G.level*1000 && G.level<6){
+   G.level++;G.pendingLevel=true;
+   if(G.levelMistakes===0)award('完美关卡','🏆');
+   G.levelMistakes=0;G.hp=Math.min(G.maxhp,G.hp+1);
+  }
+  const dead=G.hp<=0, done=!dead&&G.hands>=SESSION_HANDS;
+  return {dead,done};
+ }},
+ review:{settle(r){
   const rec=G.reviewRec;
-  if(ok){
+  if(r.ok){
    rec.streak=(rec.streak||0)+1;
-   if(rec.streak>=MASTER_STREAK){removeFromPile(rec);G.reviewCleared++;} // 连续答对 → 掌握，移出错题堆
-   else {persistReview();G.reviewQueue.push(rec);}                       // 答对但未掌握 → 留堆，本轮再练一遍
-  } else {rec.streak=0;if(choice)rec.choice=choice;persistReview();G.reviewQueue.push(rec);} // 答错 → 清零重练;更新最新错误选择,漏洞分类跟着当前毛病走(否则永远按第一次的错分类)
+   if(rec.streak>=MASTER_STREAK){removeFromPile(rec);G.reviewCleared++;}   // 连续答对 → 掌握,移出错题堆
+   else {persistReview();G.reviewQueue.push(rec);}                          // 答对但未掌握 → 留堆再练
+  } else {rec.streak=0;if(r.choice)rec.choice=r.choice;persistReview();G.reviewQueue.push(rec);} // 答错 → 清零重练,更新最新错误选择
   updateReviewBtns();
- } else if(!ok && !G.diagMode){ addMistake(choice); updateReviewBtns(); }
+  checkAch(); if(r.monsterFold)award('巨牌漏着','😱');                      // 现行为:复习也计成就
+  G.pendingLevel=false;
+  return {dead:false,done:false};                                           // 复习不扣血不结算
+ }},
+ diag:{settle(r){
+  // 诊断只记 diagResults 供报告聚合——绝不碰 STORE/错题堆/HP/成就
+  G.diagResults.push({ sceneKey:G.diagSceneKey, t:G.table, hand:G.hand, choice:r.choice, correct:r.ok, variant:G.variant });
+  G.pendingLevel=false;
+  return {dead:false,done:false};
+ }},
+};
+/* ---- 模式切换单缝:布尔与 sink 原子绑定 ----
+   全代码库禁止再散装赋值 G.reviewMode/G.diagMode/G.sink(上次「复习态泄漏进诊断
+   篡改错题堆」的根源就是模式布尔散装设置)。读布尔的地方不受影响。 */
+function setMode(m){
+ G.mode=m; G.reviewMode=(m==='review'); G.diagMode=(m==='diag');
+ G.sink=SINKS[m]||SINKS.normal;
+}
+
+function resolve(choice,btn,timedOut){
+ const t=G.table,correct=G.correct_set,hand=G.hand;
+ // 频率评级上下文:precise 混合点才有主频线(超时永不算最佳,§6:占位频率不评高下)
+ const fmap=handFreq(t,hand);
+ const topAct=Object.keys(fmap).sort((a,b)=>fmap[b]-fmap[a])[0];
+ const freqGraded = t.confidence==='precise' && G.isMix;
+ const hitTop = freqGraded && choice===topAct && !timedOut;
+ // ① 评级(纯函数,零副作用)
+ const r=gradeHand({correct,choice,timedOut,isMix:G.isMix,isEdge:G.isEdge,freqGraded,hitTop,hand,combo:G.combo});
+ const {ok,grade,gcolor,pts}=r;
+ // ② 会话计分(三模式共同的界面进度:手数/连击/得分/评级桶/关卡失误 + 音效)
+ G.hands++; G.combo=r.combo;
+ if(ok){ G.correct++; G.best=Math.max(G.best,G.combo); G.score+=pts;
+  SFX[G.combo>=5?'great':'correct']();buzz(G.combo>=5?[20,40,20]:30);
+ } else { G.levelMistakes++; SFX.wrong();buzz([60,30,60]); }
+ G.q[Q_OF[grade]]++;
+ // ③ 数据沉淀:唯一写入口——生涯统计/HP/错题堆/成就/升级/结算判定按模式路由(见 SINKS)
+ const end=(G.sink||SINKS.normal).settle(r);
 
  // GTO answer string
  const nameMap=MODES[t.mode].names;
@@ -663,23 +693,11 @@ function resolve(choice,btn,timedOut){
  // float score / burst
  if(pts>0){const r=(btn||document.getElementById('cards')).getBoundingClientRect();
   floatScore('+'+pts,r.left+r.width/2,r.top);}
- if(ok&&big&&G.combo>=3)burst(innerWidth/2,innerHeight*0.42,['#e8c66a','#34b074','#fff','#7fc6ff'],G.combo>=8?40:24);
+ if(ok&&r.big&&G.combo>=3)burst(innerWidth/2,innerHeight*0.42,['#e8c66a','#34b074','#fff','#7fc6ff'],G.combo>=8?40:24);
 
- renderHUD();if(!G.diagMode)checkAch();
+ renderHUD();
 
- // level up (deferred to advance) — skip in review mode
- G.pendingLevel=false;
- if(!G.reviewMode && !G.diagMode){
-  const need=G.level*1000;
-  if(G.score>=need && G.level<6){
-   G.level++;G.pendingLevel=true;
-   if(G.levelMistakes===0)award('完美关卡','🏆');
-   G.levelMistakes=0;G.hp=Math.min(G.maxhp,G.hp+1);renderHUD();
-  }
- }
-
- const dead = !G.reviewMode && !G.diagMode && G.hp<=0;
- const done = !G.reviewMode && !G.diagMode && !dead && G.hands>=SESSION_HANDS;   // finished the SESSION_HANDS-hand session
+ const dead=end.dead===true, done=end.done===true;   // 结算判定来自 sink(normal 才会真)
  const ending = dead || done;
  // 诊断:每手都要展示答案+解释(用户要求),绝不快进
  const quick = ok && !G.isMix && !ending && !G.diagMode; // pure best → auto advance
@@ -687,12 +705,12 @@ function resolve(choice,btn,timedOut){
  if(quick){ G._advT=setTimeout(()=>{ if(!G.over) advance(); }, 1000); return; } // 句柄存 G._advT:退出/重开时掐掉,防止旧局定时器打进新局(双重发牌/补放升级横幅)
 
  // build detailed feedback panel
- const r=reasonFor(t,hand,correct,choice,ok,grade);
+ const reason=reasonFor(t,hand,correct,choice,ok,grade);
  document.getElementById('fbGrade').textContent=L(grade);
  document.getElementById('fbGrade').style.color=gcolor;
  document.getElementById('fbAns').innerHTML=tr('answerLine',{ans:corrStr,freq:freq,chip:confChip(t)});
  const youLine = ok ? '' : (timedOut ? tr('youTimeout') : tr('youChose',{c:L(nameMap[choice]||'弃牌')}));
- document.getElementById('fbReason').innerHTML=youLine+r;
+ document.getElementById('fbReason').innerHTML=youLine+reason;
  // 视觉动作对比条（参考 vs 你），precise 附真频率条
  const cmpEl=document.getElementById('fbCompare');
  cmpEl.innerHTML=fbCompareHtml(t,hand,correct,choice,ok,timedOut); cmpEl.classList.remove('hide');
@@ -1013,8 +1031,7 @@ function exitTableUI(){
 function exitToMenu(){
  if(G.diagMode){ SFX.click(); if(typeof coachAbortDiagnosis==='function')coachAbortDiagnosis(); return; }  // 诊断中途退出 → 放弃本次诊断,回 coach
  SFX.click();stopTimer();G.busy=true;G.over=true;
- G.reviewMode=false;                              // 中途退出必须清复习态:否则残留的 G.reviewRec 会被
-                                                  // 之后的诊断答题误改/误删错题堆记录(resolve 只看 reviewMode)
+ setMode('normal');                               // 中途退出回 normal(模式单缝;曾因散装清布尔漏掉 reviewMode 引发错题堆污染)
  clearTimeout(G._advT);                           // 掐掉快进/升级定时器,防其在下一局里补一发 advance()
  exitTableUI();
  showScreen('startScreen');

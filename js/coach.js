@@ -167,7 +167,7 @@ function _accColor(acc){
 /* --- 入口路由 --- */
 function coachOpen(){
   // 进入时重置任何残留诊断状态
-  if(typeof G!=='undefined'){ G.diagMode=false; }
+  if(typeof setMode==='function') setMode('normal');
   const scr=document.getElementById('coachScreen');
   if(!scr) return;
   // 隐藏其他覆盖层，显示 coach 屏(SCREENS 注册表统一收屏,不再手工维护子集列表)
@@ -573,7 +573,7 @@ function coachMarkDayDone(){
 try{
   document.getElementById('coachBack').onclick=()=>{
     try{if(typeof SFX!=='undefined')SFX.click();}catch(e){}
-    if(typeof G!=='undefined') G.diagMode=false;
+    if(typeof setMode==='function') setMode('normal');
     const scr=document.getElementById('coachScreen');
     if(scr) scr.classList.add('hide');
     // 必须显式回主页(诊断流程隐藏过 homeScreen):showScreen 统一恢复
@@ -620,9 +620,8 @@ function coachStartDiagnosis(onboard, variant, onReport){
   _coachDiagPos = 0;
   _coachDiagOnReport = onReport;
   // 像 newGame 一样初始化一局,但打开诊断标记
-  G.diagMode = true; G.diagResults = []; G.over=false; G.busy=false;
-  G.reviewMode=false; G.reviewRec=null; // 清残留复习态:resolve 的错题堆分支只看 reviewMode,
-                                        // 若用户曾中途退出复习,诊断答题会误改/误删无关错题记录
+  if(typeof setMode==="function") setMode("diag");   // 模式单缝:布尔+sink 原子绑定(诊断数据只进 diagResults)
+  G.diagResults = []; G.over=false; G.busy=false; G.reviewRec=null;
   G.hands=0; G.correct=0; G.handNo=0; G.score=0; G.combo=0; G.best=0;
   G.level=1; G.hp=5; G.maxhp=5; G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
   G.diagVariant = variant; G.diagScenes = scenes; G.diagTotal = _coachDiagQueue.length;
@@ -642,7 +641,7 @@ function coachDiagAdvance(){
 
 // 诊断完成:收起牌桌,回 coach 覆盖层显示报告;聚合结果、生成 verdict、存储、回调。
 function coachFinishDiagnosis(){
-  G.diagMode=false; G.over=true; G.busy=true;
+  if(typeof setMode==="function") setMode("normal"); G.over=true; G.busy=true;
   _coachExitTable();
   if(typeof showScreen==='function') showScreen('coachScreen');
   const agg = coachAggregate(G.diagResults||[], G.diagScenes||[]);
@@ -654,7 +653,7 @@ function coachFinishDiagnosis(){
 
 // 诊断中途放弃(左上 ← / 右上结束):回 coach 问卷。
 function coachAbortDiagnosis(){
-  if(typeof G!=='undefined'){ G.diagMode=false; G.over=true; G.busy=true; }
+  if(typeof setMode==='function') setMode('normal'); if(typeof G!=='undefined'){ G.over=true; G.busy=true; }
   _coachExitTable();
   if(typeof showScreen==='function') showScreen('coachScreen');
   _coachSection('coachOnboard'); coachRenderOnboard();

@@ -48,7 +48,11 @@ js/purchases.js          RevenueCat (Capacitor) IAP adapter via window.Capacitor
 js/notify.js             local-notifications adapter via window.Capacitor.Plugins.LocalNotifications.
                          window.Notify = {enable,disable,reschedule}; daily training reminder; native only.
 js/app.js                persistence, audio (synth SFX w/ master lowpass+compressor), confetti, hand helpers,
-                         game engine, charts + start-screen live chart preview (renderStartChart) +
+                         game engine (resolve = gradeHand 纯函数评级 → G.sink.settle 单缝数据沉淀 → render;
+                         SINKS.normal/review/diag 决定 生涯统计/HP/错题堆/成就/升级/结算 写到哪,
+                         模式切换 ONLY via setMode(m)——布尔+sink 原子绑定,散装赋值
+                         G.reviewMode/G.diagMode 会让数据路由失效并被 test/resolve-sink.test.js
+                         的全景 STORE 快照断言抓红), charts + start-screen live chart preview (renderStartChart) +
                          wrong-answer range table in feedback (renderFbMatrix, with adjacent-hand
                          boundary highlight via neighborsOf) + 反馈学习闭环 (fbCompareHtml 动作对比条 +
                          classifyMiss 错误归因 + precise 真频率条) + 胜率计算器 +
@@ -72,8 +76,8 @@ js/app.js                persistence, audio (synth SFX w/ master lowpass+compres
                          callEV/btnEV — the ONLY place EV numbers are shown, per PRODUCT.md §6)
 js/coach.js              LOADS LAST. 翻前诊断 + 20 天训练计划 (主页顶部横幅卡 homePlan → coachOpen).
                          问卷 coachScenes(onboard) → 诊断测试 (简化18/详细45, coachBuildDiagQueue) 走
-                         G.diagMode 复用练习的真实牌桌/发牌/逐题反馈/范围矩阵 (app.js 的 nextHand/resolve
-                         里用 !G.diagMode 守卫跳过 HP/统计/错题堆/升级/结算; _coachDiagQueue/_coachDiagPos
+                         G.diagMode 复用练习的真实牌桌/发牌/逐题反馈/范围矩阵 (数据隔离靠 resolve 的
+                         SINKS.diag.settle——见 app.js 的 sink 说明; _coachDiagQueue/_coachDiagPos
                          为模块级状态) → coachFinishDiagnosis 聚合 (coachAggregate/coachVerdict) 出报告 →
                          coachBuildPlan 20 天每日计划 (coachMarkDayDone 打卡 + streak). 诊断+报告免费,
                          Start Day 1 计划执行 Pro. 诚实红线: 全部 vs 参考范围、标 not solver-exact、不编 EV/频率
