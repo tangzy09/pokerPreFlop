@@ -296,8 +296,10 @@ _tpl('calcErrSuffix', '{e}', '{e}');
 // paywall
 _tpl('pwTitle', '解锁 Pro 🐿', 'Unlock Pro 🐿');
 _tpl('pwBuy', '解锁 Pro', 'Unlock Pro');
-_tpl('pwYear', '年订阅 · $12.99 / 年', 'Yearly · $12.99/yr');
-_tpl('pwYearNote', '最划算 · 合约 $1.08 / 月', 'Best value · ~$1.08/mo');
+_tpl('pwYear', '年订阅 · $29.99 / 年', 'Yearly · $29.99/yr');
+_tpl('pwYearNote', '最划算 · 合 $2.50 / 月 · 比月订省 50%', 'Best value · ~$2.50/mo · save 50% vs monthly');
+_tpl('pwYearTrial', '免费试用 {d} 天', 'Try free for {d} days');
+_tpl('pwYearTrialNote', '之后 $29.99 / 年 · 随时取消', 'then $29.99/yr · cancel anytime');
 _tpl('pwSub', '月订阅 · $4.99 / 月', 'Monthly · $4.99/mo');
 _tpl('pwSubNote', '随时取消', 'Cancel anytime');
 _tpl('pwRestore', '恢复已购买', 'Restore purchases');
@@ -343,14 +345,16 @@ _tpl('gateLeak', '🔓 解锁全部漏洞 + 训练计划', '🔓 Unlock all leak
 _tpl('gatePlan', '🔓 解锁训练计划', '🔓 Unlock training plan');
 _tpl('feat.profile', '个人画像', 'Profile'); _tpl('feat.plan', '训练计划', 'Training plan'); _tpl('feat.leak', '漏洞分析', 'Leak analysis');
 I18N_TPL.zh['pitch'] = [
+ '🩺 20 天个性化训练计划（手型级漏洞 · 每日可执行 · 复诊看进步）',
+ '♠ 全部 145+ 场景（50/200bb 深度 · 面对跛入 · Straddle · 每类后半）',
  '🔍 个人画像 + 漏洞分析（最大漏洞 · 太松/太紧/被动/过激）',
- '🗓 训练计划（按需练度排序 · 一键去练）',
- '♠ 全部自算 Nash 推弃训练（8–25bb · 6人 · 单挑HU · 面对全下）',
+ '🎯 自算 Nash 推弃训练与图表（8–25bb · 6人 · 单挑HU · 面对全下）',
  '🧮 算胜率计算器（翻前 / 翻后 equity）'];
 I18N_TPL.en['pitch'] = [
+ '🩺 20-day personalised plan (hand-type leaks · daily drills · re-checks show progress)',
+ '♠ All 145+ scenarios (50/200bb depths · vs limpers · straddle · 2nd half of each type)',
  '🔍 Profile + leak analysis (biggest leak · too loose / tight / passive / aggressive)',
- '🗓 Training plan (sorted by need · one-tap drill)',
- '♠ All solved-Nash jam/fold drills (8–25bb · 6-max · heads-up · vs jam)',
+ '🎯 Solved-Nash jam/fold drills & charts (8–25bb · 6-max · heads-up · vs jam)',
  '🧮 Equity calculator (pre- / post-flop equity)'];
 
 // reasonFor — verb / hand-kind whys
@@ -559,6 +563,7 @@ _tpl('leakTypeDesc_mix','边缘难点把握不准，这是正常的','Struggling
 _tpl('leakTypeDesc_icm','泡沫期手牌把握不准，需练 ICM 意识','Bubble hands off — ICM awareness needs work');
 // 付费墙文案
 _tpl('pwWhyPlan','20 天个性化训练计划是 Pro 功能','The 20-day personalised plan is a Pro feature');
+_tpl('pwWhyPlanYou','解锁你的 20 天计划——先攻:{focus}','Unlock your 20-day plan — first up: {focus}');
 // 每日卡片
 _tpl('coachDayN','Day {d} / 20','Day {d} / 20');
 _tpl('coachStreak','🔥 {n} 天','🔥 {n} days');

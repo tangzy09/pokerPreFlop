@@ -443,7 +443,7 @@ function coachRenderReport(diagnosis){
   const d1=document.getElementById('coachStartDay1');
   if(d1) d1.onclick=()=>{
     if(typeof isPro==='function' && !isPro()){
-      if(typeof showPaywall==='function') showPaywall(tr('pwWhyPlan'));
+      if(typeof showPaywall==='function') showPaywall(_coachPwWhy(diagnosis)); // 带用户自己的漏洞,不是通用文案
       return;
     }
     coachStartPlan(diagnosis);
@@ -495,6 +495,21 @@ function coachRenderRecheckReport(diag, slim){
   `;
   const back=document.getElementById('coachRecheckBack');
   if(back) back.onclick=()=>{ _coachSection('coachDay'); coachRenderDay(); };
+}
+
+/* --- 付费墙缘由:带用户自己的诊断漏洞(购买意愿最高点 = 刚看完自己错哪) --- */
+function _coachPwWhy(diagnosis){
+  const diag = diagnosis || coachLoadDiagnosis();
+  const agg = diag && diag.agg;
+  if(agg){
+    const parts = [];
+    const tl = (agg.topLeaks||[])[0];
+    if(tl) parts.push((L(tl.name)||tl.name)+' '+tr('leakType_'+tl.leak));
+    const fl = (agg.famLeaks||[])[0];
+    if(fl) parts.push(L(FAM_COARSE[fl.fam]||fl.fam));
+    if(parts.length) return tr('pwWhyPlanYou',{focus:parts.join('、')});
+  }
+  return tr('pwWhyPlan');
 }
 
 /* --- 计划启动 --- */
@@ -632,7 +647,7 @@ function coachStartDayTraining(day){
   // Pro 门槛在每次启动时校验(而不是只在 Start Day 1):否则退订/换设备后,
   // 已存在 localStorage 的计划可以永久绕过付费墙直接 newGame()
   if(typeof isPro==='function' && !isPro()){
-    if(typeof showPaywall==='function') showPaywall(tr('coachStartDay1Sub'));
+    if(typeof showPaywall==='function') showPaywall(_coachPwWhy());
     return;                                        // 留在 coachScreen,不动任何屏
   }
   if(typeof showScreen==='function') showScreen(null); // 进真实牌桌 = 全部覆盖屏隐藏
@@ -771,7 +786,7 @@ const COACH_RECHECK_PASS = 0.8;   // 达标线
 // 计划内迷你复诊:按基线诊断的 topLeaks 场景收窄 + famLeaks 手型族过滤;抽不满则逐级放开。
 function coachStartRecheck(day){
   if(typeof isPro==='function' && !isPro()){        // 复诊在计划内,与每日训练同款 Pro 校验
-    if(typeof showPaywall==='function') showPaywall(tr('coachStartDay1Sub'));
+    if(typeof showPaywall==='function') showPaywall(_coachPwWhy());
     return;
   }
   const diag = coachLoadDiagnosis(); if(!diag || !diag.agg) return;

@@ -55,7 +55,7 @@ function showPaywall(why){
    <div id="pwWhy" style="text-align:center;color:var(--muted,#8fa79a);font-size:13px;margin:4px 0 14px"></div>
    <div id="pwList" style="display:flex;flex-direction:column;gap:9px;font-size:13.5px;color:var(--ink,#f1f5ee)"></div>
    <button id="pwYear" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:#16110a;background:linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f));width:100%;padding:13px;border-radius:13px;margin-top:16px;display:flex;flex-direction:column;gap:1px;align-items:center">
-     <span>${tr('pwYear')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${tr('pwYearNote')}</small></button>
+     <span>${(typeof Pay!=='undefined'&&Pay.yearTrialDays>0)?tr('pwYearTrial',{d:Pay.yearTrialDays}):tr('pwYear')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${(typeof Pay!=='undefined'&&Pay.yearTrialDays>0)?tr('pwYearTrialNote'):tr('pwYearNote')}</small></button>
    <button id="pwSub" style="appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:var(--gold,#e8c66a);background:transparent;border:1px solid var(--gold,#e8c66a);width:100%;padding:13px;border-radius:13px;margin-top:9px;display:flex;flex-direction:column;gap:1px;align-items:center">
      <span>${tr('pwSub')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${tr('pwSubNote')}</small></button>
    <button id="pwRestore" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-size:13px;color:var(--muted,#8fa79a);background:transparent;width:100%;padding:8px;margin-top:8px;text-decoration:underline">${tr('pwRestore')}</button>
