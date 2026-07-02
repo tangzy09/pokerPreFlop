@@ -578,7 +578,7 @@ function applyI18n(root){
  _updateLangBtn();
  if(typeof rerenderUI==='function'){ try{ rerenderUI(); }catch(e){} }
 }
-// highlight the active segment in the 中|EN selector (单一 body 级选择器;曾有过 per-screen 的 langToggle2,勿再加回)
+// highlight the active segment in the 中|EN selector (单一 #app 级选择器;曾有过 per-screen 的 langToggle2,勿再加回)
 function _updateLangBtn(){
  const w=document.getElementById('langToggle'); if(!w) return;
  w.querySelectorAll('button[data-lang]').forEach(seg=>{
@@ -602,7 +602,7 @@ function _mountLangToggle(){
  if(!_hasDOM()) return;
  try{
   if(document.getElementById('langToggle')) return;
-  // 单个 body 级固定选择器，任何页面都可切换语言
+  // 单个 #app 级选择器，任何页面都可切换语言
   const mk=(code,label)=>{
    const seg=document.createElement('button'); seg.type='button'; seg.dataset.lang=code; seg.textContent=label;
    seg.style.cssText='appearance:none;border:0;background:transparent;font:700 12px/1 system-ui;padding:5px 9px;border-radius:7px;cursor:pointer;transition:.15s';
@@ -610,9 +610,12 @@ function _mountLangToggle(){
    return seg;
   };
   const wrap=document.createElement('div'); wrap.id='langToggle'; wrap.title='Language / 语言';
-  wrap.style.cssText='position:fixed;top:calc(7px + env(safe-area-inset-top));right:calc(14px + env(safe-area-inset-right));z-index:150;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
+  // 挂进 #app（max-width:520px 的应用列）用 absolute 定位，宽屏下才跟着应用列走；
+  // 之前挂 body + fixed 会钉在视口右上角，桌面宽窗口时按钮飘在应用列外面
+  const host=document.getElementById('app');
+  wrap.style.cssText='position:'+(host?'absolute':'fixed')+';top:calc(7px + env(safe-area-inset-top));right:calc(14px + env(safe-area-inset-right));z-index:150;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
   wrap.appendChild(mk('zh','中')); wrap.appendChild(mk('en','EN'));
-  document.body.appendChild(wrap);
+  (host||document.body).appendChild(wrap);
   const obs=new MutationObserver(_langBtnVis);
   SCREENS.forEach(id=>{const e=document.getElementById(id); if(e) obs.observe(e,{attributes:true,attributeFilter:['class']});});
   _langBtnVis(); _updateLangBtn();

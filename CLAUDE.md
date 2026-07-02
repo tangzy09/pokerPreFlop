@@ -17,8 +17,8 @@ gto-trainer.html         markup + ~650 lines CSS + INLINED fonts (Space Grotesk/
 js/i18n.js               LOADS FIRST. Bilingual display layer (English default + 中文 toggle).
                          The DATA files stay Chinese = canonical source; translation is display-only:
                          L("中文")→en/zh by source lookup; tr(key,vars)→keyed bilingual templates;
-                         applyI18n() walks static HTML; body-level fixed 中|EN segmented selector on
-                         EVERY screen + the in-hand view (drops below the HUD score during a hand)
+                         applyI18n() walks static HTML; single #app-level absolute 中|EN segmented
+                         selector on EVERY screen + the in-hand view (drops below the HUD score during a hand)
 js/equity.js             dual-loaded equity engine (evaluate7, equityExact, classEquity,
                          rangeEquity, rangeEquityBoard = equity on a given 3/4/5-card board);
                          also require()d by tools/ — module.exports is guarded
@@ -36,7 +36,12 @@ js/data/pushfold-nash.js AUTO-GENERATED, NOT <script>-loaded: PUSHFOLD.nash (Nas
                          ante×stack×pos, ~2.4MB=93% of the old file). Lazily injected by openNash()
                          on first open (dynamic <script>, works from file://) — keeps boot ~2.4MB lighter
 js/data/hu-pushfold.js   AUTO-GENERATED HU SB-vs-BB push/fold, jam + call, 5/8/10/12/15/20/25bb (global HU_PUSHFOLD)
-js/packs.js              PACKS range database (+ PREMIUM); overrides push/call spots with the computed data
+js/packs.js              PACKS range database (+ PREMIUM); overrides push/call spots with the computed data.
+                         Every spot carries STRUCTURED seat fields for the table viz: heroPos + vilPos
+                         (single or [opener,caller] for squeeze) on curated spots, or pf/pf6/huStack/
+                         calloff on computed ones. tableModel reads fields first; the posKey/regex
+                         name-parsing is only a fallback for legacy data — new spots MUST set the
+                         fields (test/table-model.test.js enforces completeness + ring validity)
 js/cap.js                Capacitor 桥接共享 helper (var/window.CAP = {cap,native,plugin(name)}); purchases + notify 复用
 js/purchases.js          RevenueCat (Capacitor) IAP adapter via window.Capacitor.Plugins.Purchases (zero-build,
                          no import). window.Pay = {init,buy,restore,refresh}; native only, browser no-ops.
@@ -136,7 +141,7 @@ Read these relationships before editing:
 - `L("中文")` → English when `LANG==='en'`, the original Chinese when `'zh'` (lookup by the Chinese source string; unknown strings fall back to Chinese). Used for short labels, action names, spot `name`/`who` (the latter via `Lwho`/`Lparts` which split on ` · ` / tokens).
 - `tr(key, vars)` → keyed bilingual templates with `{var}` interpolation, for the interpolated prose (`reasonFor`, feedback, paywall) and inline-`<b>` HTML blocks. **Named `tr`, not `t`, because app.js uses `t` for the spot object.**
 - `applyI18n()` walks static HTML (`data-i18n-html` keyed blocks + simple text nodes) and is re-run on language switch; `setLang()` persists `gtoLang` to localStorage and calls `rerenderUI()` (defined in app.js) to rebuild dynamic UI.
-- Default is **English**; the `中 | EN` selector is a **body-level `position:fixed` segmented toggle shown on every screen** (and the in-hand training view) — it highlights the active language and, during an active hand, drops to the HUD's second row (below the score/level lines) so it never overlaps the score. `_mountLangToggle()` builds it once on `<body>`; a `MutationObserver` on every screen's `class` drives `_langBtnVis()` to reposition it (menu = top-right; in-hand = below the HUD). Earlier it was inlined per-screen in `#startScreen`/`#homeScreen`, which left most screens with no selector — keep it body-level.
+- Default is **English**; the `中 | EN` selector is a **single `#app`-level `position:absolute` segmented toggle shown on every screen** (and the in-hand training view) — it highlights the active language and, during an active hand, drops to the HUD's second row (below the score/level lines) so it never overlaps the score. `_mountLangToggle()` builds it once inside `#app` (the 520px app column — absolute so it tracks the column on wide desktop windows; the earlier body-level `fixed` version floated at the viewport edge, outside the column); a `MutationObserver` on every screen's `class` drives `_langBtnVis()` to reposition it (menu = top-right; in-hand = below the HUD). Even earlier it was inlined per-screen in `#startScreen`/`#homeScreen`, which left most screens with no selector — keep it a single instance covering all screens.
 - **Tests are pinned to `zh`** (`app.setLang('zh')` in `regression.test.js`) so the golden snapshot + prose assertions read the canonical language. `load-app.js` exports `L`/`tr`/`setLang`/`curLang`. Because data stays Chinese, adding i18n did **not** change the snapshot.
 
 ### Game loop & state

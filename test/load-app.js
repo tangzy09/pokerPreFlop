@@ -47,6 +47,7 @@ const EXPORTS = [
   'L', 'tr', 'setLang', 'curLang',
   'coachPlanDays', 'coachScenes', 'coachAggregate', 'coachVerdict', 'coachBuildPlan',
   'coachHandsForMinutes', 'COACH_MIN_SAMPLE',
+  'tableModel', 'tablePlayers', 'posKey', 'POS_RING',
 ];
 
 function loadApp(htmlPath) {

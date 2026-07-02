@@ -385,28 +385,31 @@ function tableModel(t,fmt,variant){
  const N=tablePlayers(fmt,variant), ring=POS_RING[N], mtt=fmt==='mtt';
  const nm=t.name||''; let hero=null,heroBet=0; const vil=[];
  const RAISE=2.3, THREEB=8, FOURB=21;
+ // 座位一律「结构化字段优先、文案解析兜底」:t.heroPos / t.vilPos(单个或数组,挤压=[开局者,跟注者]);
+ // 推弃复用既有 t.pf/t.pf6。posKey 正则只服务缺字段的旧数据——新 spot 请直接写字段(测试守完备性)。
+ const hp=t.heroPos||null, vp=t.vilPos!=null?[].concat(t.vilPos):null;
  if(fmt==='coldcall'){                                   // 冷跟：英雄 BTN/CO 面对开局加注（spot 用 defense 模式）
-  hero=posKey(nm.split(/冷跟|vs/)[0])||'BTN';
-  vil.push({pos:posKey(nm.split('vs')[1]||'')||'CO',bet:RAISE});
+  hero=hp||posKey(nm.split(/冷跟|vs/)[0])||'BTN';
+  vil.push({pos:(vp&&vp[0])||posKey(nm.split('vs')[1]||'')||'CO',bet:RAISE});
  } else if(t.mode==='defense'){                          // 大盲防守：英雄 BB 面对开局加注
-  hero='BB'; vil.push({pos:posKey(nm.replace(/BB|大盲/g,'').replace(/vs/,''))||'BTN',bet:RAISE});
+  hero=hp||'BB'; vil.push({pos:(vp&&vp[0])||posKey(nm.replace(/BB|大盲/g,'').replace(/vs/,''))||'BTN',bet:RAISE});
  } else if(mtt&&/^hu/.test(variant)){                    // 单挑推弃
   hero=t.huSide==='call'?'BB':'SB';
   if(t.huSide==='call')vil.push({pos:'SB',bet:+(/(\d+)/.exec(variant)||[])[1]||10});
  } else if(t.mode==='callshove'&&t.calloff){             // 9人 面对全下·BB 跟注
   hero='BB'; vil.push({pos:'BTN',bet:+(t.coStack||10)});
  } else if(t.mode==='face3b'){                           // 你开局 → 被 3-bet：解析开局位 + 反加位
-  hero=posKey((nm.match(/开\s*([^\s，,]+)/)||[])[1])||'BTN';
-  let v3=posKey((nm.match(/([^\s，,]+)\s*反加/)||[])[1]); if(!v3)v3=hero==='CO'?'BTN':'BB';
+  hero=hp||posKey((nm.match(/开\s*([^\s，,]+)/)||[])[1])||'BTN';
+  let v3=(vp&&vp[0])||posKey((nm.match(/([^\s，,]+)\s*反加/)||[])[1]); if(!v3)v3=hero==='CO'?'BTN':'BB';
   heroBet=RAISE; vil.push({pos:v3,bet:THREEB});
  } else if(t.mode==='face4b'){                           // 你 3-bet → 被 4-bet
-  hero=/盲/.test(nm)?'SB':'BTN'; heroBet=THREEB;
-  vil.push({pos:hero==='SB'?'BTN':'CO',bet:FOURB});
+  hero=hp||(/盲/.test(nm)?'SB':'BTN'); heroBet=THREEB;
+  vil.push({pos:(vp&&vp[0])||(hero==='SB'?'BTN':'CO'),bet:FOURB});
  } else if(t.mode==='squeeze'){                          // 挤压：开局者 + 跟注者 都已在池
-  hero=/大盲|盲/.test(nm)?'BB':'BTN';
-  vil.push({pos:'UTG',bet:RAISE});                        // 开局者
-  vil.push({pos:hero==='BTN'?'CO':'HJ',bet:RAISE});       // 跟注者
- } else { hero=posKey(nm)||ring[0]; }                     // open / push：首入，折到英雄
+  hero=hp||(/大盲|盲/.test(nm)?'BB':'BTN');
+  vil.push({pos:(vp&&vp[0])||'UTG',bet:RAISE});                        // 开局者
+  vil.push({pos:(vp&&vp[1])||(hero==='BTN'?'CO':'HJ'),bet:RAISE});       // 跟注者
+ } else { hero=hp||t.pf||t.pf6||posKey(nm)||ring[0]; }                     // open / push：首入，折到英雄
  if(!ring.includes(hero)) hero = N===2?'SB':'BB';
  const hi=ring.indexOf(hero);
  const betAt={}; vil.forEach(v=>{const i=ring.indexOf(v.pos); if(i>=0)betAt[i]=Math.max(betAt[i]||0,v.bet);});
