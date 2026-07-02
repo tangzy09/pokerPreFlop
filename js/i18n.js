@@ -19,6 +19,9 @@ const I18N_EN = {
  '退出训练':'Exit training','结束训练 · 查看战绩':'End training · view results','结束':'End',
  '复习模式':'Review mode','下一步 →':'Next →','查看结果 →':'See result →','查看报告 →':'See report →',
  // —— nav ——
+ /* SEO 静态文案 */
+ '翻前训练营 Preflop Camp — 免费德州扑克翻前 GTO 训练器 · 自算 Nash 推弃真 EV':'Preflop Camp — Free Texas Hold\'em Preflop GTO Trainer · Solved Nash Push/Fold EV',
+ '翻前训练营(Preflop Camp)是免费的德州扑克翻前 GTO 决策训练器：现金局与锦标赛全场景(开局加注、大小盲防守、面对 3-bet/4-bet、挤压、冷跟、跛入与 straddle、8–25bb 推弃)；推弃与跟注档位为自算 Nash 均衡并附每手真实 EV —— 绝不编造数据。含翻前诊断、20 天个性化训练计划、错题复习与漏洞分析，离线可用、无需注册、中英双语。Free preflop GTO trainer for Texas Hold\'em: solved Nash push/fold with real per-hand EV, diagnosis + 20-day plan, offline, bilingual, no signup.':'Preflop Camp is a free preflop GTO trainer for Texas Hold\'em: full cash & tournament coverage (open raises, blind defense, vs 3-bet/4-bet, squeeze, cold-call, limp & straddle pots, 8-25bb push/fold); push/fold and call-off charts are self-solved Nash equilibria with real per-hand EV — no fabricated numbers. Includes a preflop diagnosis, a 20-day personal plan, mistake review and leak analysis. Offline, bilingual, no signup.',
  '翻后教练':'Postflop Coach','30 课翻后训练 · 姐妹站':'30-lesson postflop trainer · sister app',
  '错题':'Mistakes','图表':'Charts','算胜率':'Equity','统计':'Stats',
  // —— start screen ——
