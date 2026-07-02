@@ -10,9 +10,17 @@ function expand(str){const out=new Set();if(!str)return out;
   if(m=tok.match(new RegExp(`^(${RX})\\1\\+$`))){for(let i=RIDX[m[1]];i>=0;i--)out.add(RANKS[i]+RANKS[i]);}
   else if(m=tok.match(new RegExp(`^(${RX})\\1-(${RX})\\2$`))){let a=RIDX[m[1]],b=RIDX[m[2]],lo=Math.min(a,b),hi=Math.max(a,b);for(let i=lo;i<=hi;i++)out.add(RANKS[i]+RANKS[i]);}
   else if(m=tok.match(new RegExp(`^(${RX})\\1$`))){out.add(m[1]+m[1]);}
-  else if(m=tok.match(new RegExp(`^(${RX})(${RX})([so])\\+$`))){let f=RIDX[m[1]],s=RIDX[m[2]],suf=m[3];for(let i=s;i>f;i--)out.add(RANKS[f]+RANKS[i]+suf);}
-  else if(m=tok.match(new RegExp(`^(${RX})(${RX})([so])-(${RX})(${RX})\\3$`))){let f=RIDX[m[1]],s1=RIDX[m[2]],s2=RIDX[m[5]],suf=m[3],lo=Math.min(s1,s2),hi=Math.max(s1,s2);for(let i=lo;i<=hi;i++)if(i>f)out.add(RANKS[f]+RANKS[i]+suf);}
-  else if(m=tok.match(new RegExp(`^(${RX})(${RX})([so])$`))){let a=RIDX[m[1]],b=RIDX[m[2]],hi=Math.min(a,b),lo=Math.max(a,b);out.add(RANKS[hi]+RANKS[lo]+m[3]);}
+  else if(m=tok.match(new RegExp(`^(${RX})(${RX})([so])\\+$`))){let f=RIDX[m[1]],s=RIDX[m[2]],suf=m[3];if(f!==s)for(let i=s;i>f;i--)out.add(RANKS[f]+RANKS[i]+suf);}
+  else if(m=tok.match(new RegExp(`^(${RX})(${RX})([so])-(${RX})(${RX})\\3$`))){
+   // 三种标准区间写法(此前第二 token 的高张 m[4] 被忽略,连子区间 T9s-65s 会静默展开成错误范围):
+   //  同高张 kicker 区间 A2s-A9s · 同 kicker 高张区间 K9s-Q9s · 同 gap 对角连子区间 T9s-65s
+   const h1=RIDX[m[1]],k1=RIDX[m[2]],h2=RIDX[m[4]],k2=RIDX[m[5]],suf=m[3];
+   const put=(h,k)=>{if(h!==k&&h>=0&&h<=12&&k>=0&&k<=12)out.add(RANKS[Math.min(h,k)]+RANKS[Math.max(h,k)]+suf);};
+   if(h1===h2){const lo=Math.min(k1,k2),hi=Math.max(k1,k2);for(let i=lo;i<=hi;i++)put(h1,i);}
+   else if(k1===k2){const lo=Math.min(h1,h2),hi=Math.max(h1,h2);for(let i=lo;i<=hi;i++)put(i,k1);}
+   else if(k1-h1===k2-h2){const g=k1-h1,lo=Math.min(h1,h2),hi=Math.max(h1,h2);for(let i=lo;i<=hi;i++)put(i,i+g);}
+   /* 两端既不同高张、不同 kicker、gap 也不同 → 无法解释的区间,忽略(不硬猜错误范围) */}
+  else if(m=tok.match(new RegExp(`^(${RX})(${RX})([so])$`))){let a=RIDX[m[1]],b=RIDX[m[2]];if(a!==b){let hi=Math.min(a,b),lo=Math.max(a,b);out.add(RANKS[hi]+RANKS[lo]+m[3]);}}
  });return out;}
 
 /* shared range strings (reused across packs) */

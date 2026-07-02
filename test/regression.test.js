@@ -147,6 +147,14 @@ test('range DSL expand() parses representative tokens', () => {
   assert.equal(expand('A2s+').size, 12);          // A2s..AKs
   const r = expand('A2s+');
   assert.ok(r.has('A2s') && r.has('AQs') && !r.has('AKo'));
+  // dash 区间的三种标准写法（此前连子区间会静默展开成错误范围）
+  assert.deepEqual([...expand('T9s-65s')].sort(), ['65s','76s','87s','98s','T9s'], '同 gap 对角连子区间');
+  assert.deepEqual([...expand('K9s-Q9s')].sort(), ['K9s','Q9s'], '同 kicker 高张区间');
+  assert.equal(expand('A2s-A9s').size, 8, '同高张 kicker 区间（原行为）');
+  // 同点数非法标签必须拒绝（'AAs' 曾生成重复牌组合导致胜率算错）
+  assert.equal(expand('AAs').size, 0);
+  assert.equal(expand('22o').size, 0);
+  assert.equal(expand('AAs+').size, 0);
 });
 
 test('handLabel + combosOf produce canonical forms', () => {

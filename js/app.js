@@ -215,12 +215,13 @@ function updateReviewBtns(){
 }
 
 function newGame(){
+ clearTimeout(G._advT);                            // 掐掉上一局残留的快进/升级定时器(1s/1.5s 窗口内重开会双重发牌)
  G.reviewMode=false;
  G.diagMode=false; G.diagResults=[]; G.diagSceneKey=null; // 诊断隔离字段:由 coachStartDiagnosis 设置,newGame 重置
  G.pack=PACKS[G.format][G.variant];
  G.score=0;G.level=1;G.hp=5;G.maxhp=5;G.combo=0;G.best=0;
  G.hands=0;G.correct=0;G.handNo=0;G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
- G.fastCorrect=0;G.levelMistakes=0;G.ach=new Set();G.busy=false;G.over=false;
+ G.fastCorrect=0;G.levelMistakes=0;G.ach=new Set();G.busy=false;G.over=false;G.pendingLevel=false;
  G.queue=null;G.queueLevel=0;
  renderHUD();nextHand();
 }
@@ -681,7 +682,7 @@ function resolve(choice,btn,timedOut){
  // 诊断:每手都要展示答案+解释(用户要求),绝不快进
  const quick = ok && !G.isMix && !ending && !G.diagMode; // pure best → auto advance
 
- if(quick){ setTimeout(()=>{ if(!G.over) advance(); }, 1000); return; }
+ if(quick){ G._advT=setTimeout(()=>{ if(!G.over) advance(); }, 1000); return; } // 句柄存 G._advT:退出/重开时掐掉,防止旧局定时器打进新局(双重发牌/补放升级横幅)
 
  // build detailed feedback panel
  const r=reasonFor(t,hand,correct,choice,ok,grade);
@@ -730,7 +731,7 @@ function advance(){
  if(G.pendingLevel){
   G.pendingLevel=false;
   SFX.level();showBanner(G.level);burst(innerWidth/2,innerHeight*0.4,['#e8c66a','#b8902f','#fff'],50,9);renderHUD();
-  setTimeout(()=>{ if(!G.over) nextHand(); },1500);
+  G._advT=setTimeout(()=>{ if(!G.over) nextHand(); },1500);
  } else nextHand();
 }
 
@@ -981,11 +982,20 @@ updateReviewBtns();
 
 function launch(){
  aInit();SFX.click();
- if(spotLocked(selFormat,selVariant)){showPaywall(tr('pwWhyPush'));return;}
+ if(spotLocked(selFormat,selVariant)){
+  // 锁定:入口方(pushScreen/guideScreen/homeScreen)可能已把自己隐藏——先落回主页,
+  // 否则关掉付费墙后所有屏全隐藏,只剩没发牌的裸牌桌(死屏)
+  document.getElementById('startScreen').classList.add('hide');
+  document.getElementById('homeScreen').classList.remove('hide');
+  showPaywall(tr('pwWhyPush'));return;
+ }
  G.format=selFormat;G.variant=selVariant;G.handFilter=selDeal;
  persistPrefs();
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('overScreen').classList.add('hide');
+ // 开局 = 隐藏所有可能还开着的入口屏(startScreen 之外,homeScreen 在「新手引导→开始第一课」
+ // 路径上仍然可见——不隐藏它对局就在不透明主页底下隐形运行)
+ ['startScreen','overScreen','homeScreen','pushScreen','guideScreen'].forEach(id=>{
+  const e=document.getElementById(id); if(e)e.classList.add('hide');
+ });
  newGame();
 }
 document.getElementById('startBtn').onclick=launch;
@@ -994,8 +1004,11 @@ document.getElementById('againBtn').onclick=()=>{document.getElementById('startS
 // exit mid-game back to the start menu — no resume, so confirm only when a live
 // run would be abandoned (matches game-over → 再来一局 behaviour).
 function exitToMenu(){
- if(G.diagMode){ SFX.click(); coachAbortDiagnosis(); return; }  // 诊断中途退出 → 放弃本次诊断,回 coach
+ if(G.diagMode){ SFX.click(); if(typeof coachAbortDiagnosis==='function')coachAbortDiagnosis(); return; }  // 诊断中途退出 → 放弃本次诊断,回 coach
  SFX.click();stopTimer();G.busy=true;G.over=true;
+ G.reviewMode=false;                              // 中途退出必须清复习态:否则残留的 G.reviewRec 会被
+                                                  // 之后的诊断答题误改/误删错题堆记录(resolve 只看 reviewMode)
+ clearTimeout(G._advT);                           // 掐掉快进/升级定时器,防其在下一局里补一发 advance()
  document.getElementById('feedback').classList.add('hide');
  document.querySelector('.table').classList.remove('fb-hide');
  document.getElementById('verdict').className='verdict';

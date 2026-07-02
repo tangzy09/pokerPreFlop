@@ -22,7 +22,12 @@ js/i18n.js               LOADS FIRST. Bilingual display layer (English default +
 js/equity.js             dual-loaded equity engine (evaluate7, equityExact, classEquity,
                          rangeEquity, rangeEquityBoard = equity on a given 3/4/5-card board);
                          also require()d by tools/ — module.exports is guarded
-js/ranges.js             range-string DSL (expand) + scenario taxonomy (FORMATS/GAMETYPES/VARIANTS)
+js/ranges.js             range-string DSL (expand) + scenario taxonomy (FORMATS/GAMETYPES/VARIANTS).
+                         Interval syntax supports THREE standard forms: same-high kicker runs (A2s-A9s),
+                         same-kicker high-card runs (K9s-Q9s), and same-gap diagonal connector runs
+                         (T9s-65s → T9s,98s,87s,76s,65s). Uninterpretable intervals are IGNORED rather
+                         than mis-expanded (previously the 2nd token's high card was silently dropped,
+                         so T9s-65s would wrongly expand to T9s..T5s); pair-token guards skip AAs-style typos
 js/modes.js              MODES — single source of mode behaviour (+ FREQ/handFreq, cellCat/catName)
 js/data/pushfold.js      AUTO-GENERATED Nash (global PUSHFOLD): 9-max 8/10/12/15/20bb jam, 6-max 10/15/20bb
                          (ring6), 9-max BB call-off vs BTN jam (calloff); loads before packs
