@@ -30,7 +30,11 @@ js/ranges.js             range-string DSL (expand) + scenario taxonomy (FORMATS/
                          so T9s-65s would wrongly expand to T9s..T5s); pair-token guards skip AAs-style typos
 js/modes.js              MODES — single source of mode behaviour (+ FREQ/handFreq, cellCat/catName)
 js/data/pushfold.js      AUTO-GENERATED Nash (global PUSHFOLD): 9-max 8/10/12/15/20bb jam, 6-max 10/15/20bb
-                         (ring6), 9-max BB call-off vs BTN jam (calloff); loads before packs
+                         (ring6), 9-max BB call-off vs BTN jam (calloff); loads before packs. ~180KB —
+                         the 2.4MB PUSHFOLD.nash chart data was SPLIT OUT to pushfold-nash.js
+js/data/pushfold-nash.js AUTO-GENERATED, NOT <script>-loaded: PUSHFOLD.nash (Nash-chart per-hand EV,
+                         ante×stack×pos, ~2.4MB=93% of the old file). Lazily injected by openNash()
+                         on first open (dynamic <script>, works from file://) — keeps boot ~2.4MB lighter
 js/data/hu-pushfold.js   AUTO-GENERATED HU SB-vs-BB push/fold, jam + call, 5/8/10/12/15/20/25bb (global HU_PUSHFOLD)
 js/packs.js              PACKS range database (+ PREMIUM); overrides push/call spots with the computed data
 js/cap.js                Capacitor 桥接共享 helper (var/window.CAP = {cap,native,plugin(name)}); purchases + notify 复用

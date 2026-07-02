@@ -505,16 +505,31 @@ function coachRenderComplete(){
 function coachStartDayTraining(day){
   // 找该场景的一个 pick，设 G.format/variant，走普通 newGame()
   // 不强制锁定手数——用户练完手动点「标记今日完成」
+  // Pro 门槛在每次启动时校验(而不是只在 Start Day 1):否则退订/换设备后,
+  // 已存在 localStorage 的计划可以永久绕过付费墙直接 newGame()
+  if(typeof isPro==='function' && !isPro()){
+    if(typeof showPaywall==='function') showPaywall(tr('coachStartDay1Sub'));
+    return;                                        // 留在 coachScreen,不动任何屏
+  }
   const scr=document.getElementById('coachScreen');
   if(scr) scr.classList.add('hide');
   // 进真实牌桌:同时收起主页/训练设置两个覆盖层,否则它们会盖在牌桌上
   const home=document.getElementById('homeScreen'); if(home) home.classList.add('hide');
   const start=document.getElementById('startScreen'); if(start) start.classList.add('hide');
 
+  // G.format/G.variant 兜底:重启 app 后 G 是全新对象(format 只由 launch/复习/诊断赋值),
+  // mixed 天直接 newGame() 会在 PACKS[undefined] 上抛 TypeError → 全屏隐藏后的空白死屏
+  const ensureCoords=()=>{
+    if(typeof G==='undefined') return false;
+    if(!G.format || !PACKS[G.format] || !PACKS[G.format][G.variant]){
+      G.format='cash'; G.variant='6';              // 安全默认:现金 6 人(永远存在且免费)
+    }
+    return true;
+  };
   try{
-    // 混合天：用当前已有的 selFormat/selVariant，不强制切换
+    // 混合天：用当前已有的 G.format/variant(无效则兜底现金6人),不强制切换
     if(day.mixed){
-      if(typeof newGame==='function') newGame();
+      if(ensureCoords() && typeof newGame==='function') newGame();
       return;
     }
     // 单场景天：找 picks 里第一个有效坐标
@@ -528,10 +543,13 @@ function coachStartDayTraining(day){
         G.variant=pick.variant;
       }
     }
-    if(typeof newGame==='function') newGame();
+    if(ensureCoords() && typeof newGame==='function') newGame();
   } catch(e){
-    // 兜底：直接走
-    if(typeof newGame==='function') newGame();
+    // 兜底:回主页——绝不盲目重试 newGame()(同样的坐标会同样抛错,留下空白死屏)
+    try{
+      if(scr) scr.classList.remove('hide');
+      if(typeof toast==='function') toast(tr('coachDayErr'),'⚠',true);
+    }catch(_){}
   }
 }
 
@@ -564,6 +582,11 @@ try{
     if(typeof G!=='undefined') G.diagMode=false;
     const scr=document.getElementById('coachScreen');
     if(scr) scr.classList.add('hide');
+    // 必须显式回主页:诊断流程(coachStartDiagnosis)隐藏过 homeScreen,只 hide coachScreen
+    // 会把用户扔在最后一手诊断牌的死牌桌上(G.over=true,按钮全禁用)
+    const start=document.getElementById('startScreen'); if(start) start.classList.add('hide');
+    const over=document.getElementById('overScreen'); if(over) over.classList.add('hide');
+    const home=document.getElementById('homeScreen'); if(home) home.classList.remove('hide');
   };
 }catch(e){}
 
@@ -607,6 +630,8 @@ function coachStartDiagnosis(onboard, variant, onReport){
   _coachDiagOnReport = onReport;
   // 像 newGame 一样初始化一局,但打开诊断标记
   G.diagMode = true; G.diagResults = []; G.over=false; G.busy=false;
+  G.reviewMode=false; G.reviewRec=null; // 清残留复习态:resolve 的错题堆分支只看 reviewMode,
+                                        // 若用户曾中途退出复习,诊断答题会误改/误删无关错题记录
   G.hands=0; G.correct=0; G.handNo=0; G.score=0; G.combo=0; G.best=0;
   G.level=1; G.hp=5; G.maxhp=5; G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
   G.diagVariant = variant; G.diagScenes = scenes; G.diagTotal = _coachDiagQueue.length;

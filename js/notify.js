@@ -36,7 +36,7 @@
 
  const Notify = {
   get native(){ return native(); },
-  isOn(){ try{ return !!(STORE.notify && STORE.notify.on); }catch(e){ return false; } },
+  isOn(){ return !!(typeof STORE!=='undefined' && STORE.notify && STORE.notify.on); }, // STORE 声明在更晚加载的 app.js,与 time() 同风格显式守卫
   time(){ const n=(typeof STORE!=='undefined'&&STORE.notify)||{}; return { h: n.h==null?20:n.h, m: n.m==null?0:n.m }; },
 
   /* 开启每日提醒（默认 20:00）：请求权限 → 调度 → 存状态。返回是否成功 */

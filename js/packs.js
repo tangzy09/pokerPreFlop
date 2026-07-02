@@ -246,7 +246,9 @@ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
    data when present (js/data/pushfold.js loads before this file). shove freq ->
    R (pure, >=0.995), M (mixed) + a precise freqTable; the rest fold. */
 (function applyComputedPushfold(){
- if(typeof PUSHFOLD==='undefined')return;
+ // 数据文件缺失≠可以静默:大多数推弃/跟注档没有手搓兜底范围,静默跳过会让这些档
+ // 变成「空范围=每手都该弃」,训练器教出完全错误的答案却无任何提示
+ if(typeof PUSHFOLD==='undefined'){ try{console.warn('packs: js/data/pushfold.js 未加载——推弃/跟注档将退化为空范围(全弃),请检查部署');}catch(e){} return; }
  const rnd=x=>Math.round(x*1000)/1000;
  // fill a spot from a hand->freq table for one action (shove=push mode, call=callshove mode)
  const fill=(t,tbl,act,src)=>{
@@ -262,15 +264,15 @@ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
  const dis=(e,s)=>e[s]!=null?` · 可剥削度~${e[s]}bb/手`:'';
  Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
   if(t.pf && t.pfStack!=null){                               // 9-max jam (push)
-   const s=PUSHFOLD.stacks[t.pfStack], tbl=s&&s.seats[t.pf]; if(!tbl)return;
+   const s=PUSHFOLD.stacks[t.pfStack], tbl=s&&s.seats[t.pf]; if(!tbl){try{console.warn("packs: 推弃数据缺 "+t.pfStack+"bb/"+t.pf+",该档保持空范围");}catch(e){} return;}
    fill(t,tbl,'shove',`computed ${t.pfStack}bb Nash (${model}${dis(exp,t.pfStack)})`);
    if(s.seatsEV&&s.seatsEV[t.pf]){t.evTable=s.seatsEV[t.pf];t.evAct='shove';} // 求解器每手 EV(bb,相对弃牌)
   } else if(t.pf6 && t.pfStack!=null){                        // 6-max jam (push)
-   const s=PUSHFOLD.ring6&&PUSHFOLD.ring6[t.pfStack], tbl=s&&s.seats[t.pf6]; if(!tbl)return;
+   const s=PUSHFOLD.ring6&&PUSHFOLD.ring6[t.pfStack], tbl=s&&s.seats[t.pf6]; if(!tbl){try{console.warn("packs: 6人推弃数据缺 "+t.pfStack+"bb/"+t.pf6+",该档保持空范围");}catch(e){} return;}
    fill(t,tbl,'shove',`computed ${t.pfStack}bb 6人 Nash${dis(exp6,t.pfStack)}`);
    if(s.seatsEV&&s.seatsEV[t.pf6]){t.evTable=s.seatsEV[t.pf6];t.evAct='shove';}
   } else if(t.calloff && t.coStack!=null){                    // 9-max BB call-off vs a jam (callshove)
-   const s=PUSHFOLD.calloff&&PUSHFOLD.calloff[t.coStack], tbl=s&&s[t.calloff]; if(!tbl)return;
+   const s=PUSHFOLD.calloff&&PUSHFOLD.calloff[t.coStack], tbl=s&&s[t.calloff]; if(!tbl){try{console.warn("packs: 跟注数据缺 "+t.coStack+"bb/"+t.calloff+",该档保持空范围");}catch(e){} return;}
    fill(t,tbl,'call',`computed ${t.coStack}bb 跟注 Nash${dis(exp,t.coStack)}`);
    if(s[t.calloff+'EV']){t.evTable=s[t.calloff+'EV'];t.evAct='call';}
   }
@@ -281,11 +283,11 @@ Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
    HU Nash (js/data/hu-pushfold.js). jam side -> push mode (R=shove), call side
    -> callshove mode (C=call); both get a precise freqTable. */
 (function applyComputedHU(){
- if(typeof HU_PUSHFOLD==='undefined')return;
+ if(typeof HU_PUSHFOLD==='undefined'){ try{console.warn('packs: js/data/hu-pushfold.js 未加载——HU 推弃档将退化为空范围(全弃),请检查部署');}catch(e){} return; }
  const rnd=x=>Math.round(x*1000)/1000;
  Object.values(PACKS).forEach(f=>Object.values(f).forEach(arr=>arr.forEach(t=>{
   if(t.huStack==null)return;
-  const st=HU_PUSHFOLD.stacks[t.huStack]; if(!st)return;
+  const st=HU_PUSHFOLD.stacks[t.huStack]; if(!st){try{console.warn("packs: HU 数据缺 "+t.huStack+"bb,该档保持空范围");}catch(e){} return;}
   const jam=t.huSide==='jam';
   const tbl=jam?st.jam:st.call, act=jam?'shove':'call';
   const R=new Set(), C=new Set(), M=new Set(), freqTable={};

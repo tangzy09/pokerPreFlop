@@ -57,6 +57,7 @@ const I18N_EN = {
  '单挑 HU · SB 全下 + BB 跟注':'Heads-up · SB jam + BB call','BB 跟注 · 面对 BTN 全下':'BB call-off · vs BTN jam',
  // —— calc ——
  '牌面':'Board','你的范围':'Your range','对手范围':'Opp range','对战':'vs','计算胜率':'Run equity','· 留空=翻前':'· empty = preflop',
+ '如 Ah Kd 7c（3/4/5 张）':'e.g. Ah Kd 7c (3/4/5 cards)',
  '翻牌':'Flop','转牌':'Turn','河牌':'River','你':'You','对手':'Opp','翻后胜率':'Postflop equity','范围优势':'Range advantage',
  '两边几乎五五开':'roughly a coin flip','· ⚠ 写法待修正':'· ⚠ check format',
  // —— about h3 (leaf) ——
@@ -176,6 +177,11 @@ _tpl('fbmxHead', '高亮：你这手 <b>{hand}</b> · 正确 <b>{correct}</b> ·
 _tpl('fbCmpRef', '参考', 'GTO ref'); _tpl('fbCmpYou', '你', 'You');
 _tpl('fbLeakLine', '你的毛病：<b style="color:{c}">{name}</b>（{desc}）· 已第 {n} 次', 'Your leak: <b style="color:{c}">{name}</b> ({desc}) · #{n}');
 _tpl('fbLeakDrill', '练这类 ▶', 'Drill this ▶');
+_tpl('fbLeakNone', '错题堆里还没有这类记录', 'No hands of this type in your pile yet');
+_tpl('coachDayErr', '今日训练启动失败，请从主页重试', 'Could not start today’s training — please retry from home');
+// Nash 查询器数据懒加载(2.4MB 拆出首屏)
+_tpl('nashLoading', '数据加载中…', 'Loading data…');
+_tpl('nashLoadErr', 'Nash 数据加载失败——请检查网络后重试', 'Failed to load Nash data — check your connection and retry');
 // 求解器真 EV 行(仅推弃 precise 档;§6 唯一允许显示 EV 的场景)
 _tpl('fbEvLine', '求解器 EV：{act} <b style="color:{c}">{ev}bb</b> · 相对弃牌（简化模型 chip-EV）',
  'Solver EV: {act} <b style="color:{c}">{ev}bb</b> · vs folding (simplified-model chip-EV)');
@@ -522,6 +528,11 @@ function L(zh){ if(LANG==='zh') return zh; const e=I18N_EN[zh]; return e!=null ?
 // keyed template lookup. Named `tr` (not `t`) because app.js uses `t` for the spot object.
 function tr(key, vars){ const d=I18N_TPL[LANG]||I18N_TPL.en; let s=d[key]; if(s==null) s=I18N_TPL.en[key]; if(s==null) return key; return _interp(s, vars); }
 function tRaw(key){ const d=I18N_TPL[LANG]||I18N_TPL.en; return d[key]!=null ? d[key] : I18N_TPL.en[key]; }
+// 数据层 t.src 的片段翻译:src 里插着数字(可剥削度~0.01bb/手),整串 L() 永远查不到——
+// 按固定片段替换。数据保持中文为源(CLAUDE.md i18n 契约),翻译只在显示时发生。
+function Lsrc(s){ if(LANG==='zh'||!s) return s;
+ return String(s).replace('可剥削度~','exploitability ~').replace('bb/手','bb/hand')
+  .replace('6人 Nash','6-max Nash').replace('跟注 Nash','call-off Nash'); }
 
 /* ---- static-HTML translation ---- */
 const _i18nOrig = new WeakMap(); // text/attr node → original Chinese
@@ -566,15 +577,13 @@ function applyI18n(root){
  _updateLangBtn();
  if(typeof rerenderUI==='function'){ try{ rerenderUI(); }catch(e){} }
 }
-// highlight the active segment in the 中|EN selector
+// highlight the active segment in the 中|EN selector (单一 body 级选择器;曾有过 per-screen 的 langToggle2,勿再加回)
 function _updateLangBtn(){
- ['langToggle','langToggle2'].forEach(tid=>{
-  const w=document.getElementById(tid); if(!w) return;
-  w.querySelectorAll('button[data-lang]').forEach(seg=>{
-   const on=seg.dataset.lang===LANG;
-   seg.style.background = on ? 'linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f))' : 'transparent';
-   seg.style.color = on ? '#16110a' : 'var(--muted,#8fa79a)';
-  });
+ const w=document.getElementById('langToggle'); if(!w) return;
+ w.querySelectorAll('button[data-lang]').forEach(seg=>{
+  const on=seg.dataset.lang===LANG;
+  seg.style.background = on ? 'linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f))' : 'transparent';
+  seg.style.color = on ? '#16110a' : 'var(--muted,#8fa79a)';
  });
 }
 function setLang(l){ if(l!=='en'&&l!=='zh') return; LANG=l; try{localStorage.setItem('gtoLang',l);}catch(e){} applyI18n(); }

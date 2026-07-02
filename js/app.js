@@ -290,7 +290,8 @@ const CONF={
 function confOf(t){return CONF[(t&&t.confidence)]||CONF.curated;}
 function confChip(t){const c=confOf(t);
  if(c===CONF.curated)return ''; // 手搓档不显示标签（仅「精准」自算档显示）
- const title=(t&&t.src)?L(c.desc)+' · '+t.src:L(c.desc);
+ const src=(t&&t.src)?(typeof Lsrc==='function'?Lsrc(t.src):t.src):''; // src 含插值数字,走 Lsrc 片段翻译(英文界面否则露中文)
+ const title=src?L(c.desc)+' · '+src:L(c.desc);
  return `<span class="conf ${c.cls}" title="${title.replace(/"/g,'&quot;')}">${c.mark?c.mark+' ':''}${L(c.txt)}</span>`;}
 /* frequency string: precise spots show the REAL computed %; others stay qualitative (占位) */
 function freqText(t,hand){
@@ -446,7 +447,9 @@ function nextHand(){
  let t,hand;
  if(G.diagMode){
   // 实力诊断:从 coach 的诊断队列取题(场景已均衡)。牌桌/发牌/反馈全走练习同一套 UI。
-  if(!_coachDiagQueue || _coachDiagPos>=_coachDiagQueue.length){ coachFinishDiagnosis(); return; }
+  // typeof 守卫:这些符号定义在更晚加载的 coach.js(diagMode 理论上只由它置真,守卫防加载失败/重构)
+  if(typeof _coachDiagQueue==='undefined' || !_coachDiagQueue || _coachDiagPos>=_coachDiagQueue.length){
+   if(typeof coachFinishDiagnosis==='function') coachFinishDiagnosis(); return; }
   const it=_coachDiagQueue[_coachDiagPos];
   t=it.t;hand=it.hand;G.format=it.format;G.variant=it.variant;G.diagSceneKey=it.sceneKey;
  } else if(G.reviewMode){
@@ -637,7 +640,7 @@ function resolve(choice,btn,timedOut){
    rec.streak=(rec.streak||0)+1;
    if(rec.streak>=MASTER_STREAK){removeFromPile(rec);G.reviewCleared++;} // 连续答对 → 掌握，移出错题堆
    else {persistReview();G.reviewQueue.push(rec);}                       // 答对但未掌握 → 留堆，本轮再练一遍
-  } else {rec.streak=0;persistReview();G.reviewQueue.push(rec);}          // 答错 → 清零重练
+  } else {rec.streak=0;if(choice)rec.choice=choice;persistReview();G.reviewQueue.push(rec);} // 答错 → 清零重练;更新最新错误选择,漏洞分类跟着当前毛病走(否则永远按第一次的错分类)
   updateReviewBtns();
  } else if(!ok && !G.diagMode){ addMistake(choice); updateReviewBtns(); }
 
@@ -702,6 +705,10 @@ function resolve(choice,btn,timedOut){
   leakEl.innerHTML=tr('fbLeakLine',{c:T.color,name:L(T.name),desc:L(T.desc),n})
    +`<button class="fb-leak-go" type="button">${tr('fbLeakDrill')}</button>`;
   leakEl.querySelector('.fb-leak-go').onclick=()=>{ SFX.click();
+   // 先确认池里真有这类错题再动界面:谓词可能匹配 0 条(池中记录按「存下的旧选择」分类,
+   // 与本手的当前分类可以不同)——若先隐藏反馈再让 startReview 空池早退,就只剩全禁用的死手牌
+   const pool=reviewPile.filter(x=>classifyMiss(x)===type);
+   if(!pool.length){ toast(tr('fbLeakNone'),'📕',true); return; }
    document.getElementById('feedback').classList.add('hide');
    document.getElementById('actions').style.display='';
    document.querySelector('.table').classList.remove('fb-hide');
@@ -714,9 +721,9 @@ function resolve(choice,btn,timedOut){
  else document.getElementById('fbMatrix').classList.add('hide');
  const nextBtn=document.getElementById('fbNext');
  if(G.diagMode){
-  const last = !_coachDiagQueue || _coachDiagPos>=_coachDiagQueue.length-1;
+  const last = typeof _coachDiagQueue==='undefined' || !_coachDiagQueue || _coachDiagPos>=_coachDiagQueue.length-1;
   nextBtn.textContent = last ? L('查看报告 →') : L('下一步 →');
-  nextBtn.onclick = ()=>{ SFX.click(); coachDiagAdvance(); };
+  nextBtn.onclick = ()=>{ SFX.click(); if(typeof coachDiagAdvance==='function')coachDiagAdvance(); };
  } else {
   nextBtn.textContent = ending ? L('查看结果 →') : L('下一步 →');
   nextBtn.onclick = ()=>{ SFX.click(); if(ending){gameOver(done);} else advance(); };
@@ -1020,7 +1027,7 @@ document.getElementById('exitBtn').onclick=exitToMenu;
 // 结束训练（右上角）：结束本局并显示战绩（区别于左上角 ← 直接退回菜单）
 function endTraining(){
  if(G.over)return;
- if(G.diagMode){ coachAbortDiagnosis(); return; }  // 诊断中途结束 → 放弃本次诊断,回 coach
+ if(G.diagMode){ if(typeof coachAbortDiagnosis==='function')coachAbortDiagnosis(); return; }  // 诊断中途结束 → 放弃本次诊断,回 coach
  document.getElementById('feedback').classList.add('hide');
  document.querySelector('.table').classList.remove('fb-hide');
  document.getElementById('verdict').className='verdict';
@@ -1422,7 +1429,7 @@ function renderNash(){
  const anteTxt=NASH.ante==='bb'?' · '+tr('nashBBAnte'):(NASH.ante?' · '+(NASH.ante*100)+'% '+tr('anteWord'):'');
  document.getElementById('nName').textContent=tr(m.tk)+' · '+NASH.stack+'bb'+anteTxt+(m.pos?' · '+NASH.pos:'');
  document.getElementById('nWho').textContent=tr(m.wk);
- if(!ev){ document.getElementById('nStat').textContent=''; document.getElementById('nInfo').textContent=tr('nashNoData'); return; }
+ if(!ev){ document.getElementById('nStat').textContent=''; document.getElementById('nInfo').textContent=tr(_nashLoading?'nashLoading':'nashNoData'); return; } // 懒加载中显示「加载中」而非「无数据」
  let maxP=0.01,maxN=0.01; for(let r=0;r<13;r++)for(let c=0;c<13;c++){ const e=ev[handLabel(r,c)]; if(e==null)continue; if(e>0)maxP=Math.max(maxP,e); else if(e<0)maxN=Math.max(maxN,-e); }
  let inC=0;
  for(let r=0;r<13;r++)for(let c=0;c<13;c++){ const h=handLabel(r,c), e=ev[h];
@@ -1435,7 +1442,22 @@ function renderNash(){
  document.getElementById('nStat').textContent=tr('nashPct',{n:Math.round(inC),p:(inC/1326*100).toFixed(0)});
  document.getElementById('nInfo').textContent=tr('nashInfo');
 }
-function openNash(){ try{aInit();SFX.click();}catch(e){} document.getElementById('nashScreen').classList.remove('hide'); renderNash(); }
+// Nash 查询器数据(PUSHFOLD.nash,2.4MB=原文件 93%)不随首屏加载——首次打开时动态注入,
+// 省掉每次冷启动 ~2.4MB 的同步解析(低端 WebView 上 100-400ms + 数 MB 常驻堆)
+let _nashLoading=false;
+function _loadNashData(cb){
+ if(typeof PUSHFOLD!=='undefined' && PUSHFOLD.nash){ cb(); return; }
+ if(_nashLoading) return;                       // 已在加载:onload 会统一重渲染
+ _nashLoading=true;
+ const s=document.createElement('script'); s.src='js/data/pushfold-nash.js';
+ s.onload=()=>{ _nashLoading=false; try{cb();}catch(e){} };
+ s.onerror=()=>{ _nashLoading=false; try{toast(tr('nashLoadErr'),'⚠',true);}catch(e){} };
+ document.body.appendChild(s);
+}
+function openNash(){ try{aInit();SFX.click();}catch(e){}
+ document.getElementById('nashScreen').classList.remove('hide'); renderNash();
+ _loadNashData(()=>{ const ns=document.getElementById('nashScreen'); if(ns && !ns.classList.contains('hide')) renderNash(); });
+}
 try{ document.getElementById('nashBtnLbl').textContent=tr('nashBtn'); }catch(e){}
 document.getElementById('nashBtn').onclick=()=>{ if(!isPro()){showPaywall(tr('pwWhyNash'));return;} openNash(); };
 document.getElementById('nashBack').onclick=()=>{ try{SFX.click();}catch(e){} document.getElementById('nashScreen').classList.add('hide'); document.getElementById('startScreen').classList.add('hide'); document.getElementById('homeScreen').classList.remove('hide'); };
@@ -1457,7 +1479,11 @@ document.querySelectorAll('#guideScreen .gd-node').forEach(node=>{
  node.querySelector('.gd-go').onclick=()=>guideLaunch(node.dataset.fmt,node.dataset.var);
 });
 document.getElementById('clearDataBtn').onclick=()=>{SFX.click();
- clearStore();reviewPile=[];updateReviewBtns();
+ const pro=STORE.proEntitled;                     // RevenueCat 授权缓存不属于「本地存档」——
+ clearStore();reviewPile=[];                      // 抹掉它会让付费用户立刻被当成未购买,直到重启/手动恢复购买
+ if(pro){STORE.proEntitled=pro;persist();}
+ updateReviewBtns();
+ try{ if(typeof rerenderUI==='function') rerenderUI(); }catch(e){} // 锁徽章/图表等依赖 STORE 的 UI 立即刷新
  toast(tr('saveCleared'),'🗑',true);
 };
 

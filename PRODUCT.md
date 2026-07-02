@@ -17,7 +17,7 @@
 - **Pro 解锁**（差异化能力）：🔍 个人画像 / 漏洞分析、🗓 训练计划、🩺 **20 天训练计划执行**（翻前诊断 + 报告**免费**引流，Start Day 1 起的每日计划走 Pro）、全部**自算 Nash 推弃档**（8–25bb / 6 人 / 单挑 HU / 面对全下）、算胜率计算器、将来的真数据导入。
 - **计费**：数字商品走 StoreKit（iOS）/ Play Billing（安卓），用 **RevenueCat** 统一两端 + 校验授权；定价把平台抽成 **15–30%** 算进去。**现状（2026-06-23）：双订阅 年 $12.99（付费墙主推）+ 月 $4.99，已移除一次性买断**（订阅经常性收入更稳、年订阅锁定更久）。订阅须持续有新价值，否则退订/差评。
 - **红线**：**绝不把现已免费的核心锁起来**——保住「诚实、可及」招牌；Pro 只锁 power features，不锁基础训练。
-- 代码侧用一个 `isPro` 功能门控（接 RevenueCat 时换成真授权）。**当前 `isPro()` 强制返回 `true` = 全部解锁**（推广期免费放开；上架收费时改回 `!!STORE.pro` 即恢复门控）。付费墙 UI（`showPaywall`/`PRO_VARIANTS`）已就绪，只是暂不触发。
+- 代码侧用一个 `isPro` 功能门控，**门控已 live**：**网页恒 `true`（永久免费全解锁）**；**原生 App 读真实 RevenueCat 授权 `!!STORE.proEntitled`**（`pro` entitlement，由 purchases.js 的 init/refresh/restore 写入）。付费墙 UI（`showPaywall`）在 native 未购时真实触发；Pro 计划每日启动（coach）也逐次校验。（旧文档说「isPro 强制返回 true / 改回 !!STORE.pro」已过时——与代码矛盾，2026-07-01 矫正。）
 
 ---
 
