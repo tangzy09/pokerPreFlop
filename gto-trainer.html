@@ -237,9 +237,13 @@
   /* ---------- overlay screens ---------- */
   .screen{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:18px;padding:30px;text-align:center;
-    background:radial-gradient(120% 80% at 50% 0%, rgba(20,70,58,.97), rgba(8,26,21,.98))}
+    background:radial-gradient(120% 80% at 50% 0%, rgb(20,70,58), rgb(8,26,21))}
   .screen.hide{display:none}
   #startScreen{justify-content:flex-start;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;gap:13px;padding-top:calc(26px + env(safe-area-inset-top));padding-bottom:calc(26px + env(safe-area-inset-bottom))}
+  /* 内容可能超高的整页 screen:可滚 + safe center(溢出自动改顶对齐,不裁头)。
+     否则 flex center 溢出会把顶部 logo 裁出视口且滚不动(主页 9 卡 + SEO 文后必溢出)。 */
+  #homeScreen,#overScreen{justify-content:safe center;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+    padding-top:calc(26px + env(safe-area-inset-top));padding-bottom:calc(26px + env(safe-area-inset-bottom))}
   .logo-suit{font-size:40px;letter-spacing:6px;margin-bottom:-6px}
   .logo-suit .r{color:#e0544f}.logo-suit .k{color:#f1f5ee}
   .screen h1{font-family:"Space Grotesk";font-weight:700;font-size:34px;margin:0;letter-spacing:-.02em;line-height:1.05}
@@ -255,7 +259,7 @@
 
   /* charts screen */
   .chart-screen{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;
-    background:radial-gradient(120% 80% at 50% 0%, rgba(20,70,58,.98), rgba(8,26,21,.99))}
+    background:radial-gradient(120% 80% at 50% 0%, rgb(20,70,58), rgb(8,26,21))}
   .chart-screen.hide{display:none}
   #coachOnboard.hide,#coachDiag.hide,#coachReport.hide,#coachDay.hide{display:none}
   .chart-bar{display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top)) 16px 8px;border-bottom:1px solid var(--line);gap:8px}
@@ -565,7 +569,7 @@
       <button class="home-card" id="homeEquity"><span class="hc-pro">PRO</span><span class="hc-ic">🧮</span><span class="hc-t">算胜率</span><span class="hc-s">实时算牌</span></button>
       <button class="home-card" id="homePath"><span class="hc-ic">🧭</span><span class="hc-t">学习路径</span><span class="hc-s">从开局到 MTT · 看进度</span></button>
       <button class="home-card" id="homeStats"><span class="hc-ic">📈</span><span class="hc-t">统计</span><span class="hc-s">画像 + 漏洞</span></button>
-      <a class="home-card" id="homeSister" href="https://post-flop-coach.ai-speeds.com/" target="_blank" rel="noopener"><span class="hc-ic">♦</span><span class="hc-t">翻后教练</span><span class="hc-s">30 课翻后训练 · 姐妹站</span></a>
+      <a class="home-card wide" id="homeSister" href="https://post-flop-coach.ai-speeds.com/" target="_blank" rel="noopener"><span class="hc-ic">♦</span><span class="hc-txt"><span class="hc-t">翻后教练</span><span class="hc-s">30 课翻后训练 · 姐妹站</span></span></a>
     </div>
     <p class="seo-intro" style="max-width:440px;margin:26px auto 0;color:#8fa79a;font-size:.78rem;line-height:1.7;text-align:center">翻前训练营(Preflop Camp)是免费的德州扑克翻前 GTO 决策训练器：现金局与锦标赛全场景(开局加注、大小盲防守、面对 3-bet/4-bet、挤压、冷跟、跛入与 straddle、8–25bb 推弃)；推弃与跟注档位为自算 Nash 均衡并附每手真实 EV —— 绝不编造数据。含翻前诊断、20 天个性化训练计划、错题复习与漏洞分析，离线可用、无需注册、中英双语。Free preflop GTO trainer for Texas Hold'em: solved Nash push/fold with real per-hand EV, diagnosis + 20-day plan, offline, bilingual, no signup.</p>
   </div>
