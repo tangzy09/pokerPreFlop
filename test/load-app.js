@@ -44,9 +44,11 @@ const EXPORTS = [
   'RANKS', 'RIDX', 'PREMIUM',
   'FORMATS', 'VARIANTS', 'GAMETYPES', 'gameOf', 'HANDFILTERS',
   'classifyMiss', 'LEAK_TYPES',
+  'handFamily', 'FAMILIES', 'FAM_COARSE', 'famCoarse', 'smartOrder',
   'L', 'tr', 'setLang', 'curLang',
   'coachPlanDays', 'coachScenes', 'coachAggregate', 'coachVerdict', 'coachBuildPlan',
-  'coachHandsForMinutes', 'COACH_MIN_SAMPLE',
+  'coachHandsForMinutes', 'COACH_MIN_SAMPLE', 'COACH_FAM_MIN', 'coachRightOf',
+  'coachBuildDiagQueue', 'coachApplyRecheck', 'COACH_RECHECK_HANDS', 'COACH_RECHECK_PASS',
   'tableModel', 'tablePlayers', 'posKey', 'POS_RING',
   'gradeHand', 'Q_OF',
 ];

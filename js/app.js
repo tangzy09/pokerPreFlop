@@ -219,9 +219,13 @@ function updateReviewBtns(){
  if(over){over.textContent=tr('overReview',{n});over.style.opacity=n?'1':'.45';}
 }
 
-function newGame(){
+// opts(可选,教练日训练的单缝入口——禁止在外部散装赋值 G.coachFams,防泄漏进普通训练):
+//  {fams:['ax_s',..]|null 目标手型族(buildSmartQueue 加权), filter:'smart' 发牌偏好覆盖}
+function newGame(opts){
  clearTimeout(G._advT);                            // 掐掉上一局残留的快进/升级定时器(1s/1.5s 窗口内重开会双重发牌)
  setMode('normal');                                // 模式单缝:布尔+sink 原子绑定
+ G.coachFams=(opts&&opts.fams&&opts.fams.length)?opts.fams.slice():null;  // 裸调用自动清 → 普通训练零影响
+ if(opts&&opts.filter)G.handFilter=opts.filter;
  G.diagResults=[]; G.diagSceneKey=null;
  G.pack=PACKS[G.format][G.variant];
  G.score=0;G.level=1;G.hp=5;G.maxhp=5;G.combo=0;G.best=0;
@@ -327,6 +331,55 @@ function neighborsOf(hand){
  else { const a=RIDX[hand[0]],b=RIDX[hand[1]],suf=hand[2]; push(a-1,b,suf); push(a+1,b,suf); push(a,b-1,suf); push(a,b+1,suf); }
  return out;
 }
+/* ---- 手牌族(hand family):诊断/漏洞分析的手型维度 ----
+   细族 18 个(长期漏洞分析用,样本多才可操作)+ 粗族 7 个(诊断只有 18/45 手,粗族才凑得够样本)。
+   规则只依赖 RIDX/gap/suited,全 169 手完全划分(test/family.test.js 守恒锁死计数)。
+   独立于 handKind(那是 reasonFor 文案的 8 桶,勿混用)。 */
+function handFamily(h){
+ if(h.length===2){const i=RIDX[h[0]]; return i<=4?'pp_big' : i<=8?'pp_mid' : 'pp_small';} // TT+/99-66/55-22
+ const a=RIDX[h[0]], b=RIDX[h[1]], s=h[2]==='s', gap=b-a;
+ if(a===0){                                                     // Ax
+  if(s) return b<=4?'axs_bw' : b<=8?'axs_mid' : 'axs_wheel';    // ATs+ / A6s-A9s / A2s-A5s
+  return b<=4?'axo_bw':'axo_lo';                                // ATo+ / A2o-A9o
+ }
+ if(a<=4 && b<=4) return s?'bw_s':'bw_o';                       // 双高张 KQ..JT
+ if(s){
+  if(gap<=1) return 'sc';                                       // 同花连张 T9s..32s
+  if(gap===2) return 'sg';                                      // 同花隔张 J9s..42s
+  if(a<=2)  return 'kqx_s';                                     // K/Q 高弱踢同花
+  return 'sx_lo';                                               // 低同花杂
+ }
+ if(a<=2 && b>4) return 'kqx_o';                                // K/Q 高弱踢 offsuit
+ if(gap<=1) return 'off_conn';                                  // offsuit 连张
+ return 'off_lo';                                               // 杂牌
+}
+// 中文=canonical(英文进 i18n 的 I18N_EN);coarse 是诊断用的 7 粗族
+const FAMILIES={
+ pp_big:  {name:'大对子 TT+',      coarse:'pp'},
+ pp_mid:  {name:'中对子 66-99',    coarse:'pp'},
+ pp_small:{name:'小对子 22-55',    coarse:'pp'},
+ axs_bw:  {name:'同花大A ATs+',    coarse:'ax_s'},
+ axs_mid: {name:'同花中A A6s-A9s', coarse:'ax_s'},
+ axs_wheel:{name:'同花轮A A2s-A5s',coarse:'ax_s'},
+ axo_bw:  {name:'高踢A ATo+',      coarse:'ax_o'},
+ axo_lo:  {name:'弱A A2o-A9o',     coarse:'ax_o'},
+ bw_s:    {name:'同花高张 KQs-JTs',coarse:'bw'},
+ bw_o:    {name:'高张 KQo-JTo',    coarse:'bw'},
+ sc:      {name:'同花连张',        coarse:'sc'},
+ sg:      {name:'同花隔张',        coarse:'sc'},
+ kqx_s:   {name:'同花K/Q弱踢',     coarse:'sx_lo'},
+ sx_lo:   {name:'低同花',          coarse:'sx_lo'},
+ kqx_o:   {name:'K/Q弱踢 offsuit', coarse:'off'},
+ off_conn:{name:'offsuit连张',     coarse:'off'},
+ off_lo:  {name:'杂牌',            coarse:'off'},
+};
+const FAM_COARSE={pp:'口袋对子',ax_s:'同花A',ax_o:'offsuit A',bw:'高张牌',sc:'同花连张/隔张',sx_lo:'弱同花',off:'offsuit杂牌'};
+function famCoarse(h){return FAMILIES[handFamily(h)].coarse;}
+// smart 队列内排序:weak(错题) > 目标手型族(教练计划的 targetFams) > 其余。famSet 为空 = 旧行为。
+function smartOrder(cands, famSet){
+ const pri=x=> x.weak?0 : (famSet && famSet.has(famCoarse(x.hand)))?1 : 2;
+ return [0,1,2].map(p=>shuffle(cands.filter(x=>pri(x)===p))).reduce((a,b)=>a.concat(b),[]);
+}
 // 智能出题（题库 + 答案类型均衡 + 难弃牌）：
 //  · 题库 = 已解锁各 spot 的范围内手牌（按正确动作/边缘/混合归类）+ 难弃牌(adjacentFolds)
 //  · 整局把所有位置混在一起，各动作类型(弃/加/跟/全下/边缘/混合)题数尽量相近（每类上限 PER）
@@ -350,10 +403,9 @@ function buildSmartQueue(){
   adjacentFolds(t).forEach(hand=> add('fold',t,hand));               // 难弃牌
  });
  let items=[];
- Object.keys(byType).forEach(type=>{                // 各类型等量：weak 优先 + 上限 PER
-  const c=byType[type];
-  const ordered=shuffle(c.filter(x=>x.weak)).concat(shuffle(c.filter(x=>!x.weak)));
-  items=items.concat(ordered.slice(0,SMART_PER_TYPE));
+ const famSet=(G.coachFams&&G.coachFams.length)?new Set(G.coachFams):null;  // 教练计划的目标手型族(T4 接线)
+ Object.keys(byType).forEach(type=>{                // 各类型等量：weak > 目标族 > 其余 + 上限 PER
+  items=items.concat(smartOrder(byType[type],famSet).slice(0,SMART_PER_TYPE));
  });
  G.queue=shuffle(items.map(x=>({t:x.t,hand:x.hand})));
  if(!G.queue.length && pool.length){const t=pool[0];G.queue=[{t,hand:pickHand(t,'all')}];} // 兜底

@@ -43,21 +43,39 @@ function coachScenes(onboard){
 }
 
 const COACH_MIN_SAMPLE = 4;   // 一个场景样本 < 此数 → 不参与漏洞/强项断言(诚实)
+const COACH_FAM_MIN = 3;      // 手型族比率断言的最小样本(诊断粗族;每条断言都随句带 n)
 
-// results: [{sceneKey, t, hand, choice, correct}]。复用 app.js 的 classifyMiss。
+// 一手的参考动作键数组(不本地化,渲染时再 L());与判定/classifyMiss 同一套 MODES.correct
+function coachRightOf(t, hand){
+  const isR = t.R.has(hand), isC = t.C.has(hand), isM = t.M.has(hand);
+  return MODES[t.mode].correct(isR, isC, isM);
+}
+
+// results: [{sceneKey, t, hand, choice, correct, variant}]。复用 app.js 的 classifyMiss/famCoarse。
+// 输出必须可 JSON 序列化(存 STORE.coachDiagnosis)——misses/examples 只存字符串,绝不存 t/Set。
+// 手型维度取舍:不做 scene×family 交叉(18 手样本太稀会编数据);两条独立轴:
+//   场景轴 topLeaks 靠 examples(实打实答错的手,事实陈述 n=1 也诚实)具体到手,
+//   手型轴 famLeaks 用全场景聚合的粗族比率(COACH_FAM_MIN 硬门)。
 function coachAggregate(results, scenes){
-  const perScene = {};
+  const perScene = {}, perFamily = {};
   const nameOf = {}; (scenes||[]).forEach(s => nameOf[s.key] = s.name);
   results.forEach(r => {
-    const e = perScene[r.sceneKey] || (perScene[r.sceneKey] = { n:0, correct:0, leakCounts:{}, name:nameOf[r.sceneKey]||r.sceneKey });
+    const e = perScene[r.sceneKey] || (perScene[r.sceneKey] = { n:0, correct:0, leakCounts:{}, misses:[], name:nameOf[r.sceneKey]||r.sceneKey });
     e.n++;
-    if (r.correct) { e.correct++; }
+    const fam = famCoarse(r.hand);
+    const fe = perFamily[fam] || (perFamily[fam] = { n:0, correct:0, leakCounts:{}, misses:[] });
+    fe.n++;
+    if (r.correct) { e.correct++; fe.correct++; }
     else {
       const leak = classifyMiss({ t:r.t, hand:r.hand, choice:r.choice, variant:r.variant });
       e.leakCounts[leak] = (e.leakCounts[leak] || 0) + 1;
+      fe.leakCounts[leak] = (fe.leakCounts[leak] || 0) + 1;
+      if (e.misses.length < 4) e.misses.push({ hand:r.hand, tName:r.t.name, mode:r.t.mode, choice:r.choice, right:coachRightOf(r.t, r.hand) });
+      if (fe.misses.length < 4) fe.misses.push({ hand:r.hand, tName:r.t.name, choice:r.choice });
     }
   });
   Object.values(perScene).forEach(e => { e.acc = e.n ? e.correct / e.n : 0; });
+  Object.values(perFamily).forEach(e => { e.acc = e.n ? e.correct / e.n : 0; });
   // Top 漏洞:样本足够的场景按正答率升序,取最弱的前 3;主漏洞类型=该场景错得最多的桶
   const eligible = Object.keys(perScene).filter(k => perScene[k].n >= COACH_MIN_SAMPLE);
   const topLeaks = eligible
@@ -67,7 +85,19 @@ function coachAggregate(results, scenes){
     .map(k => {
       const lc = perScene[k].leakCounts;
       const leak = Object.keys(lc).sort((a,b) => lc[b]-lc[a])[0] || 'mix';
-      return { sceneKey:k, name:perScene[k].name, acc:perScene[k].acc, leak };
+      return { sceneKey:k, name:perScene[k].name, acc:perScene[k].acc, leak,
+               examples:perScene[k].misses.slice(0,3) };
+    });
+  // 手型漏洞:粗族里样本 >= COACH_FAM_MIN 且 acc<0.7,按 acc 升序前 3
+  const famLeaks = Object.keys(perFamily)
+    .filter(f => perFamily[f].n >= COACH_FAM_MIN && perFamily[f].acc < 0.7)
+    .sort((a,b) => perFamily[a].acc - perFamily[b].acc)
+    .slice(0, 3)
+    .map(f => {
+      const fe = perFamily[f], lc = fe.leakCounts;
+      return { fam:f, n:fe.n, miss:fe.n - fe.correct, acc:fe.acc,
+               leak:Object.keys(lc).sort((a,b) => lc[b]-lc[a])[0] || 'mix',
+               examples:fe.misses.slice(0,2) };
     });
   // 强项:样本足够且正答率最高的前 2(>=0.7)
   const strengths = eligible
@@ -75,7 +105,7 @@ function coachAggregate(results, scenes){
     .sort((a,b) => perScene[b].acc - perScene[a].acc)
     .slice(0, 2)
     .map(k => ({ sceneKey:k, name:perScene[k].name, acc:perScene[k].acc }));
-  return { perScene, topLeaks, strengths };
+  return { perScene, perFamily, topLeaks, strengths, famLeaks };
 }
 
 // 由漏洞类型分布合成"偏松/偏紧/较均衡"倾向。返回 {tendKey, headline(i18n key), detailed}。
@@ -98,6 +128,7 @@ function coachVerdict(agg, variant){
 
 const COACH_FOCUS_DAYS = 13;                       // 前段攻克天数(后 7 天混合)
 const COACH_MIN_PER_SCENE = 5;                     // 复习手数上限(每日)
+const COACH_RECHECK_DAYS = [6, 13, 19];            // 复诊日:Day 7 / 14 / 20
 function coachHandsForMinutes(m){ return m>=20?40 : m>=10?20 : 10; }
 
 // agg: coachAggregate 输出;onboard: 问卷;scenes: coachScenes 输出。
@@ -123,16 +154,24 @@ function coachBuildPlan(agg, onboard, scenes){
   }
   if (!focusQueue.length) focusQueue = ['mixed'];
 
+  // 1b. 目标手型族:诊断出的最弱 2 个粗族,铺给每天(smart 出题加权;全局取而非按场景配——样本稀)
+  const fams = (agg.famLeaks||[]).map(f => f.fam).slice(0, 2);
+  const targetFams = fams.length ? fams : null;
+
   // 2. 前 13 天按队列循环铺(漏洞越靠前,占的天越多——靠循环顺序自然加权:第1个出现在 day0、day_q、day_2q…)
   const days = [];
   for (let i = 0; i < COACH_FOCUS_DAYS; i++) {
     const key = focusQueue[i % focusQueue.length];
-    days.push({ idx:i, sceneKey:key, name:sceneName[key]||key, nMain, nReview:COACH_MIN_PER_SCENE, mixed:false, done:false });
+    days.push({ idx:i, sceneKey:key, name:sceneName[key]||key, nMain, nReview:COACH_MIN_PER_SCENE, mixed:false, done:false,
+                targetFams, recheck:false, recheckDone:false });
   }
-  // 3. 后 7 天混合巩固
+  // 3. 后 7 天混合巩固(同样带手型加权)
   for (let i = COACH_FOCUS_DAYS; i < COACH_PLAN_DAYS; i++) {
-    days.push({ idx:i, sceneKey:'mixed', name:'mixed', nMain, nReview:COACH_MIN_PER_SCENE, mixed:true, done:false });
+    days.push({ idx:i, sceneKey:'mixed', name:'mixed', nMain, nReview:COACH_MIN_PER_SCENE, mixed:true, done:false,
+                targetFams, recheck:false, recheckDone:false });
   }
+  // 4. 复诊日:Day 7/14/20(训练前 6 手迷你测,只测当前重点漏洞;T5 复诊闭环消费)
+  COACH_RECHECK_DAYS.forEach(i => { if (days[i]) days[i].recheck = true; });
   return { createdTs:0, days, streak:0, curDay:0, lastDoneDate:null };
 }
 
@@ -284,7 +323,15 @@ function coachRenderReport(diagnosis){
     });
   }
 
-  // Top 漏洞
+  // Top 漏洞(带实打实答错的实例句——事实陈述,n=1 也诚实;simple 版只省略场景名)
+  const _exLine=(ex)=>{
+    const nm=(MODES[ex.mode]&&MODES[ex.mode].names)||{};
+    const spot=verdict.detailed&&ex.tName?(' · '+(L(ex.tName)||ex.tName)):'';
+    return `<div class="coach-leak-ex">${tr('coachExLine',{
+      hand:ex.hand, spot:spot,
+      you:L(nm[ex.choice]||ex.choice||'弃牌'),
+      ref:(ex.right||[]).map(a=>L(nm[a]||a)).join(' / ')})}</div>`;
+  };
   let leaksHtml='';
   if(agg.topLeaks && agg.topLeaks.length){
     agg.topLeaks.forEach((leak,i)=>{
@@ -295,11 +342,30 @@ function coachRenderReport(diagnosis){
         <div>
           <div class="coach-leak-t">${sceneName?sceneName+' ':''}<span class="coach-tag">${leakName}</span></div>
           <div class="coach-leak-d">${tr('leakTypeDesc_'+leak.leak)}</div>
+          ${(leak.examples||[]).map(_exLine).join('')}
         </div>
       </div>`;
     });
   } else {
     leaksHtml=`<div style="color:var(--muted);font-size:13px;padding:8px 0">${tr('coachNoLeaks')}</div>`;
+  }
+
+  // 手型弱点卡(famLeaks:粗族比率断言,COACH_FAM_MIN 硬门,行内带 n 手错 m 手)
+  // 两行布局:上行 名称+计数(长文本不挤压),下行 满宽条形
+  let famHtml='';
+  if(agg.famLeaks && agg.famLeaks.length){
+    agg.famLeaks.forEach(f=>{
+      const famName=L(FAM_COARSE[f.fam]||f.fam);
+      const pct=Math.round(f.acc*100);
+      famHtml+=`<div style="margin:9px 0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;margin-bottom:4px">
+          <b>${famName}</b>
+          <span style="color:var(--muted);font-size:11.5px;text-align:right">${tr('coachFamLine',{n:f.n,m:f.miss})} · ${tr('leakType_'+f.leak)}</span>
+        </div>
+        <span class="coach-bar-track" style="display:block"><i class="coach-bar-fill" style="display:block;width:${pct}%;background:${_accColor(f.acc)}"></i></span>
+      </div>`;
+    });
+    famHtml+=`<div class="coach-note">${tr('coachFamNote',{min:COACH_FAM_MIN})}</div>`;
   }
 
   // 强项
@@ -354,6 +420,11 @@ function coachRenderReport(diagnosis){
       ${leaksHtml}
     </div>
 
+    ${famHtml ? `<div class="coach-card">
+      <div class="coach-lbl">${tr('coachFamPerf')}</div>
+      ${famHtml}
+    </div>` : ''}
+
     ${agg.strengths && agg.strengths.length ? `<div class="coach-card">
       <div class="coach-lbl">${tr('coachStrengths')}</div>
       ${strengthHtml}
@@ -383,6 +454,47 @@ function coachRenderReport(diagnosis){
     _coachSection('coachOnboard');
     coachRenderOnboard();
   };
+}
+
+/* --- 复诊对比页(渲染进 coachReport 容器):基线 vs 本次,双端样本足够才出箭头行 --- */
+function coachRenderRecheckReport(diag, slim){
+  const el=document.getElementById('coachReport'); if(!el) return;
+  _coachSection('coachReport');
+  const base=diag.agg||{};
+  const passed = slim.n >= COACH_RECHECK_HANDS-1 && slim.acc >= COACH_RECHECK_PASS;
+  // 场景/手型对比行:基线与本次都 n>=COACH_FAM_MIN 才出 a%→b% 箭头(凑不齐只列计数,不下结论)
+  const rows=(baseMap, curMap, nameOf)=>{
+    let html='';
+    Object.keys(curMap||{}).forEach(k=>{
+      const b=(baseMap||{})[k], c=curMap[k];
+      const nm=nameOf(k);
+      if(b && b.n>=COACH_FAM_MIN && c.n>=COACH_FAM_MIN){
+        const a0=Math.round((b.acc||0)*100), a1=Math.round((c.acc||0)*100);
+        const arrow=a1>a0?'↑':a1<a0?'↓':'→';
+        html+=`<div class="coach-bar-row"><span class="coach-bar-name">${nm}</span>
+          <span style="flex:1;font-size:12px">${tr('coachRecheckDelta',{a:a0,b:a1,n0:b.n,n1:c.n})} ${arrow}</span></div>`;
+      } else {
+        html+=`<div class="coach-bar-row"><span class="coach-bar-name">${nm}</span>
+          <span style="flex:1;font-size:12px;color:var(--muted)">${tr('coachFamLine',{n:c.n,m:c.n-c.correct})}</span></div>`;
+      }
+    });
+    return html;
+  };
+  const sceneRows=rows(base.perScene, slim.perScene, k=>L(((base.perScene||{})[k]||{}).name||k)||k);
+  const famRows=rows(base.perFamily, slim.perFamily, k=>L(FAM_COARSE[k]||k));
+  el.innerHTML=`
+    <div class="coach-card" style="text-align:center">
+      <div class="coach-verdict">${tr('coachRecheckTitle',{d:slim.dayIdx+1})}</div>
+      <div style="font-size:14px;margin-top:6px">${tr('coachRecheckHead',{n:slim.n,c:slim.correct,acc:Math.round(slim.acc*100)})}</div>
+      <div class="coach-note" style="margin-top:8px">${passed?tr('coachRecheckPass'):tr('coachRecheckFail')}</div>
+    </div>
+    ${sceneRows?`<div class="coach-card"><div class="coach-lbl">${tr('coachScenePerf')}</div>${sceneRows}</div>`:''}
+    ${famRows?`<div class="coach-card"><div class="coach-lbl">${tr('coachFamPerf')}</div>${famRows}</div>`:''}
+    <div class="coach-card"><div class="coach-note">${tr('coachVsRef',{n:slim.n})}</div></div>
+    <button class="coach-big-btn" id="coachRecheckBack">${tr('coachRecheckBack')}</button>
+  `;
+  const back=document.getElementById('coachRecheckBack');
+  if(back) back.onclick=()=>{ _coachSection('coachDay'); coachRenderDay(); };
 }
 
 /* --- 计划启动 --- */
@@ -446,7 +558,7 @@ function coachRenderDay(){
         <div class="coach-seg-ic">🎯</div>
         <div style="flex:1">
           <div class="coach-seg-t">${tr('coachMainTraining',{n:day.nMain})}</div>
-          <div class="coach-seg-s">${themeName} · ${tr('coachSmartDeal')}</div>
+          <div class="coach-seg-s">${themeName} · ${tr('coachSmartDeal')}${(day.targetFams&&day.targetFams.length)?' · '+day.targetFams.map(f=>L(FAM_COARSE[f]||f)).join('/'):''}</div>
         </div>
       </div>
       <div class="coach-seg">
@@ -460,6 +572,17 @@ function coachRenderDay(){
       <div class="coach-prog-txt">${tr('coachDayProgress',{done:0,total:totalHands})}</div>
     </div>
 
+    ${day.recheck && !day.recheckDone ? `<div class="coach-card" style="border-color:rgba(232,198,106,.4)">
+      <div class="coach-seg">
+        <div class="coach-seg-ic">🩺</div>
+        <div style="flex:1">
+          <div class="coach-seg-t">${tr('coachRecheckSeg',{n:COACH_RECHECK_HANDS})}</div>
+          <div class="coach-seg-s">${tr('coachRecheckSub')}</div>
+        </div>
+      </div>
+      <button class="coach-big-btn ghost" id="coachGoRecheck" style="margin-top:8px">${tr('coachGoRecheck')}</button>
+    </div>` : ''}
+    ${day.recheck && day.recheckDone ? `<div class="coach-note">🩺 ${tr('coachRecheckDone',{acc:Math.round((day.recheckAcc||0)*100)})}</div>` : ''}
     <button class="coach-big-btn" id="coachGoToday">${tr('coachStartToday')} · ${totalHands} ${tr('coachHands')}</button>
     <button class="coach-big-btn ghost" id="coachMarkDone">${tr('coachMarkDone')}</button>
 
@@ -472,6 +595,9 @@ function coachRenderDay(){
 
   const goBtn=document.getElementById('coachGoToday');
   if(goBtn) goBtn.onclick=()=>coachStartDayTraining(day);
+
+  const rcBtn=document.getElementById('coachGoRecheck');
+  if(rcBtn) rcBtn.onclick=()=>coachStartRecheck(day);
 
   const markBtn=document.getElementById('coachMarkDone');
   if(markBtn) markBtn.onclick=()=>coachMarkDayDone();
@@ -523,7 +649,7 @@ function coachStartDayTraining(day){
   try{
     // 混合天：用当前已有的 G.format/variant(无效则兜底现金6人),不强制切换
     if(day.mixed){
-      if(ensureCoords() && typeof newGame==='function') newGame();
+      if(ensureCoords() && typeof newGame==='function') newGame({fams:day.targetFams||null, filter:'smart'});
       return;
     }
     // 单场景天：找 picks 里第一个有效坐标
@@ -537,7 +663,7 @@ function coachStartDayTraining(day){
         G.variant=pick.variant;
       }
     }
-    if(ensureCoords() && typeof newGame==='function') newGame();
+    if(ensureCoords() && typeof newGame==='function') newGame({fams:day.targetFams||null, filter:'smart'});
   } catch(e){
     // 兜底:回主页——绝不盲目重试 newGame()(同样的坐标会同样抛错,留下空白死屏)
     try{
@@ -582,8 +708,8 @@ try{
 }catch(e){}
 
 // 诊断出题:从 scenes 的 picks 里,按场景均衡抽够 total 手。
-// 每手 {sceneKey, format, variant, t, hand}。
-function coachBuildDiagQueue(scenes, total){
+// 每手 {sceneKey, format, variant, t, hand}。handPred(hand)→bool 可选:复诊按手型族收窄题库。
+function coachBuildDiagQueue(scenes, total, handPred){
   if(!scenes || !scenes.length) return []; // 防 total/0=Infinity:无可用场景→空队列(调用方据此提前结束)
   const perScene = Math.max(1, Math.round(total / scenes.length));
   const queue = [];
@@ -594,10 +720,11 @@ function coachBuildDiagQueue(scenes, total){
       if (!pack) return;
       pack.forEach(t => {
         // 取范围内手牌(R∪C∪M)+ 少量难弃牌
-        const inRange = [...(t.union||new Set())];
-        inRange.forEach(h => cands.push({ sceneKey:s.key, format:p.format, variant:p.variant, t, hand:h }));
+        [...(t.union||new Set())].forEach(h => { if(handPred && !handPred(h)) return;
+          cands.push({ sceneKey:s.key, format:p.format, variant:p.variant, t, hand:h }); });
         (typeof adjacentFolds==='function' ? adjacentFolds(t) : []).slice(0,3)
-          .forEach(h => cands.push({ sceneKey:s.key, format:p.format, variant:p.variant, t, hand:h }));
+          .forEach(h => { if(handPred && !handPred(h)) return;
+            cands.push({ sceneKey:s.key, format:p.format, variant:p.variant, t, hand:h }); });
       });
     });
     shuffle(cands);
@@ -607,8 +734,25 @@ function coachBuildDiagQueue(scenes, total){
   return shuffle(queue).slice(0, total);
 }
 
-// 模块级诊断状态
+// 模块级诊断状态。kind:'diag'(基线诊断)|'recheck'(计划内迷你复诊,绝不覆盖基线)
 let _coachDiagQueue = null, _coachDiagPos = 0, _coachDiagOnReport = null;
+let _coachDiagKind = 'diag', _coachDiagDayIdx = -1;
+
+// 公共启动器:把队列装进 G.diagMode 管道(牌桌/发牌/反馈全复用练习,SINKS.diag 收结果)。
+function _coachStartDiagRun(queue, kind, dayIdx){
+  _coachDiagQueue = queue; _coachDiagPos = 0;
+  _coachDiagKind = kind || 'diag'; _coachDiagDayIdx = (dayIdx==null? -1 : dayIdx);
+  if(typeof setMode==="function") setMode("diag");   // 模式单缝:布尔+sink 原子绑定(诊断数据只进 diagResults)
+  G.diagResults = []; G.over=false; G.busy=false; G.reviewRec=null;
+  G.hands=0; G.correct=0; G.handNo=0; G.score=0; G.combo=0; G.best=0;
+  G.level=1; G.hp=5; G.maxhp=5; G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
+  G.diagTotal = queue.length;
+  // 先把 G.format/variant 指向首题,否则 renderHUD 的 spotLabel(G.format,...) 在全新状态下会抛错
+  if(queue.length){ G.format=queue[0].format; G.variant=queue[0].variant; }
+  if(typeof showScreen==='function') showScreen(null); // 进真实牌桌 = 全部覆盖屏隐藏
+  if(typeof renderHUD==='function') renderHUD();
+  if(typeof nextHand==='function') nextHand();   // nextHand 的 diagMode 分支会发第一手
+}
 
 // 启动诊断:variant='simple'(18 手)|'full'(45 手)。
 // 诊断完全复用练习的牌桌+发牌+反馈(nextHand/resolve),只是题库换成诊断队列、
@@ -616,20 +760,32 @@ let _coachDiagQueue = null, _coachDiagPos = 0, _coachDiagOnReport = null;
 function coachStartDiagnosis(onboard, variant, onReport){
   const scenes = coachScenes(onboard);
   const total = variant === 'full' ? 45 : 18;
-  _coachDiagQueue = coachBuildDiagQueue(scenes, total);
-  _coachDiagPos = 0;
   _coachDiagOnReport = onReport;
-  // 像 newGame 一样初始化一局,但打开诊断标记
-  if(typeof setMode==="function") setMode("diag");   // 模式单缝:布尔+sink 原子绑定(诊断数据只进 diagResults)
-  G.diagResults = []; G.over=false; G.busy=false; G.reviewRec=null;
-  G.hands=0; G.correct=0; G.handNo=0; G.score=0; G.combo=0; G.best=0;
-  G.level=1; G.hp=5; G.maxhp=5; G.q={best:0,good:0,inacc:0,mistake:0,blunder:0};
-  G.diagVariant = variant; G.diagScenes = scenes; G.diagTotal = _coachDiagQueue.length;
-  // 先把 G.format/variant 指向首题,否则 renderHUD 的 spotLabel(G.format,...) 在全新状态下会抛错
-  if(_coachDiagQueue.length){ G.format=_coachDiagQueue[0].format; G.variant=_coachDiagQueue[0].variant; }
-  if(typeof showScreen==='function') showScreen(null); // 进真实牌桌 = 全部覆盖屏隐藏
-  if(typeof renderHUD==='function') renderHUD();
-  if(typeof nextHand==='function') nextHand();   // nextHand 的 diagMode 分支会发第一手
+  G.diagVariant = variant; G.diagScenes = scenes;
+  _coachStartDiagRun(coachBuildDiagQueue(scenes, total), 'diag', -1);
+}
+
+const COACH_RECHECK_HANDS = 6;    // 复诊手数(迷你测,只测当前重点漏洞)
+const COACH_RECHECK_PASS = 0.8;   // 达标线
+
+// 计划内迷你复诊:按基线诊断的 topLeaks 场景收窄 + famLeaks 手型族过滤;抽不满则逐级放开。
+function coachStartRecheck(day){
+  if(typeof isPro==='function' && !isPro()){        // 复诊在计划内,与每日训练同款 Pro 校验
+    if(typeof showPaywall==='function') showPaywall(tr('coachStartDay1Sub'));
+    return;
+  }
+  const diag = coachLoadDiagnosis(); if(!diag || !diag.agg) return;
+  const onboard = coachLoadOnboard() || {};
+  const all = coachScenes(onboard);
+  const focusKeys = new Set((diag.agg.topLeaks||[]).map(l => l.sceneKey));
+  const scenes = all.filter(s => focusKeys.has(s.key));
+  const famSet = new Set((diag.agg.famLeaks||[]).map(f => f.fam));
+  const pred = famSet.size ? (h => famSet.has(famCoarse(h))) : null;   // 老诊断无 famLeaks → 只按场景收窄
+  let q = coachBuildDiagQueue(scenes.length?scenes:all, COACH_RECHECK_HANDS, pred);
+  if(q.length < COACH_RECHECK_HANDS) q = coachBuildDiagQueue(scenes.length?scenes:all, COACH_RECHECK_HANDS, null); // 族过滤抽不满 → 放开
+  if(!q.length) return;
+  G.diagVariant = 'recheck'; G.diagScenes = scenes.length?scenes:all;
+  _coachStartDiagRun(q, 'recheck', day.idx);
 }
 
 // resolve() 的反馈「下一步/查看报告」按钮调用此函数推进:下一手或结束。
@@ -639,23 +795,67 @@ function coachDiagAdvance(){
   if(typeof nextHand==='function') nextHand();
 }
 
-// 诊断完成:收起牌桌,回 coach 覆盖层显示报告;聚合结果、生成 verdict、存储、回调。
+// 诊断完成:收起牌桌,回 coach 覆盖层。基线诊断→存储+报告;复诊→只入 history,绝不覆盖基线。
 function coachFinishDiagnosis(){
   if(typeof setMode==="function") setMode("normal"); G.over=true; G.busy=true;
   _coachExitTable();
   if(typeof showScreen==='function') showScreen('coachScreen');
   const agg = coachAggregate(G.diagResults||[], G.diagScenes||[]);
+  if(_coachDiagKind==='recheck'){ coachFinishRecheck(agg); return; }
   const verdict = coachVerdict(agg, G.diagVariant);
-  const diagnosis = { variant:G.diagVariant, agg, verdict, ts:0 };
+  const diagnosis = { variant:G.diagVariant, agg, verdict, ts:0, history:[] };
   coachSaveDiagnosis(diagnosis);
   if (_coachDiagOnReport) _coachDiagOnReport(diagnosis);
 }
 
-// 诊断中途放弃(左上 ← / 右上结束):回 coach 问卷。
+// 复诊完成:摘 slim 快照入 diag.history、按达标/未达标调整后续计划、渲染对比页。
+function coachFinishRecheck(agg){
+  _coachDiagKind='diag';
+  const diag = coachLoadDiagnosis(); if(!diag){ _coachSection('coachDay'); coachRenderDay(); return; }
+  // 只存 {n,correct,acc,leakCounts}(丢 misses 细节,保持 STORE 苗条 + 可序列化)
+  const slimOf = (src) => { const out={}; Object.keys(src||{}).forEach(k=>{
+    const e=src[k]; out[k]={n:e.n,correct:e.correct,acc:e.acc,leakCounts:e.leakCounts||{}}; }); return out; };
+  let n=0, correct=0;
+  Object.values(agg.perScene||{}).forEach(e=>{ n+=e.n; correct+=e.correct; });
+  const slim = { dayIdx:_coachDiagDayIdx, n, correct, acc:(n?correct/n:0),
+                 perScene:slimOf(agg.perScene), perFamily:slimOf(agg.perFamily) };
+  (diag.history = diag.history || []).push(slim);
+  coachSaveDiagnosis(diag);
+  const plan = coachLoadPlan();
+  if(plan){ coachApplyRecheck(plan, diag, slim); coachSavePlan(plan); }
+  coachRenderRecheckReport(diag, slim);
+}
+
+// 达标/加练规则(纯函数,可单测):≥(手数-1) 且 acc>=PASS 判达标。
+// 达标 → 后续未完成天的 targetFams 换 famLeaks 里"本次未覆盖"的下一批(练会了换目标);
+// 未达标 → 把最近 2 个 mixed 日转成最弱场景主攻(总天数恒 20,不延长——streak/UX 依赖 20)。
+function coachApplyRecheck(plan, diag, slim){
+  const passed = slim.n >= COACH_RECHECK_HANDS-1 && slim.acc >= COACH_RECHECK_PASS;
+  const day = plan.days[slim.dayIdx];
+  if(day){ day.recheckDone = true; day.recheckAcc = slim.acc; }
+  const future = plan.days.filter(d => d.idx > slim.dayIdx && !d.done);
+  if(passed){
+    const covered = new Set(Object.keys(slim.perFamily||{}));
+    const rest = (diag.agg.famLeaks||[]).map(f=>f.fam).filter(f=>!covered.has(f)).slice(0,2);
+    future.forEach(d => { if(d.targetFams) d.targetFams = rest.length ? rest : null; });
+  } else {
+    const worst = ((diag.agg.topLeaks||[])[0]||{}).sceneKey;
+    let flipped = 0;
+    future.forEach(d => { if(flipped<2 && d.mixed && worst){
+      d.mixed=false; d.sceneKey=worst;
+      d.name=((diag.agg.perScene||{})[worst]||{}).name||worst; flipped++; } });
+  }
+  return { passed };
+}
+
+// 诊断中途放弃(左上 ← / 右上结束):基线诊断回问卷;复诊回每日卡(计划还在,别踢回 onboarding)。
 function coachAbortDiagnosis(){
   if(typeof setMode==='function') setMode('normal'); if(typeof G!=='undefined'){ G.over=true; G.busy=true; }
+  const wasRecheck = _coachDiagKind==='recheck';
+  _coachDiagKind='diag';
   _coachExitTable();
   if(typeof showScreen==='function') showScreen('coachScreen');
+  if(wasRecheck && coachLoadPlan()){ _coachSection('coachDay'); coachRenderDay(); return; }
   _coachSection('coachOnboard'); coachRenderOnboard();
 }
 
@@ -666,5 +866,6 @@ function _coachExitTable(){
 
 // Node 测试用导出(浏览器忽略)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { coachPlanDays, COACH_PLAN_DAYS, coachScenes, coachAggregate, COACH_MIN_SAMPLE, coachVerdict, coachBuildPlan, coachHandsForMinutes };
+  module.exports = { coachPlanDays, COACH_PLAN_DAYS, coachScenes, coachAggregate, COACH_MIN_SAMPLE, COACH_FAM_MIN, coachRightOf, coachVerdict, coachBuildPlan, coachHandsForMinutes,
+    coachBuildDiagQueue, coachApplyRecheck, COACH_RECHECK_HANDS, COACH_RECHECK_PASS, COACH_RECHECK_DAYS };
 }

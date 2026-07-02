@@ -93,6 +93,15 @@ const I18N_EN = {
  '太松':'Too loose','该弃却入池':'play hands you should fold','太紧':'Too tight','该入却弃·漏价值':'fold hands you should play · missed value',
  '被动':'Passive','该加注却只跟注':'just call when you should raise','过激':'Over-aggressive','该跟注却加注/全下':'raise/jam when you should call',
  '边缘混合':'Edge / mix','难点·没把握':'tough · unsure','ICM 保命':'ICM survival','泡沫期收紧':'tighten on the bubble',
+ // —— hand families (FAMILIES/FAM_COARSE,诊断/漏洞的手型维度) ——
+ '大对子 TT+':'Big pairs TT+','中对子 66-99':'Mid pairs 66-99','小对子 22-55':'Small pairs 22-55',
+ '同花大A ATs+':'Big suited aces ATs+','同花中A A6s-A9s':'Mid suited aces A6s-A9s','同花轮A A2s-A5s':'Suited wheel aces A2s-A5s',
+ '高踢A ATo+':'Offsuit big aces ATo+','弱A A2o-A9o':'Weak aces A2o-A9o',
+ '同花高张 KQs-JTs':'Suited broadways KQs-JTs','高张 KQo-JTo':'Offsuit broadways KQo-JTo',
+ '同花连张':'Suited connectors','同花隔张':'Suited gappers','同花K/Q弱踢':'Weak suited Kx/Qx','低同花':'Low suited',
+ 'K/Q弱踢 offsuit':'Weak offsuit Kx/Qx','offsuit连张':'Offsuit connectors','杂牌':'Trash hands',
+ '口袋对子':'Pocket pairs','同花A':'Suited aces','offsuit A':'Offsuit aces','高张牌':'Broadways',
+ '同花连张/隔张':'Suited connectors/gappers','弱同花':'Weak suited','offsuit杂牌':'Offsuit trash',
  // —— misc dynamic ——
  '其他':'Other','前注底池':'Ante pot',
  // —— FORMATS.tag ——
@@ -136,7 +145,8 @@ const I18N_EN = {
  'BTN 冷跟 vs CO':'BTN cold-call vs CO','BTN 冷跟 vs UTG':'BTN cold-call vs UTG','CO 冷跟 vs UTG':'CO cold-call vs UTG',
  // —— who-string segments (split on " · ") ——
  '你先开局':'you open first','最早位开局':'earliest position opens','仅剩大盲':'only BB left','大盲防守':'BB defense',
- '按钮位开局':'BTN opens','关煞位开局':'CO opens','枪口位开局':'UTG opens','你在按钮先行动':'you act first on the button',
+ 'SB/BTN 开局':'SB/BTN open','BB vs SB 开局':'BB vs SB open',
+ '按钮位开局':'BTN opens','关煞位开局':'CO opens','枪口位开局':'UTG opens','小盲位开局':'SB opens','你在按钮先行动':'you act first on the button',
  '40bb 前注':'40bb · ante','25bb 中码':'25bb · mid','15bb 浅码':'15bb · short',
  '全下或弃':'jam or fold','SB 全下或弃':'SB jam or fold','面对 SB 全下':'vs SB jam','面对 BTN 全下':'vs BTN jam',
  '泡沫期 ~20bb':'bubble ~20bb','保命收紧':'survival tight','可施压':'can pressure',
@@ -482,6 +492,22 @@ _tpl('coachPlanFocus','主攻','Focus');
 _tpl('coachPlanMixed','全场景混合巩固','Mixed review — all scenes');
 _tpl('coachQuickEst','快速估计 · 仅供参考（简化版 18 手）','Quick estimate · directional only (quick 18-hand version)');
 _tpl('coachVsRef','基于 {n} 手诊断 · 全部 vs 参考范围，非 solver 精确解','Based on {n} hands · all vs reference ranges, not solver-exact');
+// 手型维度报告(实例句 + 手型弱点卡)
+_tpl('coachExLine','例：{hand}{spot} — 你选「{you}」，参考 {ref}','e.g. {hand}{spot} — you chose “{you}”, reference: {ref}');
+_tpl('coachFamPerf','手型弱点 · vs 参考范围','Hand-type weaknesses · vs reference ranges');
+_tpl('coachFamLine','{n} 手错 {m}','missed {m} of {n}');
+_tpl('coachFamNote','样本 <{min} 手的手型不作断言','Hand types with <{min} samples are not asserted');
+// 复诊闭环(计划内迷你测 + 基线对比)
+_tpl('coachRecheckSeg','迷你复诊 · {n} 手','Mini re-check · {n} hands');
+_tpl('coachRecheckSub','只测当前重点漏洞 · 看进步','Only your focus leaks · see your progress');
+_tpl('coachGoRecheck','开始复诊','Start re-check');
+_tpl('coachRecheckTitle','迷你复诊 · Day {d}','Mini re-check · Day {d}');
+_tpl('coachRecheckHead','复诊 {n} 手 · 对 {c} 手({acc}%)','{n} hands · {c} correct ({acc}%)');
+_tpl('coachRecheckDelta','{a}% → {b}%(基线 {n0} 手 / 本次 {n1} 手)','{a}% → {b}% (baseline {n0} / now {n1} hands)');
+_tpl('coachRecheckPass','✓ 已达标 · 后续计划的目标手型自动更新','✓ Passed · upcoming target hand-types updated');
+_tpl('coachRecheckFail','未达标 · 已把 2 个混合日转为最弱场景主攻','Not yet · 2 mixed days switched to your weakest scene');
+_tpl('coachRecheckDone','今日复诊已完成 · {acc}%','Re-check done today · {acc}%');
+_tpl('coachRecheckBack','回到今天的训练 →','Back to today’s training →');
 _tpl('coachStartDay1','开始 Day 1','Start Day 1');
 _tpl('coachStartDay1Sub','20 天个性化训练 · Pro 解锁','20-day personalised plan · Pro');
 _tpl('coachRedoDiag','重新诊断','Re-diagnose');

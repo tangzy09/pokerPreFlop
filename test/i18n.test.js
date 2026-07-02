@@ -71,6 +71,14 @@ test('英文模式:data 派生的用户可见串都有英文翻译', () => {
   Object.values(VARIANTS || {}).forEach((grp) =>
     Object.values(grp || {}).forEach((v) => { add(v.short); add(v.name); add(v.label); add(v.tag); }));
   Object.values(GAMETYPES || {}).forEach((g) => { add(g.name); add(g.label); add(g.tag); });
+  // 手牌族名(诊断/漏洞的手型维度,经 L() 显示)
+  const { FAMILIES, FAM_COARSE } = app;
+  Object.values(FAMILIES || {}).forEach((f) => add(f.name));
+  Object.values(FAM_COARSE || {}).forEach(add);
+  // PACKS 每个 spot 的 name + who 分段(Lwho 按 · 分段翻译;此前漏扫,新 spot 漏译曾只能人工发现)
+  const { PACKS } = app;
+  Object.values(PACKS || {}).forEach((fmt) => Object.values(fmt || {}).forEach((arr) =>
+    (arr || []).forEach((t) => { add(t.name); String(t.who || '').split(' · ').forEach(add); })));
   // resolve() 的评级名(grade)经 L() 显示
   ['最佳', '好棋', '两可', '不准', '失误', '漏着', '超时'].forEach((s) => strs.add(s));
 

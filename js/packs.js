@@ -28,6 +28,18 @@ const PACKS={
    {mode:'defense',name:'BB vs BTN',who:'按钮位开局 · 大盲防守',heroPos:'BB',vilPos:'BTN',tier:4,
     raise:"99+, ATs+, A5s-A2s, KJs+, AJo+, KQo",
     call:"22-88, A2s-A9s, K2s-KTs, Q2s-QJs, J6s-JTs, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o-ATo, K7o-KQo, Q8o+, J8o+, T8o+, 97o+, 87o, 76o, 65o, 54o"},
+   /* 9max BB 防守扩充(2026-07,场景覆盖设计 §B):CO 开局范围与 6max 同源(r_co),
+      folds-to-CO 后局面等价 → 防守范围沿用 6max 版;vs UTG 对 9max 最紧开局再紧一档;
+      vs SB 是全库唯一 BB 有位置的多人桌防守(防得宽 + 3bet 更多)。全部 curated。 */
+   {mode:'defense',name:'BB vs CO',who:'关煞位开局 · 大盲防守',heroPos:'BB',vilPos:'CO',tier:5,
+    raise:"TT+, AQs+, A5s, A4s, AQo+, KQs",
+    call:"22-99, A2s-AJs, K7s-KQs, Q8s-QJs, J8s-JTs, T8s+, 97s+, 86s+, 75s+, 65s, 54s, ATo+, A5o, KTo+, QTo+, JTo"},
+   {mode:'defense',name:'BB vs UTG',who:'枪口位开局 · 大盲防守',heroPos:'BB',vilPos:'UTG',tier:6,
+    raise:"QQ+, AKs, AKo, A5s",
+    call:"22-JJ, ATs-AQs, A4s-A2s, KTs-KQs, QTs+, JTs, T9s, 98s, 87s, 76s, AQo"},
+   {mode:'defense',name:'BB vs SB',who:'小盲位开局 · 大盲防守',heroPos:'BB',vilPos:'SB',tier:5,
+    raise:"88+, A9s+, A5s-A2s, KTs+, QTs+, JTs, ATo+, KJo+",
+    call:"22-77, A2s-A8s, K2s-K9s, Q2s-Q9s, J5s-J9s, T6s+, 96s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o-A9o, K7o-KTo, Q8o+, J8o+, T8o+, 97o+, 87o, 76o, 65o"},
   ],
   2:[
    {mode:'open',name:'SB/BTN 开局',who:'单挑 · 你在按钮先行动',heroPos:'SB',tier:1,
