@@ -32,18 +32,25 @@ const m_co="K2s, K3s, Q5s, Q6s, J7s, T7s, 96s, 85s, 64s, A7o, A6o, K9o, Q9o, J9o
 const m_btn="Q2s, Q3s, J3s, J4s, J5s, T3s, T4s, T5s, 94s, 84s, 73s, 63s, K2o, K3o, K4o, K5o, K6o, Q4o, Q5o, Q6o, Q7o, J6o, J7o, T7o, 96o, 86o, 75o, 64o, 54o";
 const m_sb="K2s, Q2s-Q4s, J5s, J6s, T5s, T6s, 95s, 84s, 74s, 63s, 53s, 43s, K5o-K7o, Q7o, Q8o, J7o, J8o, T8o, 97o, 87o, 76o";
 
-const FORMATS={cash:{label:'现金局 · 深码',tag:'现金'},mtt:{label:'锦标赛 · MTT',tag:'MTT'},face3b:{label:'面对反加 · 3-bet',tag:'面3bet'},face4b:{label:'面对 4-bet',tag:'面4bet'},squeeze:{label:'挤压 Squeeze',tag:'挤压'},coldcall:{label:'冷跟 · 非盲位',tag:'冷跟'}};
-/* game type groups which scenarios (formats) belong to which game */
+const FORMATS={cash:{label:'现金局 · 深码',tag:'现金'},mtt:{label:'锦标赛 · MTT',tag:'MTT'},face3b:{label:'面对反加 · 3-bet',tag:'面3bet'},face4b:{label:'面对 4-bet',tag:'面4bet'},limp:{label:'面对跛入 · Limp',tag:'跛入'},squeeze:{label:'挤压 Squeeze',tag:'挤压'},coldcall:{label:'冷跟 · 非盲位',tag:'冷跟'}};
+/* game type groups which scenarios (formats) belong to which game.
+   顺序敏感:spotLocked 锁 formats 列表的后一半——limp 插在 squeeze 前 → slice(3) 锁
+   limp/squeeze/coldcall(现有付费面不变、limp 进 Pro);append 到尾会让 squeeze 意外免费。 */
 const GAMETYPES={
- cash:{label:'现金局',formats:['cash','face3b','face4b','squeeze','coldcall']},
+ cash:{label:'现金局',formats:['cash','face3b','face4b','limp','squeeze','coldcall']},
  mtt:{label:'锦标赛 MTT',formats:['mtt']},
 };
 function gameOf(fmt){for(const g in GAMETYPES)if(GAMETYPES[g].formats.includes(fmt))return g;return 'cash';}
 const VARIANTS={
  cash:{
-  2:{label:'单挑 2人',short:'单挑'},
-  6:{label:'6人桌',short:'6人'},
-  9:{label:'9人桌',short:'9人'},
+  /* 现有 key(2/6/9)绝不改名——reviewPile/statsBySpot 存档按 key 回连。
+     group 用于选择页分组头 + spotLocked 的现金深度半分门控(标准组免费/深度组 Pro)。 */
+  2:{group:'标准 100bb',label:'单挑 2人',short:'单挑'},
+  6:{group:'标准 100bb',label:'6人桌',short:'6人'},
+  9:{group:'标准 100bb',label:'9人桌',short:'9人'},
+  c6_50:{group:'筹码深度 · 6人桌',label:'50bb',sub:'浅码·3bet或弃',short:'6人50bb',players:6},
+  c6_200:{group:'筹码深度 · 6人桌',label:'200bb',sub:'超深·隐含赔率',short:'6人200bb',players:6},
+  c6_str:{group:'Straddle 抓头 · 6人',label:'UTG 抓头 2bb',sub:'≈等效50bb·近似',short:'6人抓头',players:6},
  },
  mtt:{
   d40:{group:'RFI 开局 · 9人（40/25/15bb）',label:'40bb',sub:'深码·前注',short:'9人40bb'},
@@ -84,9 +91,14 @@ const VARIANTS={
   bb:{label:'你在大盲挤压',sub:'无位置·偏价值',short:'BB挤'},
   btn:{label:'你在按钮挤压',sub:'有位置·更宽',short:'BTN挤'},
  },
+ limp:{
+  btn:{label:'你在 BTN',sub:'有位置·隔离为主',short:'BTN隔离'},
+  co:{label:'你在 CO',sub:'身后有人·偏紧',short:'CO隔离'},
+  bb:{label:'你在大盲',sub:'免费看牌或加注',short:'BB过牌'},
+ },
  coldcall:{
   btn:{label:'你在 BTN',sub:'有位置·可宽跟',short:'BTN跟'},
   co:{label:'你在 CO',sub:'身后有人·偏紧',short:'CO跟'},
  },
 };
-const VARIANT_LABEL={cash:'牌桌人数',mtt:'盲数 / 阶段',face3b:'你的开局位置',face4b:'你 3-bet 的位置',squeeze:'你挤压的位置',coldcall:'你的位置'};
+const VARIANT_LABEL={cash:'牌桌人数',mtt:'盲数 / 阶段',face3b:'你的开局位置',face4b:'你 3-bet 的位置',limp:'你的位置',squeeze:'你挤压的位置',coldcall:'你的位置'};

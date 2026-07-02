@@ -27,9 +27,15 @@ function setPro(v){STORE.pro=!!v;persist();
 function _lockedSlice(list){return list.slice(Math.ceil(list.length/2));}                       // 后一半=锁
 function _cashLockedFmts(){return new Set(_lockedSlice(GAMETYPES.cash.formats));}
 function _mttLockedGroups(){return new Set(_lockedSlice([...new Set(Object.values(VARIANTS.mtt).map(v=>v.group))]));}
+// 现金 cash format 内部再按 variant group 半分(标准 100bb 免费 / 筹码深度等新组 Pro)——与 MTT group 门控同款
+function _cashLockedGroups(){return new Set(_lockedSlice([...new Set(Object.values(VARIANTS.cash).map(v=>v.group))]));}
 function spotLocked(fmt,variant){
  if(isPro())return false;
- if(gameOf(fmt)==='cash')return _cashLockedFmts().has(fmt);
+ if(gameOf(fmt)==='cash'){
+  if(_cashLockedFmts().has(fmt))return true;
+  if(fmt==='cash'){const v=VARIANTS.cash[variant];return v?_cashLockedGroups().has(v.group):false;}
+  return false;
+ }
  const v=VARIANTS.mtt&&VARIANTS.mtt[variant]; return v?_mttLockedGroups().has(v.group):false;
 }
 const PRO_PITCH=[
@@ -421,7 +427,7 @@ const POS_RING={ // 行动顺序 = 落座顺序；末两位固定是 SB、BB
  9:['UTG','UTG+1','MP','LJ','HJ','CO','BTN','SB','BB'],
 };
 function tablePlayers(fmt,variant){
- if(fmt==='cash')return +variant||6;
+ if(fmt==='cash'){const v=VARIANTS.cash[variant];return (v&&v.players)||+variant||6;} // 深度 variant(c6_50 等)带 players 字段;老 key(2/6/9)仍走数值
  if(fmt==='mtt'){ if(/^hu/.test(variant))return 2; if(variant==='d40_6'||variant==='d20_6'||/^p6_/.test(variant))return 6; return 9; }
  return 6; // face3b/face4b/squeeze/coldcall：100bb 6 人语境
 }
@@ -443,6 +449,9 @@ function tableModel(t,fmt,variant){
  if(fmt==='coldcall'){                                   // 冷跟：英雄 BTN/CO 面对开局加注（spot 用 defense 模式）
   hero=hp||posKey(nm.split(/冷跟|vs/)[0])||'BTN';
   vil.push({pos:(vp&&vp[0])||posKey(nm.split('vs')[1]||'')||'CO',bet:RAISE});
+ } else if(t.mode==='iso'||t.mode==='bbvslimp'){         // 面对跛入：跛入者已投 1bb(limp)
+  hero=hp||(t.mode==='bbvslimp'?'BB':'BTN');
+  vil.push({pos:(vp&&vp[0])||(t.mode==='bbvslimp'?'SB':'MP'),bet:1});
  } else if(t.mode==='defense'){                          // 大盲防守：英雄 BB 面对开局加注
   hero=hp||'BB'; vil.push({pos:(vp&&vp[0])||posKey(nm.replace(/BB|大盲/g,'').replace(/vs/,''))||'BTN',bet:RAISE});
  } else if(mtt&&/^hu/.test(variant)){                    // 单挑推弃
@@ -465,6 +474,7 @@ function tableModel(t,fmt,variant){
  if(!ring.includes(hero)) hero = N===2?'SB':'BB';
  const hi=ring.indexOf(hero);
  const betAt={}; vil.forEach(v=>{const i=ring.indexOf(v.pos); if(i>=0)betAt[i]=Math.max(betAt[i]||0,v.bet);});
+ if(t.straddle){const si=ring.indexOf(t.straddle); if(si>=0)betAt[si]=Math.max(betAt[si]||0,2);} // 抓头 2bb 前置注(像盲注一样已在池)
  const facing=Object.keys(betAt).length>0;               // 有对手已下注 = 非首入
  const seats=ring.map((pos,i)=>{
   let bet=0,blind=false,folded=false;
@@ -845,6 +855,16 @@ function reasonFor(t,hand,correct,choice,ok,grade){
   if(correct.includes('shove')) return tr('reason.f4.shove',{hand,why:tr(isBlock?'reason.f4.why.block':'reason.f4.why.value')});
   if(correct[0]==='call')       return tr('reason.f4.call',{hand});
   return tr('reason.f4.fold',{hand});
+ }
+ // facing a limp: fold / over-limp / isolate(以及 BB vs SB 跛入的 过牌/加注)
+ if(t.mode==='iso'){
+  if(correct[0]==='raise') return tr('reason.iso.raise',{hand});
+  if(correct[0]==='call')  return tr('reason.iso.call',{hand});
+  return tr('reason.iso.fold',{hand});
+ }
+ if(t.mode==='bbvslimp'){
+  if(correct[0]==='raise') return tr('reason.bvl.raise',{hand});
+  return tr('reason.bvl.check',{hand});
  }
  // squeeze: fold / call / squeeze
  if(t.mode==='squeeze'){

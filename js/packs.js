@@ -41,6 +41,77 @@ const PACKS={
     raise:"88+, A9s+, A5s-A2s, KTs+, QTs+, JTs, ATo+, KJo+",
     call:"22-77, A2s-A8s, K2s-K9s, Q2s-Q9s, J5s-J9s, T6s+, 96s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o-A9o, K7o-KTo, Q8o+, J8o+, T8o+, 97o+, 87o, 76o, 65o"},
   ],
+  /* 50bb 浅码 6 人(2026-07 场景扩充设计 §A):set-mining 赔率↓ → 砍最弱投机同花、
+     offsuit broadway 保值;防守 call 收窄、3bet 线性化(TT/AJs/KQs 进 3bet);
+     face3b 是本档核心新价值——平跟大缩、4bet≈全下承诺(JJ+/AK)。全部 curated。 */
+  c6_50:[
+   {mode:'open',name:'UTG · 枪口位',who:'6人桌 · 50bb 浅码 · 你先开局',heroPos:'UTG',tier:1,
+    raise:"22+, A2s+, KTs+, QTs+, JTs, T9s, 98s, AJo+, KQo",mix:"87s, K9s, Q9s, ATo, KJo"},
+   {mode:'open',name:'HJ · 劫机位',who:'6人桌 · 50bb 浅码 · 你先开局',heroPos:'HJ',tier:3,
+    raise:"22+, A2s+, K9s+, Q9s+, J9s+, T9s, 98s, 87s, A9o+, KJo+, QJo",mix:"76s, K8s, T8s, A8o, KTo, QTo"},
+   {mode:'open',name:'CO · 关煞位',who:'6人桌 · 50bb 浅码 · 你先开局',heroPos:'CO',tier:2,
+    raise:"22+, A2s+, K8s+, Q9s+, J9s+, T8s+, 98s, 87s, A8o+, A5o, KTo+, QTo+, JTo",mix:"76s, K6s, K7s, Q8s, J8s, A7o, K9o, Q9o"},
+   {mode:'open',name:'BTN · 按钮位',who:'6人桌 · 50bb 浅码 · 你先开局',heroPos:'BTN',tier:1,
+    raise:"22+, A2s+, K2s+, Q5s+, J7s+, T7s+, 97s+, 86s+, 76s, 65s, A2o+, K8o+, Q9o+, J9o+, T9o",mix:"Q4s, J6s, T6s, 54s, K7o, Q8o, J8o, T8o, 98o"},
+   {mode:'open',name:'SB · 小盲位',who:'6人桌 · 50bb 浅码 · 仅剩大盲',heroPos:'SB',tier:3,
+    raise:"22+, A2s+, K5s+, Q7s+, J8s+, T8s+, 97s+, 87s, 76s, A4o+, K9o+, QTo+, JTo",mix:"K4s, Q6s, J7s, 65s, A3o, K8o, Q9o, J9o, T9o"},
+   {mode:'defense',name:'BB vs BTN',who:'按钮位开局 · 50bb 浅码 · 大盲防守',heroPos:'BB',vilPos:'BTN',tier:4,
+    raise:"99+, ATs+, A5s-A2s, KJs+, QJs, AJo+, KQo",
+    call:"22-88, A6s-A9s, K7s-KTs, Q8s-QTs, J8s-JTs, T8s+, 97s+, 87s, 76s, 65s, ATo, A5o, K9o-KQo, QTo+, JTo"},
+   {mode:'defense',name:'BB vs CO',who:'关煞位开局 · 50bb 浅码 · 大盲防守',heroPos:'BB',vilPos:'CO',tier:5,
+    raise:"TT+, AQs+, AJs, A5s-A4s, KQs, AQo+",
+    call:"22-99, A6s-ATs, KTs-KJs, QTs-QJs, JTs, T9s, 98s, 87s, ATo+, KJo+"},
+   {mode:'defense',name:'BB vs UTG',who:'枪口位开局 · 50bb 浅码 · 大盲防守',heroPos:'BB',vilPos:'UTG',tier:6,
+    raise:"QQ+, AKs, AKo",
+    call:"22-JJ, ATs-AQs, A5s-A4s, KTs-KQs, QJs, JTs, T9s, 98s, AQo"},
+   {mode:'face3b',name:'开 BTN，BB 反加',who:'你 BTN 开局 → 大盲 3-bet · 50bb 浅码 · 4-bet≈全下',heroPos:'BTN',vilPos:'BB',tier:5,
+    raise:"JJ+, AKs, AKo, A5s",call:"88-TT, AQs, AJs, ATs, KQs, QJs, JTs, T9s, AQo",mix:"77, A4s, KJs"},
+   {mode:'face3b',name:'开 CO，BTN 反加',who:'你 CO 开局 → 按钮位 3-bet · 50bb 浅码 · 你无位置',heroPos:'CO',vilPos:'BTN',tier:5,
+    raise:"QQ+, AKs, AKo",call:"99-JJ, AQs+, KQs, JTs, AQo",mix:"88, A5s, AJs"},
+  ],
+  /* 200bb 超深 6 人(2026-07 场景扩充设计 §A):隐含赔率↑/domination 代价↑/位置价值↑ →
+     RFI 变化小(EP 砍最弱 offsuit broadway 补同花连子);防守投机牌更坚决、3bet 向同花化移动
+     (少 offsuit 诈唬);face3b 平跟小对价值↑、4bet 值域更紧、AKo 多平跟。全部 curated。 */
+  c6_200:[
+   {mode:'open',name:'UTG · 枪口位',who:'6人桌 · 200bb 超深 · 你先开局',heroPos:'UTG',tier:1,
+    raise:"22+, A2s+, KTs+, QTs+, JTs, T9s, 98s, 87s, 76s, 65s, AJo+, KQo",mix:"54s, K9s, Q9s, J9s, ATo, KJo, QJo"},
+   {mode:'open',name:'HJ · 劫机位',who:'6人桌 · 200bb 超深 · 你先开局',heroPos:'HJ',tier:3,
+    raise:"22+, A2s+, K9s+, Q9s+, J9s+, T8s+, 98s, 87s, 76s, 65s, 54s, A9o+, KJo+, QJo",mix:"K8s, Q8s, J8s, T7s, 43s, A8o, KTo, QTo, JTo"},
+   {mode:'open',name:'CO · 关煞位',who:'6人桌 · 200bb 超深 · 你先开局',heroPos:'CO',tier:2,raise:r_co,mix:m_co},
+   {mode:'open',name:'BTN · 按钮位',who:'6人桌 · 200bb 超深 · 你先开局',heroPos:'BTN',tier:1,raise:r_btn,mix:m_btn},
+   {mode:'open',name:'SB · 小盲位',who:'6人桌 · 200bb 超深 · 仅剩大盲',heroPos:'SB',tier:3,raise:r_sb,mix:m_sb},
+   {mode:'defense',name:'BB vs BTN',who:'按钮位开局 · 200bb 超深 · 大盲防守',heroPos:'BB',vilPos:'BTN',tier:4,
+    raise:"99+, ATs+, A5s-A2s, KTs+, QJs, JTs, T9s, AQo+",
+    call:"22-88, A6s-A9s, K2s-K9s, Q2s-QTs, J6s-JTs, T6s-T8s, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A5o-ATo, K9o-KQo, Q9o+, J9o+, T9o, 98o, 87o, 76o, KQo, AJo"},
+   {mode:'defense',name:'BB vs CO',who:'关煞位开局 · 200bb 超深 · 大盲防守',heroPos:'BB',vilPos:'CO',tier:5,
+    raise:"TT+, AQs+, A5s-A2s, KJs+, QJs, JTs, AQo+",
+    call:"22-99, A6s-AJs, K7s-KTs, Q8s-QTs, J8s-JTs, T8s+, 97s+, 86s+, 75s+, 65s, 54s, ATo+, KTo+, QTo+, JTo"},
+   {mode:'defense',name:'BB vs UTG',who:'枪口位开局 · 200bb 超深 · 大盲防守',heroPos:'BB',vilPos:'UTG',tier:6,
+    raise:"QQ+, AKs, A5s-A4s, KJs+, JTs",
+    call:"22-JJ, ATs-AQs, A2s-A3s, KTs, QTs+, J9s+, T9s, 98s, 87s, 76s, 65s, 54s, AQo+, KQo"},
+   {mode:'face3b',name:'开 BTN，BB 反加',who:'你 BTN 开局 → 大盲 3-bet · 200bb 超深 · 平跟为主',heroPos:'BTN',vilPos:'BB',tier:5,
+    raise:"KK+, A5s",call:"22-QQ, ATs-AKs, A2s-A4s, KTs-KQs, QTs-QJs, JTs, T9s, 98s, 87s, 76s, AJo-AKo, KQo",mix:"AKs, QQ"},
+   {mode:'face3b',name:'开 CO，BTN 反加',who:'你 CO 开局 → 按钮位 3-bet · 200bb 超深 · 你无位置',heroPos:'CO',vilPos:'BTN',tier:5,
+    raise:"KK+",call:"22-QQ, ATs-AKs, A5s, KJs+, QJs, JTs, T9s, AQo+",mix:"AKs, A4s"},
+  ],
+  /* Straddle 抓头(2026-07 场景扩充设计 §D):UTG 抓头 2bb = 等效深度约减半 + 底池多死钱。
+     业界处理 = 等效浅深度 + 死钱修正 → 范围从 c6_50 出发放宽半档,src 明说是近似、非独立求解。
+     spot 带 straddle:'UTG' 字段 → tableModel 渲染 2bb 前置注。BTN 抓头不做(规则各家不一)。 */
+  c6_str:[
+   {mode:'open',name:'CO · 关煞位',who:'UTG 抓头 2bb · 等效~50bb(近似) · 你先开局',heroPos:'CO',straddle:'UTG',tier:2,
+    src:'curated straddle ≈ 等效50bb深度近似(死钱修正),非独立求解',
+    raise:"22+, A2s+, K7s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, A7o+, A5o, KTo+, QTo+, JTo",mix:"65s, K6s, Q7s, J7s, A6o, K9o, Q9o"},
+   {mode:'open',name:'BTN · 按钮位',who:'UTG 抓头 2bb · 等效~50bb(近似) · 你先开局',heroPos:'BTN',straddle:'UTG',tier:1,
+    src:'curated straddle ≈ 等效50bb深度近似(死钱修正),非独立求解',
+    raise:"22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 96s+, 86s+, 75s+, 65s, 54s, A2o+, K7o+, Q8o+, J8o+, T8o+, 98o",mix:"Q3s, J5s, 64s, K6o, Q7o, J7o, T7o, 97o, 87o"},
+   {mode:'open',name:'SB · 小盲位',who:'UTG 抓头 2bb · 等效~50bb(近似) · 死钱多可稍宽',heroPos:'SB',straddle:'UTG',tier:3,
+    src:'curated straddle ≈ 等效50bb深度近似(死钱修正),非独立求解',
+    raise:"22+, A2s+, K4s+, Q6s+, J7s+, T7s+, 97s+, 86s+, 76s, 65s, A3o+, K9o+, Q9o+, JTo, T9o",mix:"K3s, Q5s, J6s, 54s, A2o, K8o, Q8o, J9o, 98o"},
+   {mode:'defense',name:'抓头位 vs BTN',who:'你 UTG 抓头 → 按钮位加注 · 你收关最后行动 · 平跟可宽',heroPos:'UTG',vilPos:'BTN',straddle:'UTG',tier:4,
+    src:'curated straddle ≈ 等效50bb深度近似(死钱修正),非独立求解',
+    raise:"99+, ATs+, A5s-A2s, KJs+, QJs, AJo+, KQo",
+    call:"22-88, A2s-A9s, K5s-KTs, Q7s-QJs, J8s+, T7s+, 97s+, 86s+, 75s+, 65s, 54s, A2o-ATo, K9o-KQo, QTo+, JTo, T9o"},
+  ],
   2:[
    {mode:'open',name:'SB/BTN 开局',who:'单挑 · 你在按钮先行动',heroPos:'SB',tier:1,
     raise:"22+, A2s+, K2s+, Q2s+, J3s+, T5s+, 95s+, 84s+, 74s+, 63s+, 53s+, 43s, A2o+, K2o+, Q5o+, J7o+, T7o+, 97o+, 86o+, 76o, 65o"},
@@ -219,6 +290,26 @@ const PACKS={
   oop:[
    {mode:'face4b',name:'你盲位 3bet 被 4bet',who:'你盲位 3-bet → 对手 4-bet · 100bb · 你无位置',heroPos:'SB',vilPos:'BTN',tier:1,
     raise:"KK+, AKs, AKo, A5s",call:"QQ"},
+  ],
+ },
+ /* 面对跛入(2026-07 场景扩充设计 §C)。跛入是非均衡动作,无 solver 精确解——
+    这里是「对弱范围的标准调整」参考:iso 用线性加强范围(≈该位 RFI 砍最弱 20%、顶端不变),
+    尺度口诀 3bb+每跛入者+1bb(OOP 再+1);跟跛域=小对/同花连子/中弱同花A(多人成牌型)。 */
+ limp:{
+  btn:[
+   {mode:'iso',name:'BTN vs HJ 跛入',who:'劫机位跛入(低注额常见) · 你在按钮 · 100bb · 应对参考',heroPos:'BTN',vilPos:'HJ',tier:1,
+    raise:"66+, A7s+, A5s-A4s, KTs+, QTs+, JTs, T9s, ATo+, KJo+, KQo",
+    call:"22-55, A6s, A2s-A3s, K8s-K9s, Q9s, J9s, T8s, 98s, 87s, 76s, 65s",mix:"54s, A9o, KTo, QJo"},
+  ],
+  co:[
+   {mode:'iso',name:'CO vs UTG 跛入',who:'枪口位跛入 · 你在 CO · 100bb · 身后还有人（挤压风险）',heroPos:'CO',vilPos:'UTG',tier:2,
+    raise:"77+, A9s+, A5s, KJs+, QJs, ATo+, KQo",
+    call:"22-66, A6s-A8s, KTs, QTs, JTs, T9s, 98s, 87s",mix:"A4s, 76s, KJo"},
+  ],
+  bb:[
+   {mode:'bbvslimp',name:'BB vs SB 跛入',who:'小盲跛入 · 你在大盲免费看牌或加注 · 100bb · 应对参考',heroPos:'BB',vilPos:'SB',tier:1,
+    raise:"66+, A8s+, A5s-A4s, KTs+, QTs+, JTs, T9s, ATo+, KJo+, KQo, 98s",
+    mix:"55, A6s-A7s, A2s-A3s, K9s, Q9s, J9s, 87s, 76s, A8o-A9o, KTo, QJo"},
   ],
  },
  squeeze:{

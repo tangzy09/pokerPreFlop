@@ -11,7 +11,8 @@ const ACT_LABEL={fold:['弃牌','FOLD','a-fold'],call:['跟注','CALL','a-call']
  raise:['加注开局','RAISE','a-raise'],raise3:['反加 3-bet','3-BET','a-3bet'],
  raise4:['再加 4-bet','4-BET','a-3bet'],squeeze:['挤压 3-bet','SQUEEZE','a-3bet'],
  shove5:['5-bet 全下','5-BET ALL-IN','a-raise'],
- shove:['全下','ALL-IN','a-raise'],callshove:['跟注全下','CALL ALL-IN','a-call']};
+ shove:['全下','ALL-IN','a-raise'],callshove:['跟注全下','CALL ALL-IN','a-call'],
+ overlimp:['跟跛入池','OVER-LIMP','a-call'],iso:['隔离加注','ISO-RAISE','a-raise'],check:['过牌','CHECK','a-call']};
 const CAT_NAME={raise:'加注',shove:'全下',threebet:'3-bet',call:'跟注',mix:'3-bet / 跟注（混合）',
  'edge-raise':'加注 / 弃牌（边缘混合）','edge-shove':'全下 / 弃牌（边缘混合）','edge-call':'跟注 / 弃牌（边缘混合）',fold:'弃牌'};
 /* 复用的判定 / 格子函数（按模式语义命名，供下方 MODES 引用） */
@@ -68,6 +69,18 @@ const MODES={
   names:{fold:'弃牌',call:'跟注',shove:'5-bet 全下'},correct:CORRECT.shoveCall,cell:CELL.shoveCall,freq:FREQ.shoveCall,
   catName:{shove:'5-bet 全下',mixjam:'5-bet全下 / 跟注（混合）'},
   legend:[['shove','5-bet 全下'],['call','跟注'],['fold','弃牌']]},
+ /* 面对跛入(2026-07 场景扩充设计 §C)。跛入是非均衡动作,无 solver 精确解——
+    范围是对弱范围的标准调整(iso 线性加强),spot 文案带「应对参考」。判定/格子全复用闭包。 */
+ iso:{reCol:'raise',actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.overlimp],['raise',ACT_LABEL.iso]],
+  names:{fold:'弃牌',call:'跟跛',raise:'隔离加注'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,freq:FREQ.raiseCall,
+  catName:{threebet:'隔离加注',mix:'隔离 / 跟跛（混合）',call:'跟跛','edge-call':'跟跛 / 弃牌（边缘混合）'},
+  legend:[['threebet','隔离'],['call','跟跛'],['mix','混合'],['edge-call','边缘'],['fold','弃牌']]},
+ /* BB vs SB 跛入:没有弃牌(免费看翻牌)。内部沿用 fold 动作键,显示层全改「过牌」——
+    引擎/评分/图表零改动;classifyMiss 会把「该加注却过牌」归 tight(漏价值),语义成立。 */
+ bbvslimp:{reCol:'raise',actions:[['fold',ACT_LABEL.check],['raise',ACT_LABEL.raise]],
+  names:{fold:'过牌',raise:'加注'},correct:CORRECT.raiseFold,cell:CELL.raiseFold,freq:FREQ.raiseFold,
+  catName:{fold:'过牌','edge-raise':'加注 / 过牌（边缘混合）'},
+  legend:[['raise','加注'],['edge-raise','边缘'],['fold','过牌']]},
 };
 
 /* 图表分类 / 名称 / 图例 全部读取顶部 MODES（CAT_NAME 为基础名，catName 处理模式覆盖） */
