@@ -9,7 +9,9 @@
      ENTITLEMENT        = 'pro'        ← RevenueCat 里建的 Entitlement 标识
    产品匹配 MATCH 已做鲁棒：优先按 RevenueCat 的 package 类型(MONTHLY/ANNUAL)，
    再按 product / package 标识兜底 —— 所以 Test Store 的 monthly/annual 与 Play 的自定义 id 都能命中。
-   两档都是订阅：sub=月 $4.99，year=年 $12.99（已去掉一次性买断 lifetime）。
+   两档都是订阅：sub=月 $4.99，year=年 $29.99（2026-07 提价,原 $12.99;已去掉一次性买断 lifetime）。
+   免费试用：在 Play Console 给 pro_yearly 配 7 天 free-trial offer 后,refresh() 会从 offerings
+   识别出来并置 Pay.yearTrialDays —— 付费墙据此把年订按钮换成「7 天免费试用」文案。
 */
 (function(){
  // RevenueCat 公开 key。USE_TEST_STORE=true 时用 Test Store（模拟器/沙盒跑通购买，不需真实商店）；
@@ -33,12 +35,13 @@
 
  const Pay = {
   get native(){ return native(); },
+  yearTrialDays: 0,                             // 年订的免费试用天数(0=无;由 _sniffTrial 从 offerings 识别)
 
   /* 启动时调一次：配置 SDK + 拉当前购买状态刷新解锁缓存 */
   async init(){
    if(!native()) return;                       // 浏览器：演示态，什么都不做
    const P=plugin(); if(!P) return;
-   try{ await P.configure({ apiKey: apiKey() }); await Pay.refresh(); }
+   try{ await P.configure({ apiKey: apiKey() }); await Pay.refresh(); await Pay._sniffTrial(); }
    catch(e){ console.warn('RC init', e); }
   },
 
@@ -47,6 +50,27 @@
    const P=plugin(); if(!P) return false;
    try{ const r=await P.getCustomerInfo(); return Pay._apply(r&&r.customerInfo); }
    catch(e){ console.warn('RC refresh', e); return false; }
+  },
+
+  /* 识别年订是否带免费试用(Play Console 配了 free-trial offer 时 RC 会在 product 上带出来)。
+     鲁棒读取:introPrice.price===0(RC 通用字段)或 defaultOption.freePhase(Google subscriptionOptions)。 */
+  async _sniffTrial(){
+   const P=plugin(); if(!P) return;
+   try{
+    const offs=await P.getOfferings();
+    const pkgs=(offs && offs.current && offs.current.availablePackages) || [];
+    const y=pkgs.find(p=>p.packageType==='ANNUAL' || /year|annual/i.test((p.product&&p.product.identifier)||p.identifier||''));
+    const prod=y&&y.product;
+    if(!prod) return;
+    let days=0;
+    const ip=prod.introPrice;
+    if(ip && ip.price===0){ const n=ip.periodNumberOfUnits||0, u=(''+(ip.periodUnit||'')).toUpperCase();
+     days = u==='DAY'?n : u==='WEEK'?n*7 : u==='MONTH'?n*30 : n; }
+    const fp=prod.defaultOption && prod.defaultOption.freePhase;
+    if(!days && fp){ const bp=fp.billingPeriod||{}; const n=bp.value||0, u=(''+(bp.unit||'')).toUpperCase();
+     days = u==='DAY'?n : u==='WEEK'?n*7 : u==='MONTH'?n*30 : n; }
+    Pay.yearTrialDays = days||0;
+   }catch(e){ console.warn('RC trial sniff', e); }
   },
   _apply(info){
    const on = !!(info && info.entitlements && info.entitlements.active && info.entitlements.active[ENTITLEMENT]);

@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > Product scope, feature roadmap, and the **honesty constraints** (no fabricated EV/frequencies, offline/zero-build, what's explicitly excluded) live in [PRODUCT.md](PRODUCT.md). Read it before adding features.
 
+## 品牌共享 token(与 poker-post-flop 对齐,勿单边改)
+
+两站(翻前/翻后训练营)共用同一套品牌视觉,以下 token 两边保持一致:
+`--felt #0c2a22` `--felt2 #0a201a` `--panel #161d18` `--line #28332a` `--ink #f1f5ee` `--muted #8fa79a` `--gold #e8c66a` `--gold2 #b8902f` `--call/--best #34b074` `--raise/--blunder #e0544f` `--fold #5b6f63` `--card-r 10px`;字体 = 内嵌 Space Grotesk(latin)+ 中文系统回退(本站另有 Space Mono 数字)。改任一 token 需两仓同步。内容宽度是**有意的差异**(本站 430px / 翻后 520px),不必对齐。姐妹站互链:主页 homeSister 卡 ↔ 翻后课程列表末尾互链卡。
+
 ## What this is
 
 A zero-build, dependency-free web app: a **pre-flop poker GTO decision trainer** (Chinese UI). [gto-trainer.html](gto-trainer.html) holds the markup + CSS and loads plain classic scripts (no ES modules, no bundler — still double-click-to-run from `file://`):
