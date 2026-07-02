@@ -19,6 +19,7 @@ const I18N_EN = {
  '退出训练':'Exit training','结束训练 · 查看战绩':'End training · view results','结束':'End',
  '复习模式':'Review mode','下一步 →':'Next →','查看结果 →':'See result →','查看报告 →':'See report →',
  // —— nav ——
+ '翻后教练':'Postflop Coach','30 课翻后训练 · 姐妹站':'30-lesson postflop trainer · sister app',
  '错题':'Mistakes','图表':'Charts','算胜率':'Equity','统计':'Stats',
  // —— start screen ——
  'GTO 翻前对战 · 训练营':'GTO Preflop · Trainer','GTO 翻前':'GTO Preflop ','训练':'Training',
@@ -161,7 +162,7 @@ _tpl('combo', '🔥 {n} 连击', '🔥 {n} combo');
 _tpl('reviewDone', '复习完成 🎉', 'Review complete 🎉');
 _tpl('reviewAll', '▶ 开始复习全部 ({n})', '▶ Review all ({n})');
 _tpl('drillGroup', '练这组 ({n}) ▶', 'Drill this group ({n}) ▶');
-_tpl('pileEmpty', '错题堆是空的——去训练答错的牌会自动收进来喵 🐿', 'Your pile is empty — hands you miss in training land here automatically, nya 🐿');
+_tpl('pileEmpty', '错题堆是空的——去训练答错的牌会自动收进来', 'Your pile is empty — hands you miss in training land here automatically');
 _tpl('pileEmptyToast', '错题堆是空的', 'Pile is empty');
 _tpl('chipMaster', '✓{s}/{m}', '✓{s}/{m}');
 // scene
@@ -170,7 +171,7 @@ _tpl('reviewTag', ' · 📕复习', ' · 📕 review');
 _tpl('mixTop', '主频线 {act} {pct}%', 'Top line: {act} {pct}%');
 _tpl('shouldBe', '应 <b>{ans}</b>', 'Should be <b>{ans}</b>');
 _tpl('answerLine', '正确打法：<b>{ans}</b> {freq} {chip}', 'Correct play: <b>{ans}</b> {freq} {chip}');
-_tpl('youTimeout', '<span class="you">超时未操作 —— 本手作废喵～</span>', '<span class="you">No action in time — this hand is void, nya~</span>');
+_tpl('youTimeout', '<span class="you">超时未操作 —— 本手作废</span>', '<span class="you">No action in time — this hand is void</span>');
 _tpl('youChose', '<span class="you">你选了「{c}」。</span>', '<span class="you">You chose “{c}”.</span>');
 _tpl('fbmxHead', '高亮：你这手 <b>{hand}</b> · 正确 <b>{correct}</b> · 你选 {you}', 'Highlight: your hand <b>{hand}</b> · correct <b>{correct}</b> · you chose {you}');
 // 动作对比条 + 你的毛病（学习闭环）
@@ -186,7 +187,7 @@ _tpl('nashLoadErr', 'Nash 数据加载失败——请检查网络后重试', 'Fa
 _tpl('fbEvLine', '求解器 EV：{act} <b style="color:{c}">{ev}bb</b> · 相对弃牌（简化模型 chip-EV）',
  'Solver EV: {act} <b style="color:{c}">{ev}bb</b> · vs folding (simplified-model chip-EV)');
 // 准确率趋势
-_tpl('trendEmpty', '还没有趋势数据——正常训练会按天记录准确率喵 🐿', 'No trend data yet — normal training records daily accuracy, nya 🐿');
+_tpl('trendEmpty', '还没有趋势数据——正常训练会按天记录准确率', 'No trend data yet — normal training records daily accuracy');
 _tpl('trendNote', '已记录 {n} 天 · 最近一天 {acc}%（{h} 手）', '{n} days recorded · latest day {acc}% ({h} hands)');
 // 学习路径
 _tpl('pathNew', '未开始', 'not started');
@@ -219,11 +220,11 @@ _tpl('achGet', '成就达成 · {n}', 'Achievement · {n}');
 _tpl('proUnlocked', '已解锁 Pro，尽情练', 'Pro unlocked — drill away');
 _tpl('saveCleared', '本地存档已清除', 'Local save cleared');
 // leak / profile / plan
-_tpl('leakEmpty', '还没有漏洞数据——训练里答错的牌会自动收进来分析喵 🐿', 'No leak data yet — misses in training are collected here automatically, nya 🐿');
+_tpl('leakEmpty', '还没有漏洞数据——训练里答错的牌会自动收进来分析', 'No leak data yet — misses in training are collected here automatically');
 _tpl('leakTop', '最大漏洞：<b style="color:{c}">{name}</b>（共 {n} 次失误 · vs 参考范围）', 'Biggest leak: <b style="color:{c}">{name}</b> ({n} misses · vs reference ranges)');
 _tpl('leakWorst', '最常踩的坑', 'Most-missed hands');
 _tpl('drill', '去练', 'Drill');
-_tpl('profEmpty', '练够 10 手后这里生成你的画像喵 🐿', 'Play 10+ hands and your profile shows up here, nya 🐿');
+_tpl('profEmpty', '练够 10 手后这里生成你的画像', 'Play 10+ hands and your profile shows up here');
 _tpl('profNeedMore', '松紧样本不足，多练些边界手', 'Not enough loose/tight data — drill more border hands');
 _tpl('profLoose', '失误 {p}% 是「该弃却入池」', '{p}% of misses are “play hands you should fold”');
 _tpl('profTight', '失误 {p}% 是「该入却弃·漏价值」', '{p}% of misses are “fold hands you should play”');
@@ -233,12 +234,12 @@ _tpl('profAggro', '常该跟注却加注/全下', 'often raise/jam when you shou
 _tpl('profAggBal', '被动/激进失误对半', 'passive/aggressive misses even');
 _tpl('profCum', '累计 {n} 手', '{n} hands total');
 _tpl('profNote', '基于你 vs 参考范围的练习记录，非真实牌局风格。', 'Based on your practice vs reference ranges, not real-table style.');
-_tpl('planEmpty', '暂无可练项——训练里答错的局面会自动进计划喵', 'Nothing to drill yet — spots you miss are added automatically, nya');
+_tpl('planEmpty', '暂无可练项——训练里答错的局面会自动进计划', 'Nothing to drill yet — spots you miss are added automatically');
 _tpl('planHead', '按「最该练」排序——错得多 + 准确率低优先：', 'Sorted by “most needed” — more misses + lower accuracy first:');
 _tpl('planAcc', '准确率 {p}% · ', '{p}% accuracy · ');
 _tpl('planErrs', '{n} 个错题', '{n} mistakes');
 // stats
-_tpl('statsNoData', '还没有数据——先去训练几手喵', 'No data yet — play a few hands first, nya');
+_tpl('statsNoData', '还没有数据——先去训练几手', 'No data yet — play a few hands first');
 _tpl('sbarPct', '{p}% · {h}手', '{p}% · {h} hands');
 // charts
 _tpl('cChartHint', '点格子查看每手牌的建议', 'Tap a cell to see the suggestion');
@@ -246,8 +247,8 @@ _tpl('cPotPct', '入池 <b>{p}%</b>', 'In range <b>{p}%</b>');
 _tpl('cCellInfo', '<b>{hand}</b> · {cat}{fq}', '<b>{hand}</b> · {cat}{fq}');
 // calc
 _tpl('calcComputing', '计算中…（{n} 万次模拟）', 'Computing… ({n}0k sims)');
-_tpl('calcEmptyRange', '范围为空或写法无法识别——试试 <code>22+, AJs+, KQo</code> 这类写法喵～', 'Range empty or unrecognized — try <code>22+, AJs+, KQo</code>, nya~');
-_tpl('calcConflict', '范围和牌面牌张冲突太多，无法对局喵～', 'Too many card conflicts between ranges and board, nya~');
+_tpl('calcEmptyRange', '范围为空或写法无法识别——试试 <code>22+, AJs+, KQo</code> 这类写法', 'Range empty or unrecognized — try <code>22+, AJs+, KQo</code>');
+_tpl('calcConflict', '范围和牌面牌张冲突太多，无法对局', 'Too many card conflicts between ranges and board');
 _tpl('calcLead', '{who}领先 <b>{p}%</b>', '{who} ahead by <b>{p}%</b>');
 _tpl('calcCountH', '· {n} 手 / {c} 组合', '· {n} hands / {c} combos');
 _tpl('calcCountNone', '· —', '· —');
@@ -260,7 +261,7 @@ _tpl('boardErrLen', '牌面字数不对——每张牌两个字符，如 Ah Kd 7
 _tpl('boardErrCard', '看不懂这张牌「{tok}」——点数用 23456789TJQKA，花色用 shdc', 'Can’t read card “{tok}” — ranks 23456789TJQKA, suits shdc');
 _tpl('boardErrDup', '牌面里有重复的牌「{tok}」', 'Duplicate card in board “{tok}”');
 _tpl('boardErrCount', '牌面要 3（翻牌）/4（转牌）/5（河牌）张，或留空=翻前全下', 'Board needs 3 (flop) / 4 (turn) / 5 (river) cards, or empty = preflop all-in');
-_tpl('calcErrSuffix', '{e}喵～', '{e}, nya~');
+_tpl('calcErrSuffix', '{e}', '{e}');
 // paywall
 _tpl('pwTitle', '解锁 Pro 🐿', 'Unlock Pro 🐿');
 _tpl('pwBuy', '解锁 Pro', 'Unlock Pro');
@@ -587,8 +588,16 @@ function _updateLangBtn(){
  });
 }
 function setLang(l){ if(l!=='en'&&l!=='zh') return; LANG=l; try{localStorage.setItem('gtoLang',l);}catch(e){} applyI18n(); }
-// 覆盖全部屏的列表（任意一个可见 = 处于菜单/覆盖屏；全 hide = 训练对局界面）
-const _LANG_SCREENS=['homeScreen','startScreen','overScreen','chartScreen','nashScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen','coachScreen','pushScreen'];
+/* ---- 全屏覆盖层的唯一注册表 ----
+   新增屏只加这一处:语言选择器定位(_langBtnVis)、showScreen 导航、coach 开屏、
+   ui-smoke 冒烟测试全部消费这一个列表。此前该列表在 4 个文件各存一份且已分叉,
+   是「某屏没被隐藏/没被恢复」型死屏 bug 的共同根源。放 i18n.js 因它最先加载。 */
+const SCREENS=['homeScreen','startScreen','overScreen','nashScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen','coachScreen','pushScreen'];
+/* 显示且只显示 id 这一个屏(id=null → 全部隐藏=训练对局界面)。
+   一次性替代散落各处的 classList add/remove('hide') 手写序列。 */
+function showScreen(id){
+ SCREENS.forEach(s=>{ const e=document.getElementById(s); if(e)e.classList.toggle('hide',s!==id); });
+}
 function _mountLangToggle(){
  if(!_hasDOM()) return;
  try{
@@ -605,13 +614,13 @@ function _mountLangToggle(){
   wrap.appendChild(mk('zh','中')); wrap.appendChild(mk('en','EN'));
   document.body.appendChild(wrap);
   const obs=new MutationObserver(_langBtnVis);
-  _LANG_SCREENS.forEach(id=>{const e=document.getElementById(id); if(e) obs.observe(e,{attributes:true,attributeFilter:['class']});});
+  SCREENS.forEach(id=>{const e=document.getElementById(id); if(e) obs.observe(e,{attributes:true,attributeFilter:['class']});});
   _langBtnVis(); _updateLangBtn();
  }catch(e){}
 }
 function _langBtnVis(){
  const b=document.getElementById('langToggle'); if(!b) return;
- const onMenu=_LANG_SCREENS.some(id=>{const e=document.getElementById(id); return e && !e.classList.contains('hide');});
+ const onMenu=SCREENS.some(id=>{const e=document.getElementById(id); return e && !e.classList.contains('hide');});
  b.style.display='flex';                          // 任何页面都能切换语言
  // 菜单/覆盖屏：右上角顶部（留白处）；训练对局中：下移到 HUD 第二行(End 行)右侧空区，避开右上角分数三行
  b.style.top = onMenu ? 'calc(7px + env(safe-area-inset-top))' : 'calc(74px + env(safe-area-inset-top))';
@@ -619,4 +628,4 @@ function _langBtnVis(){
 
 /* boot: scripts sit at end of <body>, so the DOM is ready here. app.js (loaded
    after) will define rerenderUI; we run a second applyI18n at the end of app.js. */
-try{ _mountLangToggle(); applyI18n(); }catch(e){}
+try{ _mountLangToggle(); }catch(e){} // applyI18n 只在 app.js 尾部跑一次:脚本同步执行到那之前不会绘制,双跑=浪费一次全文档遍历

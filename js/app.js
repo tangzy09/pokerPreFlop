@@ -4,7 +4,12 @@
 const STORE_KEY='gtoTrainer_v1';
 function loadStore(){try{const s=localStorage.getItem(STORE_KEY);return s?JSON.parse(s):{};}catch(e){return {};}}
 let STORE=loadStore();
-function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(STORE));}catch(e){}}
+let _persistQ=false;
+function persist(){                               // 同一 tick 多次调用合并为一次真实写(答错一手曾 stats+错题堆双写全量 STORE)
+ if(_persistQ)return;
+ const w=()=>{_persistQ=false;try{localStorage.setItem(STORE_KEY,JSON.stringify(STORE));}catch(e){}};
+ if(typeof queueMicrotask==='function'){_persistQ=true;queueMicrotask(w);} else w();
+}
 function persistPrefs(){STORE.prefs={format:selFormat,variant:selVariant,deal:selDeal};persist();}
 function clearStore(){STORE={};try{localStorage.removeItem(STORE_KEY);}catch(e){}}
 
@@ -238,9 +243,7 @@ function startReview(filter){
  G.hp=5;G.maxhp=5;
  G.reviewStart=pool.length;G.reviewCleared=0;
  G.reviewQueue=shuffle(pool.slice());
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('overScreen').classList.add('hide');
- document.getElementById('reviewScreen').classList.add('hide');
+ showScreen(null);                             // 进对局 = 全部覆盖屏隐藏(SCREENS 注册表)
  renderHUD();nextHand();
 }
 function reviewComplete(){
@@ -254,7 +257,7 @@ function reviewComplete(){
   <div class="stat"><div class="v">${acc}%</div><div class="k">${L('本轮准确率')}</div></div>`;
  document.getElementById('overAch').innerHTML='';
  updateReviewBtns();
- document.getElementById('overScreen').classList.remove('hide');
+ showScreen('overScreen');
 }
 
 function renderHUD(){
@@ -309,17 +312,9 @@ function freqNote(t,hand,isMix,isEdge){
 // 紧贴范围/边缘、同型差一档的「难弃牌」候选：union 各手的同型 ±1 邻居中、本身不在 union 的牌
 // （如 A5s 打 → A4s/K5s；KJo 边缘 → KTo/QJo；88+ → 77）。这些是"看着能玩、其实该弃"的临界牌。
 function adjacentFolds(t){
+ // 复用 neighborsOf 的 ±1 rank 同型邻牌几何(此前是逐字拷贝,改一处漏一处)
  const uni=new Set(t.union), out=new Set();
- const put=(i,j,suf)=>{
-  if(i<0||i>12||j<0||j>12)return; let lab;
-  if(suf==='p'){ lab=RANKS[i]+RANKS[i]; }
-  else { if(i===j)return; const hi=Math.min(i,j),lo=Math.max(i,j); lab=RANKS[hi]+RANKS[lo]+suf; }
-  if(!uni.has(lab)) out.add(lab);
- };
- uni.forEach(h=>{
-  if(h.length===2){ const r=RIDX[h[0]]; put(r-1,r-1,'p'); put(r+1,r+1,'p'); }
-  else { const a=RIDX[h[0]],b=RIDX[h[1]],suf=h[2]; put(a-1,b,suf); put(a+1,b,suf); put(a,b-1,suf); put(a,b+1,suf); }
- });
+ uni.forEach(h=>neighborsOf(h).forEach(lab=>{ if(!uni.has(lab)) out.add(lab); }));
  return [...out];
 }
 // 单手的 ±1 rank 同型邻牌（反馈矩阵里高亮，展示范围切在哪个边界）
@@ -519,8 +514,9 @@ function choose(choice,btn,e){
 // an action key → the matrix colour it maps to in this mode (raise is purple in 3bet-family modes)
 const ACT_COLORS={raise:'var(--raise)',shove:'var(--raise)',threebet:'var(--threebet)',call:'var(--call)',fold:'var(--fold)'};
 function actionColor(mode,a){
+ // raise 的渲染色由 MODES[mode].reCol 决定(3bet 家族=紫/开局=红)——模式知识只住 MODES(CLAUDE.md 契约)
  const cat = a==='fold'?'fold' : a==='call'?'call' : a==='shove'?'shove'
-  : (mode==='defense'||mode==='face3b'||mode==='squeeze')?'threebet' : 'raise';
+  : (MODES[mode]&&MODES[mode].reCol)||'raise';
  return ACT_COLORS[cat];
 }
 // 答错时把该局面的范围表弹进反馈面板：红框标出你这手牌，表头用色块标注「你选的动作」
@@ -854,7 +850,7 @@ function gameOver(win){
  const a=document.getElementById('overAch');a.innerHTML='';
  [...G.ach].forEach(n=>{const e=document.createElement('span');e.className='ach';e.textContent=(ACH_DEFS[n]||'⭐')+' '+tr('ach.'+n);a.appendChild(e);});
  updateReviewBtns();
- document.getElementById('overScreen').classList.remove('hide');
+ showScreen('overScreen');
 }
 
 /* ============ boot ============ */
@@ -990,36 +986,35 @@ updateReviewBtns();
 function launch(){
  aInit();SFX.click();
  if(spotLocked(selFormat,selVariant)){
-  // 锁定:入口方(pushScreen/guideScreen/homeScreen)可能已把自己隐藏——先落回主页,
-  // 否则关掉付费墙后所有屏全隐藏,只剩没发牌的裸牌桌(死屏)
-  document.getElementById('startScreen').classList.add('hide');
-  document.getElementById('homeScreen').classList.remove('hide');
+  // 锁定:入口方可能已把自己隐藏——先落回主页,否则关掉付费墙后没有任何屏可见(死屏)
+  showScreen('homeScreen');
   showPaywall(tr('pwWhyPush'));return;
  }
  G.format=selFormat;G.variant=selVariant;G.handFilter=selDeal;
  persistPrefs();
- // 开局 = 隐藏所有可能还开着的入口屏(startScreen 之外,homeScreen 在「新手引导→开始第一课」
- // 路径上仍然可见——不隐藏它对局就在不透明主页底下隐形运行)
- ['startScreen','overScreen','homeScreen','pushScreen','guideScreen'].forEach(id=>{
-  const e=document.getElementById(id); if(e)e.classList.add('hide');
- });
+ showScreen(null);   // 开局 = 全部覆盖屏隐藏(含主页:引导「开始第一课」路径上它仍可见)
  newGame();
 }
 document.getElementById('startBtn').onclick=launch;
-document.getElementById('againBtn').onclick=()=>{document.getElementById('startScreen').classList.remove('hide');document.getElementById('overScreen').classList.add('hide');updateReviewBtns();SFX.click();};
+document.getElementById('againBtn').onclick=()=>{showScreen('startScreen');updateReviewBtns();SFX.click();};
 
 // exit mid-game back to the start menu — no resume, so confirm only when a live
 // run would be abandoned (matches game-over → 再来一局 behaviour).
+// 从牌桌反馈态复位 UI(反馈面板/牌桌/评判闪烁/动作行)——exitToMenu/endTraining/coach 共用一份
+function exitTableUI(){
+ try{ document.getElementById('feedback').classList.add('hide'); }catch(e){}
+ try{ document.querySelector('.table').classList.remove('fb-hide'); }catch(e){}
+ try{ document.getElementById('verdict').className='verdict'; }catch(e){}
+ try{ document.getElementById('actions').style.display=''; }catch(e){}
+}
 function exitToMenu(){
  if(G.diagMode){ SFX.click(); if(typeof coachAbortDiagnosis==='function')coachAbortDiagnosis(); return; }  // 诊断中途退出 → 放弃本次诊断,回 coach
  SFX.click();stopTimer();G.busy=true;G.over=true;
  G.reviewMode=false;                              // 中途退出必须清复习态:否则残留的 G.reviewRec 会被
                                                   // 之后的诊断答题误改/误删错题堆记录(resolve 只看 reviewMode)
  clearTimeout(G._advT);                           // 掐掉快进/升级定时器,防其在下一局里补一发 advance()
- document.getElementById('feedback').classList.add('hide');
- document.querySelector('.table').classList.remove('fb-hide');
- document.getElementById('verdict').className='verdict';
- document.getElementById('startScreen').classList.remove('hide');
+ exitTableUI();
+ showScreen('startScreen');
  updateReviewBtns();
 }
 document.getElementById('exitBtn').onclick=exitToMenu;
@@ -1028,9 +1023,8 @@ document.getElementById('exitBtn').onclick=exitToMenu;
 function endTraining(){
  if(G.over)return;
  if(G.diagMode){ if(typeof coachAbortDiagnosis==='function')coachAbortDiagnosis(); return; }  // 诊断中途结束 → 放弃本次诊断,回 coach
- document.getElementById('feedback').classList.add('hide');
- document.querySelector('.table').classList.remove('fb-hide');
- document.getElementById('verdict').className='verdict';
+ clearTimeout(G._advT);
+ exitTableUI();
  G.busy=true;
  if(G.reviewMode) reviewComplete(); else gameOver('end');
 }
@@ -1042,9 +1036,7 @@ function openReviewDetail(){aInit();SFX.click();
  // 记住来源(在 hide overScreen 之前):结算页可见说明是从「📕 错题复习堆」进的
  _reviewFrom = document.getElementById('overScreen').classList.contains('hide') ? 'homeScreen' : 'overScreen';
  renderReviewDetail();
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('overScreen').classList.add('hide');
- document.getElementById('reviewScreen').classList.remove('hide');
+ showScreen('reviewScreen');
 }
 function renderReviewDetail(){
  const allBtn=document.getElementById('reviewAllBtn');
@@ -1076,10 +1068,7 @@ function renderReviewDetail(){
 document.getElementById('reviewBtn').onclick=openReviewDetail;
 document.getElementById('overReviewBtn').onclick=openReviewDetail;
 document.getElementById('reviewAllBtn').onclick=()=>{ if(!reviewPile.length){toast(tr('pileEmptyToast'),'📕',true);return;} startReview(); };
-document.getElementById('reviewBack').onclick=()=>{SFX.click();
- document.getElementById('reviewScreen').classList.add('hide');
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById(_reviewFrom).classList.remove('hide');}; // 回来源屏(结算页/主页)
+document.getElementById('reviewBack').onclick=()=>{SFX.click();showScreen(_reviewFrom);}; // 回来源屏(结算页/主页)
 
 /* ---- career stats page ---- */
 /* ---- Phase 5: Leak Analyzer — classify the review-pile misses (all vs 参考范围) ---- */
@@ -1106,7 +1095,7 @@ function classifyMiss(rec){
  const A={fold:0,call:1,raise:2,shove:3};                    // 同为入池、线路不同
  return (A[choice]||0)<(A[right]||0)?'passive':'aggro';
 }
-function leakDrill(label){SFX.click();document.getElementById('statsScreen').classList.add('hide');startReview(label);}
+function leakDrill(label){SFX.click();startReview(label);} // startReview 内 showScreen(null) 统一收屏
 // Pro 尝鲜：把锁住的内容模糊 + 浮一个解锁按钮（点了进付费墙）；免费露出的首行在 gate 之外
 function _proGate(lockedHtml,featKey,labelKey){
  return `<div class="pro-prev"><div class="pro-locked">${lockedHtml}</div>`
@@ -1186,8 +1175,7 @@ function openStats(){aInit();SFX.click();
  renderStats();renderTrend();
  const pv=!isPro();
  renderProfile(pv);renderLeak(pv);renderPlan(pv);
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('statsScreen').classList.remove('hide');
+ showScreen('statsScreen');
 }
 /* ---- 准确率趋势（按天,采集自 resolve;免费=留存钩子）---- */
 function renderTrend(){
@@ -1231,91 +1219,18 @@ function renderStats(){
   row.innerHTML=`<span class="nm" title="${Lparts(k)}">${Lparts(k)}</span><span class="trk"><span class="fil" style="width:${p}%"></span></span><span class="pct">${tr('sbarPct',{p:p,h:e.h})}</span>`;
   bars.appendChild(row);});
 }
-document.getElementById('statsBack').onclick=()=>{SFX.click();
- document.getElementById('statsScreen').classList.add('hide');
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('homeScreen').classList.remove('hide');};
+document.getElementById('statsBack').onclick=()=>{SFX.click();showScreen('homeScreen');};
 document.getElementById('statsBtn').onclick=openStats;
 updateReviewBtns();
 
-/* ============ charts page ============ */
-let cFormat='cash', cVariant='6', cIdx=0, cSel=null, cGame='cash';
-function renderCChips(){
- const box=document.getElementById('cChips');box.innerHTML='';
- const pack=PACKS[cFormat][cVariant];
- if(cIdx>=pack.length)cIdx=0;
- pack.forEach((t,i)=>{
-  const b=document.createElement('button');b.className='cchip';
-  b.textContent=L(t.name);b.setAttribute('aria-selected',i===cIdx);
-  b.onclick=()=>{cIdx=i;cSel=null;SFX.click();renderCChips();renderMatrix();};
-  box.appendChild(b);
- });
-}
-function renderMatrix(){
- const t=PACKS[cFormat][cVariant][cIdx];
- document.getElementById('cName').textContent=L(t.name);
- document.getElementById('cWho').innerHTML=Lwho(t.who||'')+' '+confChip(t);
- const m=document.getElementById('cMatrix');m.innerHTML='';
- let inC=0;
- for(let r=0;r<13;r++)for(let c=0;c<13;c++){
-  const hand=handLabel(r,c),cat=cellCat(t,hand);
-  const cell=document.createElement('div');cell.className='ccell '+cat+(r===c?' pair':'');
-  cell.innerHTML=`<span>${hand}</span>`;
-  if(cat!=='fold')inC+= cat.startsWith('edge') ? combosOf(hand)/2 : combosOf(hand);
-  cell.onclick=()=>{cSel=hand;
-    document.querySelectorAll('.ccell.sel').forEach(x=>x.classList.remove('sel'));cell.classList.add('sel');
-    // precise spots carry real solved frequencies → show them; others stay qualitative (§6 honesty)
-    const fq = (t.confidence==='precise' && cat!=='fold') ? ` · <span class="cfreq">${freqText(t,hand)}</span>` : '';
-    document.getElementById('cInfo').innerHTML=tr('cCellInfo',{hand,cat:L(catName(cat,t.mode)),fq});};
-  m.appendChild(cell);
- }
- document.getElementById('cStat').innerHTML=tr('cPotPct',{p:(inC/1326*100).toFixed(0)});
- // legend
- const leg=document.getElementById('cLegend');leg.innerHTML='';
- const solid={raise:'var(--raise)',shove:'var(--raise)',threebet:'var(--threebet)',call:'var(--call)',fold:'var(--fold)'};
- const edgeBg={'edge-raise':'var(--raise)','edge-shove':'var(--raise)','edge-call':'var(--call)'};
- MODES[t.mode].legend.forEach(([cls,lab])=>{
-  const it=document.createElement('div');it.className='it';
-  let bg;
-  if(cls==='mix') bg='linear-gradient(118deg,var(--threebet) 0 50%,var(--call) 50% 100%)';
-  else if(cls.startsWith('edge')) bg=`linear-gradient(118deg,${edgeBg[cls]} 0 50%,var(--fold) 50% 100%)`;
-  else bg=solid[cls];
-  it.innerHTML=`<span class="sw" style="background:${bg};${cls==='fold'?'box-shadow:inset 0 0 0 1px var(--line)':''}"></span>${L(lab)}`;
-  leg.appendChild(it);
- });
- document.getElementById('cInfo').innerHTML=cSel?document.getElementById('cInfo').innerHTML:tr('cChartHint');
-}
-function chartFmtPick(f){
- cFormat=f; cVariant=defVariant(f); cIdx=0; cSel=null;
- [...document.getElementById('cSelFormat').children].forEach(x=>x.setAttribute('aria-selected',x.dataset.v===f));
- buildVariants('cSelVariant','cSelVarLabel',f,cVariant,k=>{cVariant=k;cIdx=0;cSel=null;renderCChips();renderMatrix();});
- renderCChips();renderMatrix();
-}
-function applyCGame(g){
- cGame=g;
- [...document.getElementById('cSelGame').children].forEach(x=>x.setAttribute('aria-selected',x.dataset.g===g));
- const fmts=GAMETYPES[g].formats;
- [...document.getElementById('cSelFormat').children].forEach(b=>{b.style.display=fmts.includes(b.dataset.v)?'':'none';});
- document.getElementById('cFmtGroup').style.display=fmts.length>1?'':'none'; // 单场景（MTT）时隐藏场景栏，与首页一致
- if(!fmts.includes(cFormat))cFormat=fmts[0];
- chartFmtPick(cFormat);
-}
-[...document.getElementById('cSelFormat').children].forEach(b=>b.onclick=()=>{aInit();SFX.click();chartFmtPick(b.dataset.v);});
-[...document.getElementById('cSelGame').children].forEach(b=>b.onclick=()=>{aInit();SFX.click();applyCGame(b.dataset.g);});
+/* charts page 已整体移除:无入口的死代码(开始页顶部已有实时图表预览 renderStartChart,
+   Nash 图表页是独立的 nashScreen)。历史见 git。 */
 
-// 「图表」导航入口已移除（开始页顶部已有实时图表预览，不再需要单独的图表页）
-document.getElementById('chartBack').onclick=()=>{SFX.click();
- document.getElementById('chartScreen').classList.add('hide');
- document.getElementById('startScreen').classList.remove('hide');};
+
 // 导览 / 关于 入口已从首页移除（用户要求精简）。屏幕标记仍保留在 HTML 中（含数据假设说明），
 // 只是暂无入口；下面只保留各自的「返回」按钮接线，避免引用已删除的入口按钮导致 null.onclick 崩溃。
-document.getElementById('aboutBack').onclick=()=>{SFX.click();
- document.getElementById('aboutScreen').classList.add('hide');
- document.getElementById('startScreen').classList.remove('hide');};
-document.getElementById('guideBack').onclick=()=>{SFX.click();
- document.getElementById('guideScreen').classList.add('hide');
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('homeScreen').classList.remove('hide');};
+document.getElementById('aboutBack').onclick=()=>{SFX.click();showScreen('startScreen');};
+document.getElementById('guideBack').onclick=()=>{SFX.click();showScreen('homeScreen');};
 
 /* ---- Range vs Range 胜率计算器 (Phase 4) — real Monte-Carlo equity, zero data risk ---- */
 const CALC_SAMPLES=60000;
@@ -1375,8 +1290,7 @@ function runCalc(){
  },20);
 }
 function openCalc(){aInit();SFX.click();
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('calcScreen').classList.remove('hide');
+ showScreen('calcScreen');
  updateCalcCounts();
  document.getElementById('calcOut').innerHTML='';
 }
@@ -1455,16 +1369,13 @@ function _loadNashData(cb){
  document.body.appendChild(s);
 }
 function openNash(){ try{aInit();SFX.click();}catch(e){}
- document.getElementById('nashScreen').classList.remove('hide'); renderNash();
+ showScreen('nashScreen'); renderNash();
  _loadNashData(()=>{ const ns=document.getElementById('nashScreen'); if(ns && !ns.classList.contains('hide')) renderNash(); });
 }
 try{ document.getElementById('nashBtnLbl').textContent=tr('nashBtn'); }catch(e){}
 document.getElementById('nashBtn').onclick=()=>{ if(!isPro()){showPaywall(tr('pwWhyNash'));return;} openNash(); };
-document.getElementById('nashBack').onclick=()=>{ try{SFX.click();}catch(e){} document.getElementById('nashScreen').classList.add('hide'); document.getElementById('startScreen').classList.add('hide'); document.getElementById('homeScreen').classList.remove('hide'); };
-document.getElementById('calcBack').onclick=()=>{SFX.click();
- document.getElementById('calcScreen').classList.add('hide');
- document.getElementById('startScreen').classList.add('hide');
- document.getElementById('homeScreen').classList.remove('hide');};
+document.getElementById('nashBack').onclick=()=>{ try{SFX.click();}catch(e){} showScreen('homeScreen'); };
+document.getElementById('calcBack').onclick=()=>{SFX.click();showScreen('homeScreen');};
 document.getElementById('calcRun').onclick=runCalc;
 document.getElementById('calcBoard').addEventListener('input',updateCalcCounts);
 document.getElementById('calcHero').addEventListener('input',updateCalcCounts);
@@ -1472,8 +1383,7 @@ document.getElementById('calcVill').addEventListener('input',updateCalcCounts);
 function guideLaunch(fmt,variant){
  selFormat=fmt;
  applyGame(gameOf(fmt),true,variant);
- document.getElementById('guideScreen').classList.add('hide');
- launch();
+ launch();                                        // launch 内 showScreen(null) 统一收屏
 }
 document.querySelectorAll('#guideScreen .gd-node').forEach(node=>{
  node.querySelector('.gd-go').onclick=()=>guideLaunch(node.dataset.fmt,node.dataset.var);
@@ -1497,11 +1407,6 @@ function rerenderUI(){
   updateReviewBtns();
   try{ if(typeof wireNotify==='function') wireNotify(); }catch(e){}
   try{ document.getElementById('nashBtnLbl').textContent=tr('nashBtn'); const ns=document.getElementById('nashScreen'); if(ns && !ns.classList.contains('hide') && typeof renderNash==='function') renderNash(); }catch(e){}
-  const cs=document.getElementById('chartScreen');
-  if(cs && !cs.classList.contains('hide')){
-   buildVariants('cSelVariant','cSelVarLabel',cFormat,cVariant,k=>{cVariant=k;cIdx=0;cSel=null;renderCChips();renderMatrix();});
-   renderCChips(); renderMatrix();
-  }
   if(G && G.table && !G.over){
    renderHUD();
    document.getElementById('sceneName').textContent=L(G.table.name);
@@ -1539,13 +1444,10 @@ try{ wireNotify(); }catch(e){}
 try{ if(typeof Notify!=='undefined') Notify.reschedule(); }catch(e){}
 
 /* ======== 推弃特训:快速选档直达(全 precise 档,反馈带求解器真 EV) ======== */
-document.getElementById('pushBack').onclick=()=>{SFX.click();
- document.getElementById('pushScreen').classList.add('hide');
- document.getElementById('homeScreen').classList.remove('hide');};
+document.getElementById('pushBack').onclick=()=>{SFX.click();showScreen('homeScreen');};
 document.querySelectorAll('#pushScreen .opt[data-pv]').forEach(b=>{
  b.onclick=()=>{ SFX.click();
-  document.getElementById('pushScreen').classList.add('hide');
-  guideLaunch('mtt', b.dataset.pv);                          // 复用导览的直达逻辑
+  guideLaunch('mtt', b.dataset.pv);           // launch 内统一收屏                          // 复用导览的直达逻辑
  };
 });
 
@@ -1598,7 +1500,7 @@ function maybeIntro(){
 (function(){
  const home=document.getElementById('homeScreen'), start=document.getElementById('startScreen');
  if(!home||!start) return;
- const goStart=()=>{ home.classList.add('hide'); start.classList.remove('hide'); };
+ const goStart=()=>{ showScreen('startScreen'); };
  const click=id=>{ const el=document.getElementById(id); if(el) el.click(); };
  const chip=g=>{ const el=document.querySelector('#selGame [data-g="'+g+'"]'); if(el) el.click(); };
  const bind=(id,fn)=>{ const el=document.getElementById(id); if(el) el.onclick=()=>{ try{SFX.click();}catch(e){} fn(); }; };
@@ -1609,12 +1511,12 @@ function maybeIntro(){
  bind('homeEquity',()=>{ goStart(); click('calcBtn'); });
  bind('homeStats', ()=>{ goStart(); click('statsBtn'); });
  bind('homePlan',  ()=>{ if(typeof coachOpen==='function') coachOpen(); });
- bind('homePush',  ()=>{ home.classList.add('hide'); document.getElementById('pushScreen').classList.remove('hide'); });
- bind('homePath',  ()=>{ renderGuideAcc(); home.classList.add('hide'); document.getElementById('guideScreen').classList.remove('hide'); });
- bind('homeBack',  ()=>{ start.classList.add('hide'); home.classList.remove('hide'); });
+ bind('homePush',  ()=>{ showScreen('pushScreen'); });
+ bind('homePath',  ()=>{ renderGuideAcc(); showScreen('guideScreen'); });
+ bind('homeBack',  ()=>{ showScreen('homeScreen'); });
  // 已解锁（网页恒解锁 / 已购 Pro）就去掉主页的 PRO 徽章——只在真正锁定时才显示
  try{ if(typeof isPro==='function' && isPro()) home.querySelectorAll('.hc-pro').forEach(b=>b.remove()); }catch(e){}
  // 启动时显示主页（startScreen 退居训练设置页）
- home.classList.remove('hide'); start.classList.add('hide');
+ showScreen('homeScreen');
  maybeIntro();                                                // 新手引导(首启一次)
 })();

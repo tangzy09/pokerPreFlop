@@ -169,7 +169,7 @@
   .ncell .e{color:inherit;opacity:.88;font-size:clamp(4.5px,1.2vw,9px);font-family:'Space Mono'}
   /* 主页：训练计划顶部横幅 + 6 个功能卡网格 */
   .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:440px;margin:6px auto 0}
-  .home-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:9px;background:linear-gradient(165deg,#1b2a20,#131c16);border:1px solid var(--line);border-radius:20px;padding:26px 12px 22px;cursor:pointer;color:var(--ink);overflow:hidden;transition:transform .14s ease,border-color .18s,box-shadow .18s}
+  .home-card{text-decoration:none;position:relative;display:flex;flex-direction:column;align-items:center;gap:9px;background:linear-gradient(165deg,#1b2a20,#131c16);border:1px solid var(--line);border-radius:20px;padding:26px 12px 22px;cursor:pointer;color:var(--ink);overflow:hidden;transition:transform .14s ease,border-color .18s,box-shadow .18s}
   .home-card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.45;transition:opacity .18s}
   .home-card:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 14px 28px -12px rgba(0,0,0,.65),0 0 0 1px rgba(232,198,106,.16)}
   .home-card:hover::before{opacity:1}
@@ -362,9 +362,8 @@
   .opts{display:flex;gap:8px;margin-bottom:14px}
   .opts-wrap{flex-wrap:wrap}
   /* 场景选择：固定 3 列网格，各按钮等宽等高（避免最后一行被 flex 拉宽，更整齐） */
-  /* 图表页(cSelFormat)与首页(selFormat)共用同一布局，保持一致 */
-  #selFormat,#cSelFormat{display:grid;grid-template-columns:repeat(3,1fr);align-items:stretch}
-  #selFormat .opt,#cSelFormat .opt{min-width:0}
+  #selFormat{display:grid;grid-template-columns:repeat(3,1fr);align-items:stretch}
+  #selFormat .opt{min-width:0}
   .opt-group{flex-basis:100%;width:100%;text-align:left;font-family:"Space Mono";font-size:10.5px;letter-spacing:.12em;
     text-transform:uppercase;color:var(--gold);margin:11px 0 2px;border-top:1px solid var(--line);padding-top:9px}
   .opts-wrap .opt-group:first-child{border-top:0;margin-top:2px;padding-top:0}
@@ -551,6 +550,7 @@
       <button class="home-card" id="homeEquity"><span class="hc-pro">PRO</span><span class="hc-ic">🧮</span><span class="hc-t">算胜率</span><span class="hc-s">实时算牌</span></button>
       <button class="home-card" id="homePath"><span class="hc-ic">🧭</span><span class="hc-t">学习路径</span><span class="hc-s">从开局到 MTT · 看进度</span></button>
       <button class="home-card" id="homeStats"><span class="hc-ic">📈</span><span class="hc-t">统计</span><span class="hc-s">画像 + 漏洞</span></button>
+      <a class="home-card" id="homeSister" href="https://post-flop-coach.ai-speeds.com/" target="_blank" rel="noopener"><span class="hc-ic">♦</span><span class="hc-t">翻后教练</span><span class="hc-s">30 课翻后训练 · 姐妹站</span></a>
     </div>
   </div>
 
@@ -667,52 +667,6 @@
     <div class="ach-list" id="overAch"></div>
     <button class="big-btn" id="againBtn">再来一局</button>
     <button class="ghost-btn" id="overReviewBtn">📕 错题复习堆 (0)</button>
-  </div>
-
-  <!-- CHARTS screen -->
-  <div class="chart-screen hide" id="chartScreen">
-    <div class="chart-bar">
-      <button class="back-btn" id="chartBack">← 返回</button>
-      <div class="chart-title">范围图表</div>
-      <div class="back-btn" style="visibility:hidden">← 返回</div>
-    </div>
-    <div class="chart-body">
-      <div class="sel-group">
-        <div class="sel-label">游戏类型</div>
-        <div class="opts" id="cSelGame">
-          <button class="opt" data-g="cash">现金局<small>100bb 深码</small></button>
-          <button class="opt" data-g="mtt">锦标赛 MTT<small>浅码 + ICM</small></button>
-        </div>
-      </div>
-      <div class="sel-group" id="cFmtGroup">
-        <div class="sel-label">场景</div>
-        <div class="opts opts-wrap" id="cSelFormat">
-          <button class="opt" data-v="cash">开局 + 防守</button>
-          <button class="opt" data-v="mtt">开局范围</button>
-          <button class="opt" data-v="face3b">面对 3-bet<small>你开局被反加</small></button>
-          <button class="opt" data-v="face4b">面对 4-bet<small>你 3bet 被 4bet</small></button>
-          <button class="opt" data-v="squeeze">挤压<small>有人开+跟 · 你反加</small></button>
-          <button class="opt" data-v="coldcall">冷跟<small>非盲位平跟入池</small></button>
-        </div>
-      </div>
-      <div class="sel-group">
-        <div class="sel-label" id="cSelVarLabel">牌桌人数</div>
-        <div class="opts opts-wrap" id="cSelVariant"></div>
-      </div>
-      <div class="sel-label" style="text-align:center">场景 / 位置</div>
-      <div class="cchips" id="cChips"></div>
-
-      <div class="cmatrix-wrap">
-        <div class="cmatrix-head">
-          <span id="cName">—</span>
-          <span class="cmatrix-stat" id="cStat"></span>
-        </div>
-        <div class="cmatrix-who" id="cWho"></div>
-        <div class="cmatrix" id="cMatrix"></div>
-        <div class="clegend" id="cLegend"></div>
-        <div class="cinfo" id="cInfo">点格子查看每手牌的建议</div>
-      </div>
-    </div>
   </div>
 
   <!-- NASH CHARTS screen (自算 Nash 推弃图查询器，每手 chip-EV) -->

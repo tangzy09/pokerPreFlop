@@ -51,9 +51,15 @@ js/app.js                persistence, audio (synth SFX w/ master lowpass+compres
                          entitlements.active['pro']) + spotLocked(场景前半免费/后半锁) + wireNotify, boot.
                          All user-facing strings go through L()/tr(); the in-app 翻后GTO screen + the
                          bottom 图表 nav entry are removed (postflop-spots.js no longer <script>-loaded).
-                         Nav: homeScreen (主页卡片) is the single entry — cards goStart() then proxy the
-                         startScreen buttons; mistakes/nash/stats/equity/guide/push back-buttons return to
-                         homeScreen. Newer: renderTrend (per-day accuracy SVG, data = STORE.trend collected
+                         Nav: ALL screen transitions go through showScreen(id) over the single SCREENS
+                         registry (defined in i18n.js — it loads first; id=null hides every overlay =
+                         in-hand view). NEVER hand-write classList hide/show sequences for screens or
+                         keep a private screen list — 4 diverged copies of that list caused the dead-
+                         screen bug family. homeScreen (主页卡片) is the single entry — cards goStart()
+                         then proxy the startScreen buttons; mistakes/nash/stats/equity/guide/push
+                         back-buttons showScreen('homeScreen'). The old standalone charts page
+                         (chartScreen/renderMatrix/renderCChips) was DELETED as unreachable dead code.
+                         Newer: renderTrend (per-day accuracy SVG, data = STORE.trend collected
                          in resolve), pushScreen (推弃特训 quick picker → guideLaunch('mtt',variant)),
                          renderGuideAcc (学习路径 real per-format accuracy chips on guideScreen),
                          maybeIntro (first-launch 3-step onboarding, STORE.seenIntro), and the solver-EV
@@ -120,7 +126,7 @@ Read these relationships before editing:
 - `legend`, optional `catName` overrides
 - Reusable closures `CORRECT.*` / `CELL.*` back these so several modes share identical logic.
 
-**This is deliberate: to add or change a mode, edit `MODES` only.** All consumers read from it — `nextHand()` (`MODES[mode].correct`), `buildActions()` (`.actions`), `resolve()` (`.names`), and the charts page `cellCat`/`catName`/`renderMatrix` (`.cell`/`.catName`/`.legend`). The edge/mix "which action to play" is baked into `correct`/`cell` (there is no separate `EDGE_PLAY` table). The one exception that is intentionally NOT in `MODES`: `reasonFor()` (prose feedback) keeps its own per-mode branches because it's content, not config.
+**This is deliberate: to add or change a mode, edit `MODES` only.** All consumers read from it — `nextHand()` (`MODES[mode].correct`), `buildActions()` (`.actions`), `resolve()` (`.names`), the chart matrices `cellCat`/`catName` (`.cell`/`.catName`/`.legend` — start-screen preview `renderStartChart` + feedback `renderFbMatrix` + Nash screen; the old standalone charts page was deleted as dead code), and `actionColor()` (`.reCol` — the raise-action render color, `threebet` purple for defense/face3b/squeeze vs `raise` red). The edge/mix "which action to play" is baked into `correct`/`cell` (there is no separate `EDGE_PLAY` table). The one exception that is intentionally NOT in `MODES`: `reasonFor()` (prose feedback) keeps its own per-mode branches because it's content, not config.
 
 ### Selection taxonomy
 `GAMETYPES` (cash vs mtt) → `FORMATS` → `VARIANTS`. `gameOf(fmt)` maps a format back to its game. The start screen, charts screen, and guide all build option chips from these.

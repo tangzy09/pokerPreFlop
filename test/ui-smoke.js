@@ -78,8 +78,10 @@ const INJECT = `
     document.getElementById('homeStats').click();
     add('统计页有趋势卡', vis('statsScreen') && !!document.getElementById('trendBody'));
     document.getElementById('statsBack').click();
-    // 训练对局界面(所有覆盖屏隐藏)语言选择器仍在
-    ['homeScreen','startScreen','overScreen','chartScreen','nashScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen','coachScreen'].forEach(function(id){var e=document.getElementById(id);if(e)e.classList.add('hide');});
+    // 训练对局界面(所有覆盖屏隐藏)语言选择器仍在 —— 用页面自己的 SCREENS 注册表,不再各存一份列表
+    add('SCREENS 注册表存在', typeof SCREENS!=='undefined' && Array.isArray(SCREENS) && SCREENS.length>=10);
+    if(typeof showScreen==='function') showScreen(null);
+    else SCREENS.forEach(function(id){var e=document.getElementById(id);if(e)e.classList.add('hide');});
     if(typeof _langBtnVis==='function')_langBtnVis();
     add('训练对局界面语言选择器仍显示', lt && lt.style.display!=='none');
     // 语言切换真的生效

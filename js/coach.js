@@ -170,11 +170,9 @@ function coachOpen(){
   if(typeof G!=='undefined'){ G.diagMode=false; }
   const scr=document.getElementById('coachScreen');
   if(!scr) return;
-  // 隐藏其他覆盖层，显示 coach 屏
-  ['chartScreen','nashScreen','aboutScreen','calcScreen','guideScreen','reviewScreen','statsScreen'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.classList.add('hide');
-  });
-  scr.classList.remove('hide');
+  // 隐藏其他覆盖层，显示 coach 屏(SCREENS 注册表统一收屏,不再手工维护子集列表)
+  if(typeof showScreen==='function') showScreen('coachScreen');
+  else scr.classList.remove('hide');
 
   const plan=coachLoadPlan();
   const onboard=coachLoadOnboard();
@@ -511,11 +509,7 @@ function coachStartDayTraining(day){
     if(typeof showPaywall==='function') showPaywall(tr('coachStartDay1Sub'));
     return;                                        // 留在 coachScreen,不动任何屏
   }
-  const scr=document.getElementById('coachScreen');
-  if(scr) scr.classList.add('hide');
-  // 进真实牌桌:同时收起主页/训练设置两个覆盖层,否则它们会盖在牌桌上
-  const home=document.getElementById('homeScreen'); if(home) home.classList.add('hide');
-  const start=document.getElementById('startScreen'); if(start) start.classList.add('hide');
+  if(typeof showScreen==='function') showScreen(null); // 进真实牌桌 = 全部覆盖屏隐藏
 
   // G.format/G.variant 兜底:重启 app 后 G 是全新对象(format 只由 launch/复习/诊断赋值),
   // mixed 天直接 newGame() 会在 PACKS[undefined] 上抛 TypeError → 全屏隐藏后的空白死屏
@@ -547,7 +541,7 @@ function coachStartDayTraining(day){
   } catch(e){
     // 兜底:回主页——绝不盲目重试 newGame()(同样的坐标会同样抛错,留下空白死屏)
     try{
-      if(scr) scr.classList.remove('hide');
+      if(typeof showScreen==='function') showScreen('coachScreen');
       if(typeof toast==='function') toast(tr('coachDayErr'),'⚠',true);
     }catch(_){}
   }
@@ -582,11 +576,8 @@ try{
     if(typeof G!=='undefined') G.diagMode=false;
     const scr=document.getElementById('coachScreen');
     if(scr) scr.classList.add('hide');
-    // 必须显式回主页:诊断流程(coachStartDiagnosis)隐藏过 homeScreen,只 hide coachScreen
-    // 会把用户扔在最后一手诊断牌的死牌桌上(G.over=true,按钮全禁用)
-    const start=document.getElementById('startScreen'); if(start) start.classList.add('hide');
-    const over=document.getElementById('overScreen'); if(over) over.classList.add('hide');
-    const home=document.getElementById('homeScreen'); if(home) home.classList.remove('hide');
+    // 必须显式回主页(诊断流程隐藏过 homeScreen):showScreen 统一恢复
+    if(typeof showScreen==='function') showScreen('homeScreen');
   };
 }catch(e){}
 
@@ -637,10 +628,7 @@ function coachStartDiagnosis(onboard, variant, onReport){
   G.diagVariant = variant; G.diagScenes = scenes; G.diagTotal = _coachDiagQueue.length;
   // 先把 G.format/variant 指向首题,否则 renderHUD 的 spotLabel(G.format,...) 在全新状态下会抛错
   if(_coachDiagQueue.length){ G.format=_coachDiagQueue[0].format; G.variant=_coachDiagQueue[0].variant; }
-  // 进真实牌桌:收起 coach/主页/训练设置/结算 四个覆盖层
-  ['coachScreen','homeScreen','startScreen','overScreen'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.classList.add('hide');
-  });
+  if(typeof showScreen==='function') showScreen(null); // 进真实牌桌 = 全部覆盖屏隐藏
   if(typeof renderHUD==='function') renderHUD();
   if(typeof nextHand==='function') nextHand();   // nextHand 的 diagMode 分支会发第一手
 }
@@ -656,7 +644,7 @@ function coachDiagAdvance(){
 function coachFinishDiagnosis(){
   G.diagMode=false; G.over=true; G.busy=true;
   _coachExitTable();
-  const scr=document.getElementById('coachScreen'); if(scr) scr.classList.remove('hide');
+  if(typeof showScreen==='function') showScreen('coachScreen');
   const agg = coachAggregate(G.diagResults||[], G.diagScenes||[]);
   const verdict = coachVerdict(agg, G.diagVariant);
   const diagnosis = { variant:G.diagVariant, agg, verdict, ts:0 };
@@ -668,17 +656,14 @@ function coachFinishDiagnosis(){
 function coachAbortDiagnosis(){
   if(typeof G!=='undefined'){ G.diagMode=false; G.over=true; G.busy=true; }
   _coachExitTable();
-  const scr=document.getElementById('coachScreen'); if(scr) scr.classList.remove('hide');
+  if(typeof showScreen==='function') showScreen('coachScreen');
   _coachSection('coachOnboard'); coachRenderOnboard();
 }
 
 // 公共:从牌桌反馈态退回(隐藏反馈面板、恢复牌桌、清评判闪烁、复原动作区)。
 function _coachExitTable(){
-  try{ const fb=document.getElementById('feedback'); if(fb) fb.classList.add('hide'); }catch(e){}
-  try{ const tbl=document.querySelector('.table'); if(tbl) tbl.classList.remove('fb-hide'); }catch(e){}
-  try{ const v=document.getElementById('verdict'); if(v) v.className='verdict'; }catch(e){}
-  try{ const acts=document.getElementById('actions'); if(acts) acts.style.display=''; }catch(e){}
-}
+  if(typeof exitTableUI==='function'){ exitTableUI(); return; } // 复用 app.js 的同一份复位逻辑
+  try{ const fb=document.getElementById('feedback'); if(fb) fb.classList.add('hide'); }catch(e){}}
 
 // Node 测试用导出(浏览器忽略)
 if (typeof module !== 'undefined' && module.exports) {
