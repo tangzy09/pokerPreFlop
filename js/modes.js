@@ -71,7 +71,7 @@ const MODES={
   legend:[['shove','5-bet 全下'],['call','跟注'],['fold','弃牌']]},
  /* 面对跛入(2026-07 场景扩充设计 §C)。跛入是非均衡动作,无 solver 精确解——
     范围是对弱范围的标准调整(iso 线性加强),spot 文案带「应对参考」。判定/格子全复用闭包。 */
- iso:{reCol:'raise',actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.overlimp],['raise',ACT_LABEL.iso]],
+ iso:{reCol:'threebet',actions:[['fold',ACT_LABEL.fold],['call',ACT_LABEL.overlimp],['raise',ACT_LABEL.iso]],  /* reCol 与 cell=raiseCall 的紫色格一致(raiseCall 家族惯例;红/紫错配会让同一动作两种颜色) */
   names:{fold:'弃牌',call:'跟跛',raise:'隔离加注'},correct:CORRECT.raiseCall,cell:CELL.raiseCall,freq:FREQ.raiseCall,
   catName:{threebet:'隔离加注',mix:'隔离 / 跟跛（混合）',call:'跟跛','edge-call':'跟跛 / 弃牌（边缘混合）'},
   legend:[['threebet','隔离'],['call','跟跛'],['mix','混合'],['edge-call','边缘'],['fold','弃牌']]},

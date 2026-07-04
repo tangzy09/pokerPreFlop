@@ -17,6 +17,7 @@
   "dependencies": {
     "@capacitor/android": "^8.4.0",
     "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.1",
     "@capacitor/local-notifications": "^8.2.0",
     "@revenuecat/purchases-capacitor": "^13.2.0"
   },

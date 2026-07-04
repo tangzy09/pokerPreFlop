@@ -10,11 +10,13 @@
  function plugin(){ return CAP.plugin('LocalNotifications'); }
  function T(k,d){ try{ return (typeof tr==='function') ? tr(k) : d; }catch(e){ return d; } }
 
- async function ensurePerm(){
+ // request=true 才弹系统权限框(只给用户主动点开关的 enable 用);
+ // 启动路径(reschedule)只 check——用户在系统里关了通知,冷启动不该反复弹权限请求骚扰
+ async function ensurePerm(request){
   const P=plugin(); if(!P) return false;
   try{
    let s=await P.checkPermissions();
-   if(s && s.display!=='granted'){ s=await P.requestPermissions(); }
+   if(s && s.display!=='granted' && request){ s=await P.requestPermissions(); }
    return !!(s && s.display==='granted');
   }catch(e){ console.warn('notify perm', e); return false; }
  }
@@ -43,7 +45,7 @@
   async enable(h, m){
    if(!native()) return false;
    const t=this.time(); h=(h==null?t.h:h); m=(m==null?t.m:m);
-   if(!await ensurePerm()) return false;
+   if(!await ensurePerm(true)) return false;
    const ok=await doSchedule(h,m);
    if(ok){ try{ STORE.notify={on:true,h,m}; persist(); }catch(e){} }
    return ok;
@@ -61,7 +63,7 @@
   async reschedule(){
    if(!native() || !this.isOn()) return;
    const t=this.time();
-   if(await ensurePerm()) doSchedule(t.h, t.m);
+   if(await ensurePerm(false)) doSchedule(t.h, t.m);   // 启动只 check 不 request
   },
  };
 

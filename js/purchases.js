@@ -20,13 +20,14 @@
  const RC_API_KEY = {
   test:    'test_ScghqMYHRgjSpJgXDpNePkMHJII',  // ← RevenueCat Test Store（当前用它）
   android: 'goog_IHsbgwhdCaAzrZoZLrDbTpSyXQv',  // ← Google Play（上线用）
-  ios:     'appl_REPLACE_ME',                   // ← App Store（以后做 iOS）
+  ios:     'appl_uIzhsfaBWGwmmxXuneJGFYnQQtm',  // ← App Store（RevenueCat iOS 公开 key,2026-07-04 配好）
  };
  const ENTITLEMENT = 'pro';                                   // ← RevenueCat Entitlement 标识
  // 按钮 → 想买哪种 package：types=RevenueCat 预定义包类型；ids=可能的 product/package 标识（大小写不敏感）
+ // iOS 产品 id 带 preflop_ 前缀:Apple 产品 ID 账号级唯一,裸 pro_yearly 已被同账号 Mando 占用
  const MATCH = {
-  sub:  { types:['MONTHLY','WEEKLY','TWO_MONTH','THREE_MONTH','SIX_MONTH'], ids:['pro_monthly','monthly'] },
-  year: { types:['ANNUAL'], ids:['pro_yearly','pro_annual','annual','yearly'] },
+  sub:  { types:['MONTHLY','WEEKLY','TWO_MONTH','THREE_MONTH','SIX_MONTH'], ids:['pro_monthly','preflop_pro_monthly','monthly'] },
+  year: { types:['ANNUAL'], ids:['pro_yearly','preflop_pro_yearly','pro_annual','annual','yearly'] },
  };
 
  const cap=CAP.cap, native=CAP.native;           // 共享桥接 helper（见 js/cap.js）
@@ -60,6 +61,10 @@
     const offs=await P.getOfferings();
     const pkgs=(offs && offs.current && offs.current.availablePackages) || [];
     const y=pkgs.find(p=>p.packageType==='ANNUAL' || /year|annual/i.test((p.product&&p.product.identifier)||p.identifier||''));
+    const m=pkgs.find(p=>p.packageType==='MONTHLY' || /month/i.test((p.product&&p.product.identifier)||p.identifier||''));
+    // 商店真实标价(带货币符号,如 HK$228.00):付费墙优先用它,i18n 的 $29.99 只是回落——非美元区显示与扣款一致
+    if(y&&y.product&&y.product.priceString) Pay.yearPrice=y.product.priceString;
+    if(m&&m.product&&m.product.priceString) Pay.subPrice=m.product.priceString;
     const prod=y&&y.product;
     if(!prod) return;
     let days=0;
@@ -97,8 +102,8 @@
     const r=await P.purchasePackage({ aPackage: pkg });
     return Pay._apply(r&&r.customerInfo);
    }catch(e){
-    if(e && (e.userCancelled || /cancel/i.test(''+(e.message||e.code)))) return false; // 用户取消，不报错
-    console.warn('RC buy', e); return false;
+    if(e && (e.userCancelled || /cancel/i.test(''+(e.message||e.code)))) return 'cancel'; // 用户取消:调用方不提示
+    console.warn('RC buy', e); return false;                                              // 真实失败:调用方 toast
    }
   },
 

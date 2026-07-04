@@ -11,12 +11,12 @@
 
 护城河**不是**「GTO 节点最多」，而是：**诚实（不编 EV/频率）＋ 离线零依赖 ＋ 个性化漏洞训练**。
 
-### 商业模式：免费内核 + Pro 订阅（年 $12.99 / 月 $4.99 双档）
+### 商业模式：免费内核 + Pro 订阅（年 $29.99 / 月 $4.99 双档,年订带 7 天免费试用）
 
 - **免费**（撑口碑、可自然传播）：翻前训练器 + 范围图表（13×13）+ 基础统计 + 错题复习。
 - **Pro 解锁**（差异化能力）：🔍 个人画像 / 漏洞分析、🗓 训练计划、🩺 **20 天训练计划执行**（翻前诊断 + 报告**免费**引流，Start Day 1 起的每日计划走 Pro）、全部**自算 Nash 推弃档**（8–25bb / 6 人 / 单挑 HU / 面对全下）、算胜率计算器、将来的真数据导入。
-- **计费**：数字商品走 StoreKit（iOS）/ Play Billing（安卓），用 **RevenueCat** 统一两端 + 校验授权；定价把平台抽成 **15–30%** 算进去。**现状（2026-06-23）：双订阅 年 $12.99（付费墙主推）+ 月 $4.99，已移除一次性买断**（订阅经常性收入更稳、年订阅锁定更久）。订阅须持续有新价值，否则退订/差评。
-- **渠道战略（2026-07-03 拍板，两站一致）**：**web 现为测试阶段全免费**（非永久承诺，目的=攒流量/口碑/SEO）；**正式上线后付费只发生在 App**（内购），web 转为**试用 + 导流层**——点到收费内容时不在 web 解锁，弹「去 App 下载」引导（先决条件：App 已上架，跳转才有目标）。中文用户 web 支付需国内主体/备案，App 内购天然绕开。倾向**捆绑**：一个 Pro entitlement 同时解锁翻前+翻后两个 App，$12.99/年不加价。
+- **计费**：数字商品走 StoreKit（iOS）/ Play Billing（安卓），用 **RevenueCat** 统一两端 + 校验授权；定价把平台抽成 **15–30%** 算进去。**现状（2026-07-02 提价拍板）：双订阅 年 $29.99（付费墙主推，新订户 7 天免费试用）+ 月 $4.99**（原 $12.99/年是月订的 2.2 折——折扣大到不可信且比竞品 $100/yr 低一个数量级；提价后年订=月订 5 折、仍是竞品 1/3，「便宜且准」人设不破。试用只挂年订=档位引导，月订暂不加试用防蚕食年订；代码两档皆 trial-aware，后台随时可实验）。已移除一次性买断（2026-06-23）。付费墙优先显示商店真实标价（`Pay.yearPrice`，非美元区与扣款货币一致），试用按钮由 `Pay._sniffTrial()` 从 offering 自动识别、未配 offer 前显示普通价不误导。订阅须持续有新价值，否则退订/差评。
+- **渠道战略（2026-07-03 拍板，两站一致）**：**web 现为测试阶段全免费**（非永久承诺，目的=攒流量/口碑/SEO）；**正式上线后付费只发生在 App**（内购），web 转为**试用 + 导流层**——点到收费内容时不在 web 解锁，弹「去 App 下载」引导（先决条件：App 已上架，跳转才有目标）。中文用户 web 支付需国内主体/备案，App 内购天然绕开。倾向**捆绑**：一个 Pro entitlement 同时解锁翻前+翻后两个 App，$29.99/年不加价。
 - **红线**：Pro 只锁 power features，**基础训练在 App 内保持免费可玩**（免费试用范围上线前按数据定，宜慷慨）；对外文案在测试期如实说「免费」，**正式上线时必须同步调整所有「免费」表述与 CTA**（title/description/分享文案），不留旧承诺打脸。
 - 代码侧用一个 `isPro` 功能门控，**门控已 live**：**网页恒 `true`（测试期全解锁；正式上线后 web 改为试用+导流，收费内容引导跳 App）**；**原生 App 读真实 RevenueCat 授权 `!!STORE.proEntitled`**（`pro` entitlement，由 purchases.js 的 init/refresh/restore 写入）。付费墙 UI（`showPaywall`）在 native 未购时真实触发；Pro 计划每日启动（coach）也逐次校验。（旧文档说「isPro 强制返回 true / 改回 !!STORE.pro」已过时——与代码矛盾，2026-07-01 矫正。）
 
@@ -48,13 +48,15 @@
 - **双语 i18n（默认英文）**：新增 `js/i18n.js`（最先加载），全 UI 中英双语、默认英文；右上角 `中 | EN` 选择器**所有页面可用**（body 级固定、活动语言金色高亮、训练对局中自动下移到 HUD 第二行避开分数）并记忆；数据文件保持中文为**唯一来源**，运行期 `L()`/`tr()` 仅做显示翻译（测试固定 `zh`，金快照不变）。
 - **已部署上线**：静态站托管在 EC2（nginx），正式地址 **https://pre-flop.ai-speeds.com/**（Let's Encrypt HTTPS）；`deploy.sh` 一键 push + 服务器 `git pull`。详见 [CLAUDE.md](CLAUDE.md) 的 Deployment 小节。
 - **画像 / 训练计划（Phase 6）**：「统计」页「🎯 个人画像」(风格倾向松/紧 + 打法倾向被动/激进 + 强弱档位) + 「🗓 训练计划」(按需练度排序、一键去练)；纯本地聚合，诚实标注 vs 参考范围、不编造 TAG/LAG。错误分类已细分到 太松/太紧/被动/过激/边缘/ICM（`addMistake` 存真实选择，`classifyMiss` 据此精确分类）。
-- **翻前诊断 + 20 天训练计划（Phase 9）**：主页顶部横幅卡「训练计划」——问卷（`coachScenes`）→ 诊断测试（简化 18 手 / 详细 45 手，`coachBuildDiagQueue`）**复用练习的真实牌桌 + 逐题答案解释 + 范围矩阵**（走 `G.diagMode`，`!G.diagMode` 守卫跳过 HP/统计/错题堆/升级）→ 个性化报告（评级 + Top 漏洞 + 优势 + 20 天计划，`coachAggregate`/`coachVerdict`）→ 每日可执行卡片 + 打卡 streak（`coachBuildPlan`/`coachMarkDayDone`）。新文件 `js/coach.js`（最后加载）。**诊断 + 报告免费，Start Day 1 计划执行 Pro**；诚实标注「vs 参考范围 / not solver-exact / 基于 {n} 手」，不编造 EV/频率/TAG-LAG。
+- **翻前诊断 + 20 天训练计划（Phase 9）**：主页顶部横幅卡「训练计划」——问卷（`coachScenes`）→ 诊断测试（简化 18 手 / 详细 45 手，`coachBuildDiagQueue`）**复用练习的真实牌桌 + 逐题答案解释 + 范围矩阵**（走 `G.diagMode`，数据隔离由 `SINKS.diag.settle` 结构性保证——诊断绝不写 HP/统计/错题堆/升级，见工程行「三条单缝」）→ 个性化报告（评级 + Top 漏洞 + 优势 + 20 天计划，`coachAggregate`/`coachVerdict`）→ 每日可执行卡片 + 打卡 streak（`coachBuildPlan`/`coachMarkDayDone`）。新文件 `js/coach.js`（最后加载）。**诊断 + 报告免费，Start Day 1 计划执行 Pro**；诚实标注「vs 参考范围 / not solver-exact / 基于 {n} 手」，不编造 EV/频率/TAG-LAG。
 - **翻后胜率（带公共牌）**：「算胜率」计算器现支持填**牌面**（翻牌/转牌/河牌）算**翻后 equity**（`rangeEquityBoard`，纯枚举/蒙特卡洛，自动按组合加权 + 跳过冲突）；留空则仍是翻前全下。
 - **个性化漏洞分析（Phase 5）**：「统计」页新增「🔍 你的漏洞」——从错题堆按类型（太松/太紧/边缘/ICM）聚合排序 + 最常踩的坑 + 一键去练（`classifyMiss` 仅凭 spot+hand 判定，旧数据也能分析）。
 - **离线 HU 翻后 CFR+ solver 链**（`tools/solver/`，纯 Python）仍保留、由 `test/solver-spots.test.js` 验证，产物 `js/data/postflop-spots.js`（`python tools/gen-postflop-spots.py` 重算）。**App 内的「翻后GTO」展示页已移除**（产品决定）——离线链与数据留作管线/测试，不再进浏览器。
-- 工程：多文件拆分、零依赖 Node 回归测试（契约不变量 + 金快照 + equity/Nash + 翻后数据/board-equity + coach 诊断/计划 + i18n 英文无中文校验，50 项）+ **headless Chrome UI 冒烟测试**（`npm run test:ui`：导航返回回主页、语言选择器全页面、切换生效；用系统 Chrome、不引依赖、不进 `npm test`、无 Chrome 则跳过——专堵纯逻辑测试看不到的 UI 回归）、git。
+- 工程：多文件拆分、零依赖 Node 回归测试（11 套件 65 项：契约不变量 + 金快照 + equity/Nash + 翻后数据/board-equity + coach 诊断/计划 + i18n 英文无中文校验 + **牌桌座位契约**(table-model) + **模式隔离全景快照**(resolve-sink：诊断/复习答题后整个 STORE 必须逐字节不变,评级纯函数单测)）+ **headless Chrome UI 冒烟测试**（`npm run test:ui`,16 断言：导航/语言选择器/引导/推弃屏；无 Chrome 则跳过）、git。
+- **架构三条单缝（2026-07 全局 review 后加固）**：屏幕导航 `showScreen(id)`(SCREENS 注册表)、模式切换 `setMode(m)`(布尔+数据路由原子绑定)、数据沉淀 `G.sink.settle(r)`(SINKS.normal/review/diag)——诊断/复习不污染真实数据、死屏、模式布尔漂移从「靠记得贴守卫」变成结构性保证；评级 `gradeHand()` 纯函数化。启动瘦身 2.4MB(Nash 图表数据懒加载)。
+- **第二轮全局 review（2026-07-03，5 域并行 30 候选 → 24 项全修）**：数据层（c6_200 mix 死数据、squeeze AQo 空洞、`A5s+,A2s` 笔误、iso 色彩错配——范围串逐 token 脚本验证）；引擎（bbvslimp 过牌≠弃牌的漏着误判、straddle 首入误折 BTN、诊断 HUD 滞后一题、升级横幅双击吞题、深度组门控落地「标准免费/新组全 Pro」）；教练闭环（简化诊断样本门槛结构性失效→动态下调、报告常驻入口不再丢、复诊双击不再覆写基线、复诊样本不足改三态「不判定」、复诊日被打卡跳过自动顺延）；原生桥（购买真失败 toast、试用文案带「新订户」+ 商店真实标价、启动不再弹通知权限）；存储（损坏档备份 `_corrupt`、persist 失败提示、reviewPile/history 裁剪防配额）。遗留：coach/错题堆 innerHTML 的 localStorage 回读字段**云同步上线前必须加转义**（今天仅自注入,低危）。
 - **导航 / 主页**：`homeScreen`（主页卡片）为统一入口；mistakes / nash / stats / equity 四个功能页的返回键都回主页（非训练设置页）。
-- **移动端竖屏适配**：`.table{min-height:0}` + 短屏断点逐级压缩牌桌/手牌，保证矮屏（小手机 / 浏览器工具栏占位）下动作按钮始终可见、不溢出。
+- **移动端竖屏适配**：`.table{min-height:0}` + 短屏断点逐级压缩牌桌/手牌，保证矮屏（小手机 / 浏览器工具栏占位）下动作按钮始终可见、不溢出。**iOS 刘海/灵动岛/Home 条已全面适配**（`viewport-fit=cover` + 全界面 10 处 `env(safe-area-inset-*)`——HUD/标题栏/动作按钮/反馈面板/付费墙/语言切换器；env 由苹果按机型下发,一套 CSS 适配所有 iPhone/iPad）；Android edge-to-edge（targetSdk 36）由 Capacitor 8 自动处理；**双端锁竖屏**（iOS Info.plist 只留 Portrait、Android `screenOrientation="portrait"`——430px 竖屏设计,横屏无意义）。
 - **准确率趋势（Phase 11a）**：`resolve()` 按天采集 `STORE.trend`（只记正常训练，保留 180 天，历史不可回溯），统计页「📈 准确率趋势」SVG 折线（准确率线 + 手数柱，最多显示 30 天）。免费=留存钩子。
 - **推弃特训 + 求解器真 EV（Phase 11b）**：主页卡「♠ 推弃特训」→ 快速选档屏（9人 8–20bb / 6人终桌 / HU 5–25bb / BB 跟注 vs BTN 全下，全 precise 档直达）；`packs.js` 把求解器船运的**每手真 EV 表**（`seatsEV`/`jamEV`/`callEV`/`btnEV`，相对弃牌的 chip-EV）挂为 `t.evTable`，反馈面板显示「求解器 EV：全下 +X.XXbb · 相对弃牌（简化模型 chip-EV）」——**§6 红线下唯一允许显示 EV 的场景，纯查表零计算、直接引用求解器输出**。竞品给对错，我们给诚实的真 EV。
 - **新手引导 + 学习路径（Phase 11c）**：首启 3 步引导（练什么 → 怎么读 13×13 范围表 → 开始第一课直达现金 6 人；任何关闭都置 `seenIntro` 不再弹，老用户不打扰）；主页卡「🧭 学习路径」→ 导览决策树每节点注入**按 format 聚合的真实准确率 chip**（≥80% 绿 / ≥60% 金 / 低于红 / 未开始灰），路径 = 排序诚实基于你的数据。

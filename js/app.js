@@ -2,12 +2,29 @@
    and boot. Loads last; depends on ranges.js, modes.js, packs.js. */
 /* ============ local persistence (graceful: works locally, no-ops in restricted previews) ============ */
 const STORE_KEY='gtoTrainer_v1';
-function loadStore(){try{const s=localStorage.getItem(STORE_KEY);return s?JSON.parse(s):{};}catch(e){return {};}}
+function loadStore(){
+ try{
+  const s=localStorage.getItem(STORE_KEY);
+  if(!s)return {};
+  try{ return JSON.parse(s); }
+  catch(parseErr){
+   // 存档损坏(半写入/系统清理):别静默清零——Pro 授权缓存/20天打卡都在里面。
+   // 把坏串备份起来供恢复,再从空档重来(下次 refresh/恢复购买可找回授权)。
+   try{ localStorage.setItem(STORE_KEY+'_corrupt', s); }catch(e){}
+   console.warn('STORE corrupt, backed up to '+STORE_KEY+'_corrupt');
+   return {};
+  }
+ }catch(e){return {};}
+}
 let STORE=loadStore();
-let _persistQ=false;
+let _persistQ=false,_persistWarned=false;
 function persist(){                               // 同一 tick 多次调用合并为一次真实写(答错一手曾 stats+错题堆双写全量 STORE)
  if(_persistQ)return;
- const w=()=>{_persistQ=false;try{localStorage.setItem(STORE_KEY,JSON.stringify(STORE));}catch(e){}};
+ const w=()=>{_persistQ=false;
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(STORE));}
+  catch(e){ // 配额满/隐私模式:进度实际没落盘,至少提示一次(否则用户练了个寂寞)
+   if(!_persistWarned){_persistWarned=true;try{toast(tr('persistFail'),'⚠',true);}catch(_){}}
+  }};
  if(typeof queueMicrotask==='function'){_persistQ=true;queueMicrotask(w);} else w();
 }
 function persistPrefs(){STORE.prefs={format:selFormat,variant:selVariant,deal:selDeal};persist();}
@@ -27,8 +44,9 @@ function setPro(v){STORE.pro=!!v;persist();
 function _lockedSlice(list){return list.slice(Math.ceil(list.length/2));}                       // 后一半=锁
 function _cashLockedFmts(){return new Set(_lockedSlice(GAMETYPES.cash.formats));}
 function _mttLockedGroups(){return new Set(_lockedSlice([...new Set(Object.values(VARIANTS.mtt).map(v=>v.group))]));}
-// 现金 cash format 内部再按 variant group 半分(标准 100bb 免费 / 筹码深度等新组 Pro)——与 MTT group 门控同款
-function _cashLockedGroups(){return new Set(_lockedSlice([...new Set(Object.values(VARIANTS.cash).map(v=>v.group))]));}
+// 现金 cash format 内部按 variant group 锁:第一组(标准 100bb)免费,其余组(筹码深度/Straddle)全部 Pro。
+// 不用 _lockedSlice 半分——组数增到 3 时半分只锁最后 1 组,50/200bb 会漏出付费面(2026-07 拍板:新内容全进 Pro)。
+function _cashLockedGroups(){return new Set([...new Set(Object.values(VARIANTS.cash).map(v=>v.group))].slice(1));}
 function spotLocked(fmt,variant){
  if(isPro())return false;
  if(gameOf(fmt)==='cash'){
@@ -55,7 +73,7 @@ function showPaywall(why){
    <div id="pwWhy" style="text-align:center;color:var(--muted,#8fa79a);font-size:13px;margin:4px 0 14px"></div>
    <div id="pwList" style="display:flex;flex-direction:column;gap:9px;font-size:13.5px;color:var(--ink,#f1f5ee)"></div>
    <button id="pwYear" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:#16110a;background:linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f));width:100%;padding:13px;border-radius:13px;margin-top:16px;display:flex;flex-direction:column;gap:1px;align-items:center">
-     <span>${(typeof Pay!=='undefined'&&Pay.yearTrialDays>0)?tr('pwYearTrial',{d:Pay.yearTrialDays}):tr('pwYear')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${(typeof Pay!=='undefined'&&Pay.yearTrialDays>0)?tr('pwYearTrialNote'):tr('pwYearNote')}</small></button>
+     <span>${(typeof Pay!=='undefined'&&Pay.yearTrialDays>0)?tr('pwYearTrial',{d:Pay.yearTrialDays}):(typeof Pay!=='undefined'&&Pay.yearPrice)?tr('pwYearDyn',{p:Pay.yearPrice}):tr('pwYear')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${(typeof Pay!=='undefined'&&Pay.yearTrialDays>0)?tr('pwYearTrialNote',{p:(Pay.yearPrice||'$29.99')}):tr('pwYearNote')}</small></button>
    <button id="pwSub" style="appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:var(--gold,#e8c66a);background:transparent;border:1px solid var(--gold,#e8c66a);width:100%;padding:13px;border-radius:13px;margin-top:9px;display:flex;flex-direction:column;gap:1px;align-items:center">
      <span>${tr('pwSub')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${tr('pwSubNote')}</small></button>
    <button id="pwRestore" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-size:13px;color:var(--muted,#8fa79a);background:transparent;width:100%;padding:8px;margin-top:8px;text-decoration:underline">${tr('pwRestore')}</button>
@@ -69,7 +87,8 @@ function showPaywall(why){
   const _buy=async(kind)=>{ // 原生走 RevenueCat IAP；浏览器走本地占位（见 Pay.buy）
    try{SFX.level();}catch(e){}
    let ok=false; try{ ok = (typeof Pay!=='undefined') ? await Pay.buy(kind) : true; if(typeof Pay==='undefined') setPro(true); }catch(e){}
-   if(ok) _close();
+   if(ok===true){ _close(); return; }
+   if(ok!=='cancel'){ try{toast(tr('pwBuyFail'),'⚠',true);}catch(e){} } // 真实失败要发声(配错 offering/断网),别让按钮看着像死的;用户取消不打扰
   };
   el.querySelector('#pwYear').onclick=()=>_buy('year');
   el.querySelector('#pwSub').onclick=()=>_buy('sub');
@@ -202,6 +221,8 @@ function addMistake(choice){
  if(ex){ex.wrong++;ex.streak=0;ex.choice=choice;} // a fresh miss resets mastery progress; record latest actual choice
  else reviewPile.push({key,t:G.table,hand:G.hand,fmt:G.format,variant:G.variant,
   label:FORMATS[G.format].tag+' '+VARIANTS[G.format][G.variant].short,wrong:1,streak:0,choice:choice});
+ // 上限 500 条(裁掉错次最少的):防重度多年使用后 STORE 逼近 localStorage 配额 → persist 静默失败
+ if(reviewPile.length>500){ reviewPile.sort((a,b)=>b.wrong-a.wrong); reviewPile.length=500; }
  persistReview();
 }
 function removeFromPile(rec){const i=reviewPile.indexOf(rec);if(i>=0)reviewPile.splice(i,1);persistReview();}
@@ -474,15 +495,16 @@ function tableModel(t,fmt,variant){
  if(!ring.includes(hero)) hero = N===2?'SB':'BB';
  const hi=ring.indexOf(hero);
  const betAt={}; vil.forEach(v=>{const i=ring.indexOf(v.pos); if(i>=0)betAt[i]=Math.max(betAt[i]||0,v.bet);});
- if(t.straddle){const si=ring.indexOf(t.straddle); if(si>=0)betAt[si]=Math.max(betAt[si]||0,2);} // 抓头 2bb 前置注(像盲注一样已在池)
- const facing=Object.keys(betAt).length>0;               // 有对手已下注 = 非首入
+ const facing=vil.length>0;                              // 有真对手下注 = 非首入(straddle 是前置注不算对手动作)
+ const strI=t.straddle?ring.indexOf(t.straddle):-1;      // 抓头位:2bb 像盲注一样已在池,首入时不折
+ if(strI>=0)betAt[strI]=Math.max(betAt[strI]||0,2);
  const seats=ring.map((pos,i)=>{
   let bet=0,blind=false,folded=false;
   if(pos==='SB'){bet=0.5;blind=true;} if(pos==='BB'){bet=1;blind=true;}
   if(betAt[i]!=null)bet=Math.max(bet,betAt[i]);          // 对手加注/全下
   if(i===hi&&heroBet)bet=Math.max(bet,heroBet);           // 英雄已投入(face3b/4b)
-  if(!facing){ if(i<hi && pos!=='SB' && pos!=='BB') folded=true; }           // 首入：折到英雄
-  else if(i!==hi && betAt[i]==null && pos!=='SB' && pos!=='BB') folded=true; // 面对下注：留英雄+下注者+盲注
+  if(!facing){ if(i<hi && pos!=='SB' && pos!=='BB' && i!==strI) folded=true; }   // 首入：折到英雄(豁免盲注+抓头位)
+  else if(i!==hi && betAt[i]==null && pos!=='SB' && pos!=='BB') folded=true; // 面对下注：留英雄+下注者+盲注(抓头位有 betAt 天然保留)
   const ang=Math.PI/2 + ((i-hi)/N)*2*Math.PI;            // 英雄固定底部中央，其余环绕
   const x=50+39*Math.cos(ang), y=52+39*Math.sin(ang);    // 半径留余量，避免边座位被裁
   return {pos,bet:+bet.toFixed(2),blind,folded,hero:i===hi,btn:pos==='BTN'||(N===2&&pos==='SB'),x,y};
@@ -503,7 +525,7 @@ function renderTable(t){
 function nextHand(){
  if(G.over)return;
  G.busy=false;
- if(!G.reviewMode){G.handNo=(G.hands||0)+1;renderHUD();}   // advance the X/50 counter
+ if(!G.reviewMode && !G.diagMode){G.handNo=(G.hands||0)+1;renderHUD();}   // advance the X/50 counter
  let t,hand;
  if(G.diagMode){
   // 实力诊断:从 coach 的诊断队列取题(场景已均衡)。牌桌/发牌/反馈全走练习同一套 UI。
@@ -512,6 +534,7 @@ function nextHand(){
    if(typeof coachFinishDiagnosis==='function') coachFinishDiagnosis(); return; }
   const it=_coachDiagQueue[_coachDiagPos];
   t=it.t;hand=it.hand;G.format=it.format;G.variant=it.variant;G.diagSceneKey=it.sceneKey;
+  G.handNo=(G.hands||0)+1;renderHUD();   // HUD 在场景坐标就位后再刷,否则从第 2 题起显示上一题的场景
  } else if(G.reviewMode){
   if(!G.reviewQueue.length){reviewComplete();return;}
   const rec=G.reviewQueue.shift();G.reviewRec=rec;
@@ -652,7 +675,8 @@ function gradeHand(i){
  } else {
   combo=0;
   const shouldPlay=i.correct.includes('raise')||i.correct.includes('call')||i.correct.includes('shove');
-  monsterFold=shouldPlay&&i.choice==='fold'&&PREMIUM.has(i.hand);
+  // bbvslimp 的 fold 键语义是「过牌」(免费看翻牌,没弃掉牌)——拿 AA 过牌是错但不是「巨牌漏着」
+  monsterFold=shouldPlay&&i.choice==='fold'&&PREMIUM.has(i.hand)&&i.mode!=='bbvslimp';
   if(i.timedOut){grade='超时';gcolor='var(--mistake)';hpHit=1;}            // 超时统一按失误,不评漏着
   else if(i.isMix){grade='不准';gcolor='var(--inacc)';hpHit=1;}
   else if(monsterFold || (i.correct[0]==='fold'&&!PREMIUM.has(i.hand)&&i.choice!=='fold'&&isTrash(i.hand))){grade='漏着';gcolor='var(--blunder)';hpHit=2;}
@@ -724,7 +748,7 @@ function resolve(choice,btn,timedOut){
  const freqGraded = t.confidence==='precise' && G.isMix;
  const hitTop = freqGraded && choice===topAct && !timedOut;
  // ① 评级(纯函数,零副作用)
- const r=gradeHand({correct,choice,timedOut,isMix:G.isMix,isEdge:G.isEdge,freqGraded,hitTop,hand,combo:G.combo});
+ const r=gradeHand({correct,choice,timedOut,isMix:G.isMix,isEdge:G.isEdge,freqGraded,hitTop,hand,combo:G.combo,mode:t.mode});
  const {ok,grade,gcolor,pts}=r;
  // ② 会话计分(三模式共同的界面进度:手数/连击/得分/评级桶/关卡失误 + 音效)
  G.hands++; G.combo=r.combo;
@@ -814,6 +838,7 @@ function resolve(choice,btn,timedOut){
 
 function advance(){
  if(G.over)return;
+ clearTimeout(G._advT);   // 升级横幅 1.5s 窗口内再点「下一步」:清旧定时器,防双重 nextHand 吞题
  if(G.pendingLevel){
   G.pendingLevel=false;
   SFX.level();showBanner(G.level);burst(innerWidth/2,innerHeight*0.4,['#e8c66a','#b8902f','#fff'],50,9);renderHUD();
@@ -840,6 +865,8 @@ function reasonFor(t,hand,correct,choice,ok,grade){
  if(G.isEdge){
   const act = correct.find(a=>a!=='fold');
   const an = L({raise:'加注',shove:'全下',call:'跟注'}[act]||'入池');
+  // bbvslimp 的 fold 键=过牌(没有弃牌动作),边缘文案不能说「与弃牌之间分配」
+  if(t.mode==='bbvslimp') return tr('reason.edge.bvl',{hand});
   return tr('reason.edge',{hand,p,an});
  }
  if(G.isMix && !G.isEdge) return tr('reason.mix',{hand,p});
@@ -875,11 +902,11 @@ function reasonFor(t,hand,correct,choice,ok,grade){
  }
  // pure spots
  const isShove=correct[0]==='shove', is3=correct[0]==='raise'&&t.mode==='defense';
+ if(is3) return tr('reason.is3',{hand});   // defense 的纯 3-bet 必须先于通用 raise 分支(否则永远走 RFI 开局措辞,is3 变死代码)
  if(correct[0]==='raise'||isShove){
   const verb=L(isShove?'全下':'加注');
   return tr('reason.play',{hand,p,verb,why:tr('reason.why.'+k,{verb,p})});
  }
- if(is3) return tr('reason.is3',{hand});
  if(correct[0]==='call') return tr('reason.call',{hand});
  // fold
  const fk = ({off:1,axo:1,sg:1,sc:1})[k] ? ('reason.fold.'+k) : 'reason.fold.generic';
@@ -1509,6 +1536,18 @@ function rerenderUI(){
   if(ss && !ss.classList.contains('hide')){ renderStats(); const pv=!isPro(); renderProfile(pv);renderLeak(pv);renderPlan(pv); }
   const rs=document.getElementById('reviewScreen');
   if(rs && !rs.classList.contains('hide')) renderReviewDetail();
+  // coach 屏可见时重渲染当前 section(报告/每日卡是 tr() 成品文案,_walkText 对英文成品不透明——
+  // 不重渲染的话切语言后整页保持旧语言中英混排)。onboard 不重渲染(会重置问卷选择,切语言自愈成本低)
+  try{
+   const cs=document.getElementById('coachScreen');
+   if(cs && !cs.classList.contains('hide')){
+    const vis=id=>{const e=document.getElementById(id);return e&&!e.classList.contains('hide');};
+    if(vis('coachDay') && typeof coachRenderDay==='function') coachRenderDay();
+    else if(vis('coachReport') && typeof coachLoadDiagnosis==='function'){
+     const d=coachLoadDiagnosis(); if(d&&d.agg&&typeof coachRenderReport==='function') coachRenderReport(d);
+    }
+   }
+  }catch(e){}
  }catch(e){}
 }
 // app.js loaded last → DOM + all builders ready; translate static HTML and dynamic UI now.

@@ -77,9 +77,13 @@ def make_icon():
     gf = font(104*SS)
     bb = d.textbbox((0,0), "GTO", font=gf)
     d.text(((S-(bb[2]-bb[0]))/2 - bb[0], 44*SS), "GTO", font=gf, fill=GOLD)
-    img = img.resize((512, 512), Image.LANCZOS)
-    img.convert("RGB").save(os.path.join(OUT, "icon-512.png"))
+    img.resize((512, 512), Image.LANCZOS).convert("RGB").save(os.path.join(OUT, "icon-512.png"))
     print("icon-512.png")
+    # iOS AppIcon(1024,Capacitor 命名 512@2x):直接从超采样原图缩,质量最优
+    ios_icon = os.path.join(os.path.dirname(OUT), "ios", "App", "App", "Assets.xcassets", "AppIcon.appiconset", "AppIcon-512@2x.png")
+    if os.path.isdir(os.path.dirname(ios_icon)):
+        img.resize((1024, 1024), Image.LANCZOS).convert("RGB").save(ios_icon)
+        print("ios AppIcon-512@2x.png (1024)")
 
 # ---------------- 功能图 1024x500 ----------------
 def make_feature():
@@ -130,9 +134,9 @@ def frame(src, title, sub, out):
     bg.convert("RGB").save(os.path.join(OUT, out)); print(out)
 
 make_icon()
-make_feature()
-frame("shot1-start.png",    "Full GTO Ranges",      "All 169 starting hands, every spot",   "play-1.png")
-frame("shot2-train.png",    "Drill Real Decisions", "Fold / Call / Raise - instant grading", "play-2.png")
-frame("shot3-feedback.png", "Learn From Mistakes",  "Range chart + coaching on every hand",  "play-3.png")
-frame("shot-nash.png",      "Computed Nash Charts",  "Per-hand push/fold EV - any ante, stack, position", "play-4.png")
+# make_feature()  # 已被 tools/gen-store-shots.js 的 HTML 版取代(npm run shots),勿再覆盖 shots 产物
+# frame("shot1-start.png",    "Full GTO Ranges",      "All 169 starting hands, every spot",   "play-1.png")
+# frame("shot2-train.png",    "Drill Real Decisions", "Fold / Call / Raise - instant grading", "play-2.png")
+# frame("shot3-feedback.png", "Learn From Mistakes",  "Range chart + coaching on every hand",  "play-3.png")
+# frame("shot-nash.png",      "Computed Nash Charts",  "Per-hand push/fold EV - any ante, stack, position", "play-4.png")
 print("done ->", OUT)

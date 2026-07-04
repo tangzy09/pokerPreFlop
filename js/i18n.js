@@ -38,7 +38,7 @@ const I18N_EN = {
  '面对 3-bet':'Vs 3-bet','你开局被反加':'You open, get 3-bet',
  '面对 4-bet':'Vs 4-bet','你 3bet 被 4bet':'You 3-bet, get 4-bet',
  '挤压':'Squeeze','有人开+跟 · 你反加':'Open + call · you re-raise',
- '冷跟':'Cold-call','非盲位平跟入池':'Flat from non-blind',
+ '非盲位平跟入池':'Flat from non-blind',   /* '冷跟' 的翻译只保留 FORMATS.tag 区那份('Cold')——重复键后写覆盖前写,曾造成场景按钮/HUD 各显示不一致 */
  // —— FORMATS[].label(选择页备用整串,token 也各自可译) ——
  '现金局 · 深码':'Cash · 100bb deep','锦标赛 · MTT':'Tournament · MTT','面对反加 · 3-bet':'Vs 3-bet','挤压 Squeeze':'Squeeze','冷跟 · 非盲位':'Cold-call · non-blind',
  '⚙ 进阶设置 · 发牌偏好':'⚙ Advanced · deal preference','发牌偏好':'Deal preference','· 练哪类牌':'· which hands',
@@ -298,8 +298,11 @@ _tpl('pwTitle', '解锁 Pro 🐿', 'Unlock Pro 🐿');
 _tpl('pwBuy', '解锁 Pro', 'Unlock Pro');
 _tpl('pwYear', '年订阅 · $29.99 / 年', 'Yearly · $29.99/yr');
 _tpl('pwYearNote', '最划算 · 合 $2.50 / 月 · 比月订省 50%', 'Best value · ~$2.50/mo · save 50% vs monthly');
-_tpl('pwYearTrial', '免费试用 {d} 天', 'Try free for {d} days');
-_tpl('pwYearTrialNote', '之后 $29.99 / 年 · 随时取消', 'then $29.99/yr · cancel anytime');
+_tpl('pwYearTrial', '新订户免费试用 {d} 天', 'New subscribers: try free for {d} days');
+_tpl('pwYearTrialNote', '之后 {p} / 年 · 随时取消', 'then {p}/yr · cancel anytime');
+_tpl('pwYearDyn', '年订阅 · {p} / 年', 'Yearly · {p}/yr');
+_tpl('pwBuyFail', '购买没有完成——请稍后再试或点「恢复已购买」', 'Purchase didn\'t go through — try again or tap "Restore purchases"');
+_tpl('persistFail', '进度保存失败(存储空间满或隐私模式)——本次训练可能不会被记录', 'Could not save progress (storage full or private mode) — this session may not be recorded');
 _tpl('pwSub', '月订阅 · $4.99 / 月', 'Monthly · $4.99/mo');
 _tpl('pwSubNote', '随时取消', 'Cancel anytime');
 _tpl('pwRestore', '恢复已购买', 'Restore purchases');
@@ -406,6 +409,8 @@ _tpl('reason.bvl.raise', '<b>{hand}</b> 适合<b>加注</b>：小盲跛入范围
  '<b>{hand}</b> should <b>raise</b>: the SB limp range is weak — this hand is strong enough to build the pot and punish it in position; don\'t give a free flop.');
 _tpl('reason.bvl.check', '<b>{hand}</b> 适合<b>过牌</b>：免费看翻牌永远不亏——这手不够强到加注建池,白看一张翻牌就是全部价值。',
  '<b>{hand}</b> should <b>check</b>: a free flop never costs you — this hand isn\'t strong enough to raise for value, so take the free look.');
+_tpl('reason.edge.bvl', '<b>{hand}</b> 是<b>边缘混合牌</b>：GTO 把它在「加注」与「过牌」之间按频率分配（大致一半一半），两种长期 EV 很接近——免费看翻牌兜底,加注施压也合理。',
+ '<b>{hand}</b> is a <b>borderline mix</b>: GTO splits it between "raise" and "check" (roughly half/half) — long-run EVs are close; the free flop is a fine floor and raising for pressure is fine too.');
 // pure raise/shove
 _tpl('reason.play', '<b>{hand}</b> 在 {p} 应当{verb}：{why}', '<b>{hand}</b> in {p} should {verb}: {why}');
 _tpl('reason.why.pair', '口袋对子本身有摊牌价值，{verb}能建立底池主动权。', 'a pocket pair has showdown value; {verb} takes the initiative.');
@@ -542,6 +547,7 @@ _tpl('coachRecheckHead','复诊 {n} 手 · 对 {c} 手({acc}%)','{n} hands · {c
 _tpl('coachRecheckDelta','{a}% → {b}%(基线 {n0} 手 / 本次 {n1} 手)','{a}% → {b}% (baseline {n0} / now {n1} hands)');
 _tpl('coachRecheckPass','✓ 已达标 · 后续计划的目标手型自动更新','✓ Passed · upcoming target hand-types updated');
 _tpl('coachRecheckFail','未达标 · 已把 2 个混合日转为最弱场景主攻','Not yet · 2 mixed days switched to your weakest scene');
+_tpl('coachRecheckShort','本次样本不足,不作判定 · 计划保持不变','Not enough hands to judge · plan unchanged');
 _tpl('coachRecheckDone','今日复诊已完成 · {acc}%','Re-check done today · {acc}%');
 _tpl('coachRecheckBack','回到今天的训练 →','Back to today\'s training →');
 _tpl('coachStartDay1','开始 Day 1','Start Day 1');

@@ -16,6 +16,12 @@ _genshot_*.html
 # local deploy script (contains EC2 host + key path — keep out of the public repo)
 /deploy.sh
 *.pem
+# iOS 签名材料(证书/密钥/描述文件)——公开仓库绝不入库
+*.p8
+*.p12
+*.mobileprovision
+ios_dist.key
+ios_dist.csr
 
 # Python
 __pycache__/

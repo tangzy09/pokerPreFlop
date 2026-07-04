@@ -1,4 +1,4 @@
-# Play Store Listing 文案（三语：English / 中文 / 日本語）
+# Store Listing 文案（Play + App Store，三语：English / 中文 / 日本語）
 
 > 上架素材文案的**唯一真源**（之前只存在对话里、已丢，2026-06-30 重写落盘）。
 > 诚实红线：不得宣称 solver 精确解；范围一律称「参考范围」，自算推弃称「Nash 推弃」。
@@ -115,3 +115,75 @@ Pro
 注意：学習・練習ツールであり、リアルマネーのギャンブルではありません。
 
 **ASOキーワード：** プリフロップ, GTO, ポーカー練習, レンジ, プッシュフォールド, Nash, MTT, キャッシュ, エクイティ, リーク, テキサスホールデム
+
+---
+---
+
+# App Store（iOS）Listing —— ASO 版（2026-07-04）
+
+> 苹果搜索**只索引 名称(≤30) + 副标题(≤30) + 关键词字段(每 locale ≤100 字符,买家不可见)**；
+> 三处**词不要互相重复**（索引取并集，重复=浪费额度）。描述不进苹果排名，但被 Google/AI
+> 抓取——**首段写成直接答案式**。每个 locale 独立 100 字符关键词额度，多语=白送覆盖。
+> ASC 的 App 名称**全球唯一**，建 App 时若被占用依次用候补。
+
+## en-US（主 locale）
+
+**Name（≤30，25 字符）——与 Play 同名，品牌一致：**
+PreFlop GTO Poker Trainer
+
+候补（若被占用）：
+1. `PreFlop Camp: GTO Poker Drill`（29）
+2. `GTO Poker Preflop Trainer Camp`（30）
+
+**Subtitle（≤30，30 字符）：**
+Push Fold Charts & Nash Ranges
+
+**Keywords（≤100，94 字符；不重复名称/副标题已有词）：**
+holdem,texas,solver,drill,quiz,mtt,tournament,cash,equity,odds,shove,study,coach,leak,strategy
+
+**Promotional text（≤170，可随时改不送审）：**
+7-day free trial on Pro Yearly. All scenarios, computed push/fold Nash, equity calculator and a 20-day training plan.
+
+**Description（首段=直接答案式，其余复用 Play 全文）：**
+PreFlop GTO Poker Trainer is a free, offline Texas Hold'em preflop trainer: 13×13 GTO range charts for open / defend / 3-bet / 4-bet / squeeze spots, our own computed push/fold Nash for 8–25bb stacks, a personal leak analyzer, and a 20-day training plan.
+
+（以下接 Play 英文 Full description 的 WHY IT'S DIFFERENT 起全文，含 gambling 免责句）
+
+## zh-Hans
+
+**名称（12 字符）：**
+德州扑克GTO翻前训练器
+
+**副标题（16 字符）：**
+推弃Nash图表·范围·漏洞诊断
+
+**关键词（≤100；避开名称/副标题已有词）：**
+扑克教练,起手牌,加注,3bet,全下,胜率计算,锦标赛,现金局,单挑,盲注,松紧,底牌,策略,练习,离线
+
+**描述首段（答案式）：**
+德州扑克GTO翻前训练器是一款免费、离线可用的翻前训练工具：13×13 GTO 范围图表（开局/防守/3-bet/4-bet/挤压），自算 8–25bb 推弃 Nash，个人漏洞分析与 20 天训练计划。
+（以下接 Play 中文完整描述全文）
+
+## ja
+
+**名称（15 字符）：**
+ポーカーGTOプリフロップ練習
+
+**副标题：**
+プッシュフォールドNashレンジ表
+
+**关键词（≤100）：**
+テキサスホールデム,ポーカー,トレーナー,エクイティ,オッズ,MTT,トーナメント,キャッシュ,リーク,戦略,オフライン
+
+**描述首段（答案式）：**
+ポーカーGTOプリフロップ練習は無料・オフライン対応のテキサスホールデム・プリフロップ訓練アプリ：13×13 GTOレンジ表、自前計算の8–25bbプッシュ/フォールドNash、リーク分析、20日間トレーニングプラン。
+（以下は Play 日本語詳細説明の全文を流用）
+
+## 备注
+
+- ASC「New App」建记录时填 en-US 名称 `PreFlop GTO Poker Trainer`；SKU `preflopcamp`；
+  Bundle ID `com.pokerpreflop.trainer`（已注册）。**手机桌面图标名**（CFBundleDisplayName）
+  保持 `Preflop Camp`——短名在桌面不截断，与商店搜索名分离是常规做法。
+- privacyPolicyUrl：https://pre-flop.ai-speeds.com/privacy.html（已上线，审核员会点）。
+- 关键词字段规则：逗号分隔**无空格**、用单数、别放竞品品牌词（如 wizard，有拒审风险）。
+- 诚实红线不变：描述不称 solver-exact，范围称「参考范围/reference ranges」。

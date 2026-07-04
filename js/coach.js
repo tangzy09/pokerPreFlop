@@ -56,7 +56,14 @@ function coachRightOf(t, hand){
 // 手型维度取舍:不做 scene×family 交叉(18 手样本太稀会编数据);两条独立轴:
 //   场景轴 topLeaks 靠 examples(实打实答错的手,事实陈述 n=1 也诚实)具体到手,
 //   手型轴 famLeaks 用全场景聚合的粗族比率(COACH_FAM_MIN 硬门)。
-function coachAggregate(results, scenes){
+// minSample(可选):场景断言门槛。简化版 18 手 ÷ 6 场景 = 每场景 3 手,固定门槛 4 会让
+// topLeaks/strengths 结构性永空(场景数从 4 涨到 6 时静默破坏)——诊断按实际每场景手数下调,
+// 诚实性由报告的 quick-estimate 免责 + 行内样本量兜底。
+function coachAggregate(results, scenes, minSample){
+  const MIN = Math.max(2, minSample || COACH_MIN_SAMPLE);
+  return _coachAggregate(results, scenes, MIN);
+}
+function _coachAggregate(results, scenes, MIN){
   const perScene = {}, perFamily = {};
   const nameOf = {}; (scenes||[]).forEach(s => nameOf[s.key] = s.name);
   results.forEach(r => {
@@ -77,7 +84,7 @@ function coachAggregate(results, scenes){
   Object.values(perScene).forEach(e => { e.acc = e.n ? e.correct / e.n : 0; });
   Object.values(perFamily).forEach(e => { e.acc = e.n ? e.correct / e.n : 0; });
   // Top 漏洞:样本足够的场景按正答率升序,取最弱的前 3;主漏洞类型=该场景错得最多的桶
-  const eligible = Object.keys(perScene).filter(k => perScene[k].n >= COACH_MIN_SAMPLE);
+  const eligible = Object.keys(perScene).filter(k => perScene[k].n >= MIN);
   const topLeaks = eligible
     .filter(k => perScene[k].acc < 0.7)
     .sort((a,b) => perScene[a].acc - perScene[b].acc)
@@ -225,10 +232,11 @@ function coachOpen(){
     }
     return;
   }
-  if(onboard){
-    // 有问卷但无计划(可能诊断未完成) — 重来问卷让用户重新选择版本
-    _coachSection('coachOnboard');
-    coachRenderOnboard();
+  // 有诊断没计划(看过报告没买 Pro 就退出了):回到报告——它是用户花 10 分钟挣来的,
+  // 也是付费墙的最高转化点;踢回问卷等于把报告丢了逼人重测(全局 review 修)。
+  const diag=coachLoadDiagnosis();
+  if(diag && diag.agg){
+    coachRenderReport(diag);
     return;
   }
   _coachSection('coachOnboard');
@@ -238,8 +246,8 @@ function coachOpen(){
 /* --- 问卷 --- */
 function coachRenderOnboard(){
   const el=document.getElementById('coachOnboard'); if(!el) return;
-  // 问卷状态
-  const state={ field:'cash', level:'mid', minutes:10, goal:'leak' };
+  // 问卷状态:回填已存答案(否则重开问卷时显示默认值,用户直接点开始会把 mtt 覆写回 cash)
+  const state=Object.assign({ field:'cash', level:'mid', minutes:10, goal:'leak' }, coachLoadOnboard()||{});
   const QUESTIONS=[
     { key:'field', title:tr('coachQ1'), opts:[
       {v:'cash',  l:L('现金局')}, {v:'mtt', l:L('锦标赛')}
@@ -461,7 +469,8 @@ function coachRenderRecheckReport(diag, slim){
   const el=document.getElementById('coachReport'); if(!el) return;
   _coachSection('coachReport');
   const base=diag.agg||{};
-  const passed = slim.n >= COACH_RECHECK_HANDS-1 && slim.acc >= COACH_RECHECK_PASS;
+  // 三态与 coachApplyRecheck 同口径:样本不足 → null(中性文案,不宣布达标/未达标)
+  const passed = slim.n < COACH_RECHECK_HANDS-1 ? null : (slim.acc >= COACH_RECHECK_PASS);
   // 场景/手型对比行:基线与本次都 n>=COACH_FAM_MIN 才出 a%→b% 箭头(凑不齐只列计数,不下结论)
   const rows=(baseMap, curMap, nameOf)=>{
     let html='';
@@ -486,7 +495,7 @@ function coachRenderRecheckReport(diag, slim){
     <div class="coach-card" style="text-align:center">
       <div class="coach-verdict">${tr('coachRecheckTitle',{d:slim.dayIdx+1})}</div>
       <div style="font-size:14px;margin-top:6px">${tr('coachRecheckHead',{n:slim.n,c:slim.correct,acc:Math.round(slim.acc*100)})}</div>
-      <div class="coach-note" style="margin-top:8px">${passed?tr('coachRecheckPass'):tr('coachRecheckFail')}</div>
+      <div class="coach-note" style="margin-top:8px">${passed===null?tr('coachRecheckShort'):passed?tr('coachRecheckPass'):tr('coachRecheckFail')}</div>
     </div>
     ${sceneRows?`<div class="coach-card"><div class="coach-lbl">${tr('coachScenePerf')}</div>${sceneRows}</div>`:''}
     ${famRows?`<div class="coach-card"><div class="coach-lbl">${tr('coachFamPerf')}</div>${famRows}</div>`:''}
@@ -692,6 +701,12 @@ function coachStartDayTraining(day){
 function coachMarkDayDone(){
   const plan=coachLoadPlan(); if(!plan) return;
   const d=plan.days[plan.curDay]; if(!d) return;
+  // 复诊日没做复诊就直接打卡:把复诊顺延到下一个未完成的普通天,别让 Day 7/14/20 三个锚点被静默跳空
+  if(d.recheck && !d.recheckDone){
+    const nx=plan.days.find(x=>x.idx>d.idx && !x.done && !x.recheck);
+    if(nx) nx.recheck=true;
+    d.recheck=false;
+  }
   d.done=true;
   // streak 连续逻辑：同一天重复打卡不重复计数；昨天打过→续；断更→重置为 1
   const today=new Date().toDateString();
@@ -775,9 +790,14 @@ function _coachStartDiagRun(queue, kind, dayIdx){
 function coachStartDiagnosis(onboard, variant, onReport){
   const scenes = coachScenes(onboard);
   const total = variant === 'full' ? 45 : 18;
+  const q = coachBuildDiagQueue(scenes, total);
+  if(!q.length){   // 空队列(该主战场无任何可出题场景):留在 coach 屏,不进牌桌——否则全屏隐藏后死屏
+    try{ if(typeof toast==='function') toast(tr('coachDayErr'),'⚠',true); }catch(e){}
+    return;
+  }
   _coachDiagOnReport = onReport;
   G.diagVariant = variant; G.diagScenes = scenes;
-  _coachStartDiagRun(coachBuildDiagQueue(scenes, total), 'diag', -1);
+  _coachStartDiagRun(q, 'diag', -1);
 }
 
 const COACH_RECHECK_HANDS = 6;    // 复诊手数(迷你测,只测当前重点漏洞)
@@ -805,6 +825,7 @@ function coachStartRecheck(day){
 
 // resolve() 的反馈「下一步/查看报告」按钮调用此函数推进:下一手或结束。
 function coachDiagAdvance(){
+  if(G.over) return;   // 最后一手反馈双击守卫:第一次已 finish(置 G.over),第二次会以基线身份覆写复诊 agg
   _coachDiagPos++;
   if(!_coachDiagQueue || _coachDiagPos>=_coachDiagQueue.length){ coachFinishDiagnosis(); return; }
   if(typeof nextHand==='function') nextHand();
@@ -815,7 +836,10 @@ function coachFinishDiagnosis(){
   if(typeof setMode==="function") setMode("normal"); G.over=true; G.busy=true;
   _coachExitTable();
   if(typeof showScreen==='function') showScreen('coachScreen');
-  const agg = coachAggregate(G.diagResults||[], G.diagScenes||[]);
+  // 场景断言门槛按实际每场景手数下调(简化 18 手 ÷ 6 场景 = 3),不让固定门槛把报告清空
+  const nScenes=(G.diagScenes||[]).length||1;
+  const per=Math.floor((G.diagResults||[]).length/nScenes);
+  const agg = coachAggregate(G.diagResults||[], G.diagScenes||[], Math.min(COACH_MIN_SAMPLE, Math.max(2, per)));
   if(_coachDiagKind==='recheck'){ coachFinishRecheck(agg); return; }
   const verdict = coachVerdict(agg, G.diagVariant);
   const diagnosis = { variant:G.diagVariant, agg, verdict, ts:0, history:[] };
@@ -835,6 +859,7 @@ function coachFinishRecheck(agg){
   const slim = { dayIdx:_coachDiagDayIdx, n, correct, acc:(n?correct/n:0),
                  perScene:slimOf(agg.perScene), perFamily:slimOf(agg.perFamily) };
   (diag.history = diag.history || []).push(slim);
+  if(diag.history.length>12) diag.history=diag.history.slice(-12);  // 跨多轮计划的复诊快照裁到最近 12 条,防 STORE 无限增长
   coachSaveDiagnosis(diag);
   const plan = coachLoadPlan();
   if(plan){ coachApplyRecheck(plan, diag, slim); coachSavePlan(plan); }
@@ -845,9 +870,12 @@ function coachFinishRecheck(agg){
 // 达标 → 后续未完成天的 targetFams 换 famLeaks 里"本次未覆盖"的下一批(练会了换目标);
 // 未达标 → 把最近 2 个 mixed 日转成最弱场景主攻(总天数恒 20,不延长——streak/UX 依赖 20)。
 function coachApplyRecheck(plan, diag, slim){
-  const passed = slim.n >= COACH_RECHECK_HANDS-1 && slim.acc >= COACH_RECHECK_PASS;
   const day = plan.days[slim.dayIdx];
   if(day){ day.recheckDone = true; day.recheckAcc = slim.acc; }
+  // 样本不足(题库收窄后抽不满 5 手):不判定、不动计划——满分 4/4 被判「未达标」还强扭混合日,
+  // 直接违背诚实红线的观感(全局 review 修)。passed:null = 中性。
+  if(slim.n < COACH_RECHECK_HANDS-1) return { passed:null };
+  const passed = slim.acc >= COACH_RECHECK_PASS;
   const future = plan.days.filter(d => d.idx > slim.dayIdx && !d.done);
   if(passed){
     const covered = new Set(Object.keys(slim.perFamily||{}));

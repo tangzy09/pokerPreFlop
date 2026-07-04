@@ -90,9 +90,9 @@ const PACKS={
     raise:"QQ+, AKs, A5s-A4s, KJs+, JTs",
     call:"22-JJ, ATs-AQs, A2s-A3s, KTs, QTs+, J9s+, T9s, 98s, 87s, 76s, 65s, 54s, AQo+, KQo"},
    {mode:'face3b',name:'开 BTN，BB 反加',who:'你 BTN 开局 → 大盲 3-bet · 200bb 超深 · 平跟为主',heroPos:'BTN',vilPos:'BB',tier:5,
-    raise:"KK+, A5s",call:"22-QQ, ATs-AKs, A2s-A4s, KTs-KQs, QTs-QJs, JTs, T9s, 98s, 87s, 76s, AJo-AKo, KQo",mix:"AKs, QQ"},
+    raise:"KK+, AKs, QQ, A5s",call:"22-QQ, ATs-AKs, A2s-A4s, KTs-KQs, QTs-QJs, JTs, T9s, 98s, 87s, 76s, AJo-AKo, KQo"},  /* AKs/QQ 的 4bet/call 混合 = 同入 raise+call(R∩C→mix);放 mix 串会被 isC 优先判成纯 call(全局 review 修) */
    {mode:'face3b',name:'开 CO，BTN 反加',who:'你 CO 开局 → 按钮位 3-bet · 200bb 超深 · 你无位置',heroPos:'CO',vilPos:'BTN',tier:5,
-    raise:"KK+",call:"22-QQ, ATs-AKs, A5s, KJs+, QJs, JTs, T9s, AQo+",mix:"AKs, A4s"},
+    raise:"KK+, AKs",call:"22-QQ, ATs-AKs, A5s, KJs+, QJs, JTs, T9s, AQo+",mix:"A4s"},  /* AKs 混合 4bet/call 走 R∩C;A4s 是 play-or-fold 边缘留 mix(全局 review 修) */
   ],
   /* Straddle 抓头(2026-07 场景扩充设计 §D):UTG 抓头 2bb = 等效深度约减半 + 底池多死钱。
      业界处理 = 等效浅深度 + 死钱修正 → 范围从 c6_50 出发放宽半档,src 明说是近似、非独立求解。
@@ -140,7 +140,7 @@ const PACKS={
    {mode:'open',name:'MP · 中位',who:'9人桌 · 15bb 浅码 · 你先开局',heroPos:'MP',tier:1,raise:"66+, A9s+, KTs+, QJs, AJo+, KQo"},
    {mode:'open',name:'CO · 关煞位',who:'9人桌 · 15bb 浅码 · 你先开局',heroPos:'CO',tier:2,raise:"44+, A7s+, A5s, K9s+, QTs+, JTs, T9s, ATo+, KJo+"},
    {mode:'open',name:'BTN · 按钮位',who:'9人桌 · 15bb 浅码 · 你先开局',heroPos:'BTN',tier:2,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T9s, A8o+, A5o, KTo+, QJo"},
-   {mode:'open',name:'SB · 小盲位',who:'9人桌 · 15bb 浅码 · 仅剩大盲',heroPos:'SB',tier:3,raise:"33+, A5s+, A2s, K9s+, QTs+, JTs, A9o+, KTo+, QJo"},
+   {mode:'open',name:'SB · 小盲位',who:'9人桌 · 15bb 浅码 · 仅剩大盲',heroPos:'SB',tier:3,raise:"33+, A2s+, K9s+, QTs+, JTs, A9o+, KTo+, QJo"},
   ],
   // d8p/d10/d12p/d15p/d20p push ranges are COMPUTED (Nash, see js/data/pushfold.js); the
   // raise strings (only on d10) are a fallback if that data file fails to load.
@@ -251,7 +251,7 @@ const PACKS={
   ],
   d40_6:[
    {mode:'open',name:'UTG · 枪口位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 你先开局',heroPos:'UTG',tier:1,raise:"22+, A8s+, A5s, KTs+, QJs, JTs, T9s, AJo+, KQo"},
-   {mode:'open',name:'HJ · 劫机位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 你先开局',heroPos:'HJ',tier:1,raise:"22+, A5s+, A2s, K9s+, QTs+, J9s+, T9s, 98s, ATo+, KJo+, QJo"},
+   {mode:'open',name:'HJ · 劫机位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 你先开局',heroPos:'HJ',tier:1,raise:"22+, A2s+, K9s+, QTs+, J9s+, T9s, 98s, ATo+, KJo+, QJo"},
    {mode:'open',name:'CO · 关煞位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 你先开局',heroPos:'CO',tier:2,raise:"22+, A2s+, K7s+, Q9s+, J9s+, T8s+, 97s+, 87s, 76s, A8o+, A5o, KTo+, QTo+, JTo"},
    {mode:'open',name:'BTN · 按钮位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 你先开局',heroPos:'BTN',tier:2,raise:"22+, A2s+, K4s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, 54s, A2o+, K8o+, Q9o+, J9o+, T9o, 98o"},
    {mode:'open',name:'SB · 小盲位',who:'6人桌 · 40bb 前注 · 终桌/短手 · 仅剩大盲',heroPos:'SB',tier:3,raise:"22+, A2s+, K5s+, Q7s+, J8s+, T8s+, 97s+, 86s+, 75s+, 65s, A2o+, K9o+, Q9o+, J9o+, T9o"},
@@ -319,7 +319,7 @@ const PACKS={
   ],
   btn:[
    {mode:'squeeze',name:'按钮挤压',who:'前位开局 + 有人跟注 → 你在按钮 · 100bb · 有位置',heroPos:'BTN',vilPos:['UTG','CO'],tier:1,
-    raise:"TT+, AQs+, AKo, AJs, KQs, A5s, A4s",call:"22-99, ATs, KJs, QJs, JTs, T9s, 98s, 87s, AJo"},
+    raise:"TT+, AQs+, AKo, AJs, KQs, A5s, A4s",call:"22-99, ATs, KJs, QJs, JTs, T9s, 98s, 87s, AQo, AJo"},  /* AQo 原漏写成空洞(弃 AQo 却跟更弱的 AJo)——全局 review 修 */
   ],
  },
  coldcall:{
