@@ -28,7 +28,7 @@ workflows:
         XCODE_SCHEME: "App"
         # ↓ App Store Connect 创建本 app 记录后拿到的数字 Apple ID(IOS_SETUP.md 第 2 步)
         APP_STORE_APP_ID: "6787507770"
-      node: 20
+      node: 22           # Capacitor 8 CLI 要求 Node ≥22(node:20 实测 fatal)
       xcode: latest        # 苹果强制新 SDK 才可上传;若某次升级把构建搞挂,钉成上次成功版本
       cocoapods: default
 
