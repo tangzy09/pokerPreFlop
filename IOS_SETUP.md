@@ -1,5 +1,12 @@
 # iOS 上线手册(无 Mac 路线)
 
+> ✅ **2026-07-04 全部完成**:App 记录(`6787507770`,商店名 PreFlop GTO Poker Trainer——ASO 名,
+> 桌面名仍 Preflop Camp)、订阅(`preflop_pro_yearly`/`preflop_pro_monthly`,175 区定价+年订 7 天
+> 试用;productId 带前缀因 Apple 账号级唯一)、RevenueCat iOS(`appl_uIzhs…` 已入代码)、
+> Codemagic → TestFlight(build 1)、三语商店页+30 张截图、**1.0+双订阅已提交审核**。
+> 本文档保留作历史手册;现行流程见 CLAUDE.md 的 iOS 节 + 全局 skill
+> (capacitor-ios-codemagic / appstore-connect-iap-api / appstore-listing)。
+
 > 代码侧已就绪:`ios/` Capacitor 工程(appId `com.pokerpreflop.trainer`、显示名 Preflop Camp、
 > 1024 图标、ITSAppUsesNonExemptEncryption=false)。打 iOS 包必须 macOS——用云端 Mac 代替本地。
 
@@ -29,7 +36,7 @@ Codemagic 路线的完整步骤 = 第 1、2 步(App ID + app 记录)→ Codemagi
 - `npx cap add ios` 工程 + `cap copy ios`(www 同步)
 - Info.plist:显示名 **Preflop Camp**、出口合规豁免(免每次 TestFlight 问询)
 - AppIcon 1024(`tools/gen-store-assets.py` 从矢量源重生成,勿手改 png)
-- RevenueCat 适配层跨端(`js/purchases.js` 的 `apiKey()` 按平台取 key;iOS key 现为占位 `appl_REPLACE_ME`)
+- RevenueCat 适配层跨端(`js/purchases.js` 的 `apiKey()` 按平台取 key;iOS key 已填真实 `appl_uIzhsfaBWGwmmxXuneJGFYnQQtm`)
 - CI:`.github/workflows/ios-build.yml`
   - 默认(无 secrets):无签名编译——验证工程健康
   - `upload=true` + secrets 齐:签名 archive → 上传 TestFlight
