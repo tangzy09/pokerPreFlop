@@ -102,6 +102,14 @@ tools/                   offline data computation — NOT shipped to the browser
                          store-assets/_feature.html);复用 ui-smoke 注入机制;无浏览器则 SKIP。npm run shots
   gen-ios-shots.js       (Node) 同机制出 App Store 截图 → store-assets/ios/(iPhone 6.7" 1290×2796 +
                          iPad 12.9" 2048×2732 × en/zh × 5 屏 + IAP 审核用付费墙图;已全部 API 传入 ASC)
+                         两个截图脚本共两处必不可少的注入(否则出残图,勿删):① PRESEED——<head> 预置
+                         localStorage seenIntro=1 + 注入删 #introOv,压掉首启新手引导浮层(headless 每次
+                         全新 localStorage 引导必弹,曾遮盖全部图);② pinApp(W)——viewport<480 时注入 CSS
+                         把 #app 强制成目标宽度并左对齐(Chromium headless ~480 CSS px 最小窗口宽度会把
+                         窄窗布局钳在 480,截图画布按 window-size×scale 裁 → 右侧按钮/右列卡片/宽表最右列
+                         被切;430 也正是真机 iPhone 6.7 点宽)。iPad(1024)/Play(540)≥480 不触发。
+                         **上传前务必 Read 逐张验图(无遮挡/不裁切/内容真/语言对/尺寸准)——见 appstore-listing
+                         /googleplay-publish skill 的「图片验收 HARD GATE」**
   gen-postflop-spots.py  (Python) solves canonical HU postflop spots with tools/solver (vectorized CFR+)
                          and writes js/data/postflop-spots.js (validated by test/solver-spots.test.js) —
                          kept as an offline artifact; no longer <script>-loaded (the 翻后GTO screen was removed)

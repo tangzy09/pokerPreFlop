@@ -30,6 +30,17 @@ const OUT = path.join(ROOT, 'store-assets', 'ios');
 fs.mkdirSync(OUT, { recursive: true });
 const APP = fs.readFileSync(path.join(ROOT, 'gto-trainer.html'), 'utf8');
 
+// 关掉首启新手引导(否则 headless 每次全新 localStorage → maybeIntro 弹浮层遮盖整张截图):
+// ① <head> 预置 seenIntro,引导根本不建;② 注入脚本开头再删一次 #introOv 兜底(file:// 下 localStorage 偶发不写)
+const PRESEED = '<script>try{localStorage.setItem("gtoTrainer_v1",JSON.stringify({seenIntro:1}));}catch(e){}</script>';
+const KILL_INTRO = 'var _iv=document.getElementById("introOv");if(_iv)_iv.remove();';
+// Chromium headless 有 ~480 CSS px 的最小窗口宽度:window-size<480 时布局视口仍被钳在 480,而截图画布
+// 按 window-size×scale 裁 → 右侧(中|EN 切换、右列卡片)被切。窗口窄于 480 时把 #app 强制成目标宽度并左对齐,
+// 让 app 正好落在画布内(430 也正是真机 iPhone 6.7 的点宽,更还原真机)。iPad(1024)/宽窗不触发。
+const pinApp = (W) => W < 480
+  ? `<style>#app{left:0!important;right:auto!important;margin:0!important;width:${W}px!important;max-width:${W}px!important}</style>`
+  : '';
+
 const REPORT_JS = [
   "var ob={field:'cash'};",
   "coachStartDiagnosis(ob,'simple',function(diag){try{coachRenderReport(diag);}catch(e){}});",
@@ -64,7 +75,10 @@ function shoot(html, outPath, W, H, scale) {
 
 let ok = 0, fail = 0;
 function gen(name, js, W, H, scale) {
-  const html = APP.replace('</body>', '<script>setTimeout(function(){try{' + js + '}catch(e){}},150);</script></body>');
+  const html = APP
+    .replace('<meta charset="UTF-8">', '<meta charset="UTF-8">' + PRESEED)
+    .replace('</head>', pinApp(W) + '</head>')
+    .replace('</body>', '<script>setTimeout(function(){try{' + KILL_INTRO + js + '}catch(e){}},150);</script></body>');
   const out = path.join(OUT, name + '.png');
   const good = shoot(html, out, W, H, scale);
   console.log((good ? '  ✓ ' : '  ✗ ') + name + (good ? ' ' + Math.round(fs.statSync(out).size / 1024) + 'KB' : ''));

@@ -39,6 +39,16 @@ const OUT = path.join(ROOT, 'store-assets');
 const APP = fs.readFileSync(path.join(ROOT, 'gto-trainer.html'), 'utf8');
 const PHONE_W = 540, PHONE_H = 1140; // ×2 → 1080×2280(Play 手机截图)
 
+// 关掉首启新手引导(否则 headless 每次全新 localStorage → maybeIntro 弹浮层遮盖整张截图):
+// ① <head> 预置 seenIntro,引导根本不建;② 注入脚本开头再删一次 #introOv 兜底(file:// 下 localStorage 偶发不写)
+const PRESEED = '<script>try{localStorage.setItem("gtoTrainer_v1",JSON.stringify({seenIntro:1}));}catch(e){}</script>';
+const KILL_INTRO = 'var _iv=document.getElementById("introOv");if(_iv)_iv.remove();';
+// Chromium headless 最小窗口宽度 ~480 CSS px:window-size<480 布局仍钳在 480,截图画布按 ws×scale 裁 → 右侧被切。
+// 窗口窄于 480 时把 #app 强制成目标宽度并左对齐,正好落在画布内。Play 手机宽 540≥480 不触发(app 520 居中即可)。
+const pinApp = (W) => W < 480
+  ? `<style>#app{left:0!important;right:auto!important;margin:0!important;width:${W}px!important;max-width:${W}px!important}</style>`
+  : '';
+
 // 诊断报告:跑 coachStartDiagnosis + 填 mock 结果 + coachFinishDiagnosis(走真实聚合渲染),最后收起训练 chrome
 const REPORT_JS = [
   "var ob={field:'cash'};",
@@ -82,7 +92,10 @@ function report(name, good, outPath) {
 
 // 1) 手机截图:临时 HTML 落在 ROOT(相对 js/ 才解析得到)
 for (const s of SHOTS) {
-  const html = APP.replace('</body>', '<script>setTimeout(function(){try{' + s.js + '}catch(e){}},150);</script></body>');
+  const html = APP
+    .replace('<meta charset="UTF-8">', '<meta charset="UTF-8">' + PRESEED)
+    .replace('</head>', pinApp(PHONE_W) + '</head>')
+    .replace('</body>', '<script>setTimeout(function(){try{' + KILL_INTRO + s.js + '}catch(e){}},150);</script></body>');
   const out = path.join(OUT, s.name + '.png');
   report(s.name, shoot(html, out, PHONE_W, PHONE_H, 2, ROOT), out);
 }
