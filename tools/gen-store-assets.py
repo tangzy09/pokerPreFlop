@@ -40,17 +40,15 @@ def rounded(draw, box, r, fill, outline=None, width=1):
 SUIT = {"spade":"♠", "heart":"♥", "club":"♣", "diam":"♦"}
 
 def card(w, h, rank, suit, suit_color):
-    """画一张扑克牌（白底圆角，左上角 rank+花色），返回 RGBA"""
+    """画一张扑克牌（白底圆角，左上角只放 rank 字母，中心一个大花色），返回 RGBA"""
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     rounded(d, [0, 0, w - 1, h - 1], int(w * 0.13), fill=(252, 250, 245, 255),
             outline=(210, 205, 195, 255), width=max(2, w // 90))
     rf = font(int(h * 0.30))
-    sf = font(int(h * 0.30))
     pad = int(w * 0.12)
     d.text((pad, pad - int(h*0.04)), rank, font=rf, fill=suit_color)
-    # 花色用文字符号；Arial 含基本花色字形
-    d.text((pad, pad + int(h * 0.26)), SUIT[suit], font=sf, fill=suit_color)
+    # 只保留角落点数字母 + 中心大花色(去掉字母下方的小花色,用户 2026-07-05 要求)
     # 中心大花色
     cf = font(int(h * 0.46))
     bb = d.textbbox((0, 0), SUIT[suit], font=cf)
@@ -66,13 +64,13 @@ def make_icon():
     d = ImageDraw.Draw(img)
     # 圆角金色细边框
     rounded(d, [8*SS, 8*SS, S-9*SS, S-9*SS], 96*SS, fill=None, outline=(*GOLD, 110), width=4*SS)
-    # 两张牌扇形展开：K♠（后、右倾）+ A♥（前、左倾），都露出来、整体居中偏下
+    # 两张牌扇形展开：A♥（后、左倾）+ K♠（前、右倾，在上层，K 完整露出），整体居中偏下
     cw, ch = 196*SS, 274*SS
     k = card(cw, ch, "K", "spade", (28, 28, 32, 255)).rotate(16, expand=True, resample=Image.BICUBIC)
     a = card(cw, ch, "A", "heart", RED + (255,)).rotate(-14, expand=True, resample=Image.BICUBIC)
     cy = S//2 + 24*SS
-    img.alpha_composite(k, (S//2 - k.width//2 + 92*SS, cy - k.height//2))
     img.alpha_composite(a, (S//2 - a.width//2 - 92*SS, cy - a.height//2))
+    img.alpha_composite(k, (S//2 - k.width//2 + 92*SS, cy - k.height//2))
     # 顶部 GTO 金标
     gf = font(104*SS)
     bb = d.textbbox((0,0), "GTO", font=gf)
