@@ -1,22 +1,22 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>翻前训练营 Preflop Camp — 免费德州扑克翻前 GTO 训练器 · 自算 Nash 推弃真 EV</title>
-<meta name="description" content="免费在线练德州扑克翻前决策：开局、防守、3-bet/4-bet、挤压、推弃全模式；推弃档位为自算 Nash 均衡并附每手真实 EV，绝不编造数据。诊断测试 + 20 天个性化训练计划，离线可用、无需注册。Free preflop GTO trainer with solved Nash push/fold and real per-hand EV.">
+<title>Preflop Camp — Free Texas Hold'em Preflop GTO Trainer · Solved Nash Push/Fold EV</title>
+<meta name="description" content="Free Texas Hold'em preflop GTO trainer: opening, blind defense, 3-bet/4-bet, squeeze, cold-call. Push/fold ranges are our own solved Nash with real per-hand EV — never fabricated. Offline, no signup.">
 <link rel="canonical" href="https://pre-flop.ai-speeds.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://pre-flop.ai-speeds.com/">
-<meta property="og:title" content="翻前训练营 Preflop Camp — 免费德州扑克翻前 GTO 训练器">
-<meta property="og:description" content="开局/防守/3-bet/推弃全模式,自算 Nash 真 EV,诊断 + 20 天计划,免费离线无需注册。">
+<meta property="og:title" content="Preflop Camp — Free Texas Hold'em Preflop GTO Trainer">
+<meta property="og:description" content="Open / defend / 3-bet / 4-bet / squeeze / push-fold. Push/fold is our own solved Nash with real per-hand EV — never fabricated. Diagnosis + 20-day plan. Free, offline, no signup.">
 <meta property="og:image" content="https://pre-flop.ai-speeds.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="翻前训练营 Preflop Camp — Free Preflop GTO Trainer">
+<meta name="twitter:title" content="Preflop Camp — Free Preflop GTO Trainer">
 <meta name="twitter:description" content="Solved Nash push/fold with real per-hand EV · diagnosis + 20-day plan · free, offline, no signup">
 <meta name="twitter:image" content="https://pre-flop.ai-speeds.com/og-image.png">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"翻前训练营 Preflop Camp","alternateName":"Preflop Camp","url":"https://pre-flop.ai-speeds.com/","applicationCategory":"EducationalApplication","operatingSystem":"Web, Android","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"inLanguage":["zh-CN","en"],"description":"免费德州扑克翻前 GTO 训练器：全场景翻前决策训练,推弃档位为自算 Nash 均衡并附每手真实 EV。Free preflop GTO trainer with solved Nash push/fold EV."}
+{"@context":"https://schema.org","@type":"WebApplication","name":"Preflop Camp","alternateName":"PreFlop GTO Poker Trainer","url":"https://pre-flop.ai-speeds.com/","applicationCategory":"EducationalApplication","operatingSystem":"Web, Android, iOS","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"inLanguage":["en","zh-CN"],"description":"Free Texas Hold'em preflop GTO trainer: opening, blind defense, 3-bet/4-bet, squeeze, cold-call. Push/fold ranges are our own solved Nash with real per-hand EV — never fabricated. Offline, no signup."}
 </script>
 <!-- 内嵌字体（离线）：Space Grotesk + Space Mono 的 latin 子集；中文(Noto Sans SC)走系统回退 -->
 <style>
@@ -519,15 +519,15 @@
   <!-- HUD -->
   <div class="hud">
     <div class="hud-left">
-      <button class="exit-btn" id="exitBtn" title="退出训练" aria-label="退出训练">←</button>
+      <button class="exit-btn" id="exitBtn" title="Exit training" aria-label="Exit training">←</button>
       <div class="hp" id="hp"></div>
     </div>
     <div class="hud-right">
-      <div class="hud-score"><div class="score" id="score">0</div><div class="lvl" id="hudScene">现金 6人</div><div class="lvl" id="lvl">LV.1 · 0/20</div></div>
+      <div class="hud-score"><div class="score" id="score">0</div><div class="lvl" id="hudScene">Cash 6-max</div><div class="lvl" id="lvl">LV.1 · 0/20</div></div>
     </div>
   </div>
   <div class="hud2">
-    <button class="end-btn" id="endBtn" title="结束训练 · 查看战绩">结束</button>
+    <button class="end-btn" id="endBtn" title="End training · view results">End</button>
     <div class="combo-wrap"><span class="combo" id="combo"></span></div>
   </div>
 
@@ -552,51 +552,51 @@
     <div class="fb-reason" id="fbReason"></div>
     <div class="fb-leak hide" id="fbLeak"></div>
     <div class="fbmx hide" id="fbMatrix"></div>
-    <button class="fb-next" id="fbNext">下一步 →</button>
+    <button class="fb-next" id="fbNext">Next →</button>
   </div>
 
   <!-- HOME MENU（主页：训练计划顶部横幅 + 6 个功能卡，复用现有功能、不改任何现有逻辑） -->
   <div class="screen" id="homeScreen">
     <div class="logo-suit" style="margin-top:30px"><span class="blk">♠</span><span class="r">♥</span><span class="r">♦</span><span class="blk">♣</span></div>
-    <h1 style="margin:6px 0 28px">GTO 翻前<b>训练</b></h1>
+    <h1 style="margin:6px 0 28px" data-i18n-html="homeH1">GTO Preflop <b>Training</b></h1>
     <div class="home-grid">
-      <button class="home-card wide" id="homePlan"><span class="hc-pro">PRO</span><span class="hc-ic">🗓</span><span class="hc-txt"><span class="hc-t">训练计划</span><span class="hc-s">翻前诊断 + 20 天个性化计划</span></span></button>
-      <button class="home-card" id="homeCash"><span class="hc-ic">💵</span><span class="hc-t">现金局</span><span class="hc-s">100bb 深码</span></button>
-      <button class="home-card" id="homeMtt"><span class="hc-ic">🏆</span><span class="hc-t">锦标赛</span><span class="hc-s">推弃 + ICM</span></button>
-      <button class="home-card" id="homePush"><span class="hc-ic">♠</span><span class="hc-t">推弃特训</span><span class="hc-s">Nash 精确 · 带真 EV</span></button>
-      <button class="home-card" id="homeReview"><span class="hc-ic">📕</span><span class="hc-t">错题复习</span><span class="hc-s">复习答错的牌</span></button>
-      <button class="home-card" id="homeNash"><span class="hc-pro">PRO</span><span class="hc-ic">♠</span><span class="hc-t">Nash 推弃图</span><span class="hc-s">每手 EV</span></button>
-      <button class="home-card" id="homeEquity"><span class="hc-pro">PRO</span><span class="hc-ic">🧮</span><span class="hc-t">算胜率</span><span class="hc-s">实时算牌</span></button>
-      <button class="home-card" id="homePath"><span class="hc-ic">🧭</span><span class="hc-t">学习路径</span><span class="hc-s">从开局到 MTT · 看进度</span></button>
-      <button class="home-card" id="homeStats"><span class="hc-ic">📈</span><span class="hc-t">统计</span><span class="hc-s">画像 + 漏洞</span></button>
-      <a class="home-card wide" id="homeSister" href="https://post-flop-coach.ai-speeds.com/" target="_blank" rel="noopener"><span class="hc-ic">♦</span><span class="hc-txt"><span class="hc-t">翻后教练</span><span class="hc-s">30 课翻后训练 · 姐妹站</span></span></a>
+      <button class="home-card wide" id="homePlan"><span class="hc-pro">PRO</span><span class="hc-ic">🗓</span><span class="hc-txt"><span class="hc-t">Training Plan</span><span class="hc-s">Preflop diagnosis + 20-day plan</span></span></button>
+      <button class="home-card" id="homeCash"><span class="hc-ic">💵</span><span class="hc-t">Cash</span><span class="hc-s">100bb deep</span></button>
+      <button class="home-card" id="homeMtt"><span class="hc-ic">🏆</span><span class="hc-t">Tournament</span><span class="hc-s">Push/fold + ICM</span></button>
+      <button class="home-card" id="homePush"><span class="hc-ic">♠</span><span class="hc-t">Push/Fold Camp</span><span class="hc-s">Solved Nash · real EV</span></button>
+      <button class="home-card" id="homeReview"><span class="hc-ic">📕</span><span class="hc-t" data-i18n="错题复习">Mistakes</span><span class="hc-s">Review your misses</span></button>
+      <button class="home-card" id="homeNash"><span class="hc-pro">PRO</span><span class="hc-ic">♠</span><span class="hc-t">Nash Charts</span><span class="hc-s">Per-hand EV</span></button>
+      <button class="home-card" id="homeEquity"><span class="hc-pro">PRO</span><span class="hc-ic">🧮</span><span class="hc-t">Equity</span><span class="hc-s">Live equity</span></button>
+      <button class="home-card" id="homePath"><span class="hc-ic">🧭</span><span class="hc-t">Learning path</span><span class="hc-s">RFI to MTT · see progress</span></button>
+      <button class="home-card" id="homeStats"><span class="hc-ic">📈</span><span class="hc-t">Stats</span><span class="hc-s">Profile + leaks</span></button>
+      <a class="home-card wide" id="homeSister" href="https://post-flop-coach.ai-speeds.com/" target="_blank" rel="noopener"><span class="hc-ic">♦</span><span class="hc-txt"><span class="hc-t">Postflop Coach</span><span class="hc-s">30-lesson postflop trainer · sister app</span></span></a>
     </div>
-    <p class="seo-intro" style="max-width:440px;margin:26px auto 0;color:#8fa79a;font-size:.78rem;line-height:1.7;text-align:center">翻前训练营(Preflop Camp)是免费的德州扑克翻前 GTO 决策训练器：现金局与锦标赛全场景(开局加注、大小盲防守、面对 3-bet/4-bet、挤压、冷跟、跛入与 straddle、8–25bb 推弃)；推弃与跟注档位为自算 Nash 均衡并附每手真实 EV —— 绝不编造数据。含翻前诊断、20 天个性化训练计划、错题复习与漏洞分析，离线可用、无需注册、中英双语。Free preflop GTO trainer for Texas Hold'em: solved Nash push/fold with real per-hand EV, diagnosis + 20-day plan, offline, bilingual, no signup.</p>
+    <p class="seo-intro" style="max-width:440px;margin:26px auto 0;color:#8fa79a;font-size:.78rem;line-height:1.7;text-align:center">Preflop Camp is a free preflop GTO trainer for Texas Hold'em: full cash & tournament coverage (open raises, blind defense, vs 3-bet/4-bet, squeeze, cold-call, limp & straddle pots, 8-25bb push/fold); push/fold and call-off charts are self-solved Nash equilibria with real per-hand EV — no fabricated numbers. Includes a preflop diagnosis, a 20-day personal plan, mistake review and leak analysis. Offline, bilingual, no signup.</p>
   </div>
 
   <!-- 推弃特训：快速选档直达（全部 precise 自算 Nash,反馈带求解器真 EV） -->
   <div class="chart-screen hide" id="pushScreen">
     <div class="chart-bar">
-      <button class="back-btn" id="pushBack">← 返回</button>
-      <div class="chart-title">推弃特训</div>
-      <div class="back-btn" style="visibility:hidden">← 返回</div>
+      <button class="back-btn" id="pushBack">← Back</button>
+      <div class="chart-title">Push/Fold Camp</div>
+      <div class="back-btn" style="visibility:hidden">← Back</div>
     </div>
     <div class="chart-body about">
-      <p class="cnote" style="margin:0">全部为本工具自算 Nash（标「精准」）· 反馈附求解器每手真 EV</p>
-      <div class="ab-card" style="width:100%;max-width:430px"><h3>9 人桌 · 全下或弃</h3>
+      <p class="cnote" style="margin:0">All solved by this app's own Nash solver (tagged "Exact") · feedback shows the solver's real per-hand EV</p>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>9-max · jam or fold</h3>
         <div class="push-chips" data-group="d">
           <button class="opt" data-pv="d8p">8bb</button><button class="opt" data-pv="d10">10bb</button>
           <button class="opt" data-pv="d12p">12bb</button><button class="opt" data-pv="d15p">15bb</button>
           <button class="opt" data-pv="d20p">20bb</button>
         </div>
       </div>
-      <div class="ab-card" style="width:100%;max-width:430px"><h3>6 人终桌 · 全下或弃</h3>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>6-max final table · jam or fold</h3>
         <div class="push-chips">
           <button class="opt" data-pv="p6_10">10bb</button><button class="opt" data-pv="p6_15">15bb</button>
           <button class="opt" data-pv="p6_20">20bb</button>
         </div>
       </div>
-      <div class="ab-card" style="width:100%;max-width:430px"><h3>单挑 HU · SB 全下 + BB 跟注</h3>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>Heads-up · SB jam + BB call</h3>
         <div class="push-chips">
           <button class="opt" data-pv="hu5">5bb</button><button class="opt" data-pv="hu8">8bb</button>
           <button class="opt" data-pv="hu10">10bb</button><button class="opt" data-pv="hu12">12bb</button>
@@ -604,7 +604,7 @@
           <button class="opt" data-pv="hu25">25bb</button>
         </div>
       </div>
-      <div class="ab-card" style="width:100%;max-width:430px"><h3>BB 跟注 · 面对 BTN 全下</h3>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>BB call-off · vs BTN jam</h3>
         <div class="push-chips">
           <button class="opt" data-pv="co10">10bb</button><button class="opt" data-pv="co15">15bb</button>
           <button class="opt" data-pv="co20">20bb</button>
@@ -615,7 +615,7 @@
 
   <!-- START screen / TRAINING SETUP -->
   <div class="screen hide" id="startScreen">
-    <button class="back-btn" id="homeBack" style="align-self:flex-start;margin:6px 0 2px">← 主页</button>
+    <button class="back-btn" id="homeBack" style="align-self:flex-start;margin:6px 0 2px">← Home</button>
 
     <!-- live range preview: shown above Start, updates as you pick game type / scenario / variant -->
     <div class="sel-group" id="startChartGroup" style="width:100%;max-width:430px;position:relative">
@@ -624,41 +624,41 @@
         <div class="cmatrix-who" id="sWho"></div>
         <div class="cmatrix" id="sMatrix"></div>
         <div class="clegend" id="sLegend"></div>
-        <div class="cinfo" id="sInfo">点格子查看每手牌的建议</div>
+        <div class="cinfo" id="sInfo">Tap a cell to see the suggestion</div>
       </div>
     </div>
 
-    <button class="big-btn" id="startBtn">开始训练</button>
+    <button class="big-btn" id="startBtn">Start Training</button>
 
     <div class="sel-group" id="gameTypeGroup" style="display:none">
-      <div class="sel-label">游戏类型</div>
+      <div class="sel-label">Game type</div>
       <div class="opts" id="selGame">
-        <button class="opt" data-g="cash">现金局<small>100bb 深码</small></button>
-        <button class="opt" data-g="mtt">锦标赛 MTT<small>浅码 + ICM</small></button>
+        <button class="opt" data-g="cash">Cash<small>100bb deep</small></button>
+        <button class="opt" data-g="mtt">Tournament MTT<small>Short stacks + ICM</small></button>
       </div>
     </div>
     <div class="sel-group" id="fmtGroup">
-      <div class="sel-label">场景</div>
+      <div class="sel-label">Scenario</div>
       <div class="opts opts-wrap" id="selFormat">
-        <button class="opt" data-v="cash">开局 + 防守</button>
-        <button class="opt" data-v="mtt">开局范围</button>
-        <button class="opt" data-v="face3b">面对 3-bet<small>你开局被反加</small></button>
-        <button class="opt" data-v="face4b">面对 4-bet<small>你 3bet 被 4bet</small></button>
-        <button class="opt" data-v="limp">面对跛入<small>隔离或跟跛</small></button>
-        <button class="opt" data-v="squeeze">挤压<small>有人开+跟 · 你反加</small></button>
-        <button class="opt" data-v="coldcall">冷跟<small>非盲位平跟入池</small></button>
+        <button class="opt" data-v="cash">Open + Defense</button>
+        <button class="opt" data-v="mtt">Open ranges</button>
+        <button class="opt" data-v="face3b">Vs 3-bet<small>You open, get 3-bet</small></button>
+        <button class="opt" data-v="face4b">Vs 4-bet<small>You 3-bet, get 4-bet</small></button>
+        <button class="opt" data-v="limp">Vs limp<small>isolate or over-limp</small></button>
+        <button class="opt" data-v="squeeze">Squeeze<small>Open + call · you re-raise</small></button>
+        <button class="opt" data-v="coldcall">Cold<small>Flat from non-blind</small></button>
       </div>
     </div>
     <div class="sel-group">
-      <div class="sel-label" id="selVarLabel">牌桌人数</div>
+      <div class="sel-label" id="selVarLabel">Players</div>
       <div class="opts opts-wrap" id="selVariant"></div>
       <!-- 位置按钮（#sChips）由 renderStartChart 动态插到所选档位分组的正下方 -->
     </div>
 
     <details class="adv">
-      <summary>⚙ 进阶设置 · 发牌偏好</summary>
+      <summary>⚙ Advanced · deal preference</summary>
       <div class="sel-group">
-        <div class="sel-label">发牌偏好 <span style="color:var(--foldink);letter-spacing:0;text-transform:none">· 练哪类牌</span></div>
+        <div class="sel-label">Deal preference <span style="color:var(--foldink);letter-spacing:0;text-transform:none">· which hands</span></div>
         <div class="opts opts-wrap" id="selDeal"></div>
       </div>
       <div class="sel-group" id="notifySetting" style="display:none">
@@ -672,36 +672,36 @@
          home cards 经 click('reviewBtn'/'nashBtn'/'calcBtn'/'statsBtn') 代理,且多处 onclick 绑定无 null 守卫,
          故隐藏而非删除——display:none 元素的 .click() 仍会触发 onclick。 -->
     <div class="navrow" style="display:none">
-      <button class="navbtn" id="reviewBtn"><span class="ic">📕</span><span class="lbl">错题</span></button>
-      <button class="navbtn" id="nashBtn"><span class="ic">♠</span><span class="lbl" id="nashBtnLbl">Nash图</span></button>
-      <button class="navbtn" id="calcBtn"><span class="ic">🧮</span><span class="lbl">算胜率</span></button>
-      <button class="navbtn" id="statsBtn"><span class="ic">📈</span><span class="lbl">统计</span></button>
+      <button class="navbtn" id="reviewBtn"><span class="ic">📕</span><span class="lbl" data-i18n="错题">Mistakes</span></button>
+      <button class="navbtn" id="nashBtn"><span class="ic">♠</span><span class="lbl" id="nashBtnLbl">Nash</span></button>
+      <button class="navbtn" id="calcBtn"><span class="ic">🧮</span><span class="lbl">Equity</span></button>
+      <button class="navbtn" id="statsBtn"><span class="ic">📈</span><span class="lbl">Stats</span></button>
     </div>
 
   </div>
 
   <!-- GAME OVER screen -->
   <div class="screen hide" id="overScreen">
-    <div class="lvl" id="overKicker">OUT · 出局</div>
-    <h1 id="overTitle">本局结束</h1>
+    <div class="lvl" id="overKicker">OUT · busted</div>
+    <h1 id="overTitle">Game over</h1>
     <div class="stats" id="overStats"></div>
     <div class="ach-list" id="overAch"></div>
-    <button class="big-btn" id="againBtn">再来一局</button>
-    <button class="ghost-btn" id="overReviewBtn">📕 错题复习堆 (0)</button>
+    <button class="big-btn" id="againBtn">Play again</button>
+    <button class="ghost-btn" id="overReviewBtn">📕 Mistakes pile (0)</button>
   </div>
 
   <!-- NASH CHARTS screen (自算 Nash 推弃图查询器，每手 chip-EV) -->
   <div class="chart-screen hide" id="nashScreen">
     <div class="chart-bar">
-      <button class="back-btn" id="nashBack">← 返回</button>
-      <div class="chart-title" id="nashTitle">Nash 推弃图</div>
-      <div class="back-btn" style="visibility:hidden">← 返回</div>
+      <button class="back-btn" id="nashBack">← Back</button>
+      <div class="chart-title" id="nashTitle">Nash Charts</div>
+      <div class="back-btn" style="visibility:hidden">← Back</div>
     </div>
     <div class="chart-body">
-      <div class="sel-group"><div class="sel-label" id="nModeLbl">场景</div><div class="opts opts-wrap" id="nMode"></div></div>
-      <div class="sel-group"><div class="sel-label" id="nAnteLbl">前注</div><div class="opts opts-wrap" id="nAnte"></div></div>
-      <div class="sel-group"><div class="sel-label" id="nStackLbl">筹码深度 (bb)</div><div class="opts opts-wrap" id="nStack"></div></div>
-      <div class="sel-group" id="nPosGroup"><div class="sel-label" id="nPosLbl">位置</div><div class="opts opts-wrap" id="nPos"></div></div>
+      <div class="sel-group"><div class="sel-label" id="nModeLbl">Scenario</div><div class="opts opts-wrap" id="nMode"></div></div>
+      <div class="sel-group"><div class="sel-label" id="nAnteLbl">Ante</div><div class="opts opts-wrap" id="nAnte"></div></div>
+      <div class="sel-group"><div class="sel-label" id="nStackLbl">Stack depth (bb)</div><div class="opts opts-wrap" id="nStack"></div></div>
+      <div class="sel-group" id="nPosGroup"><div class="sel-label" id="nPosLbl">Position</div><div class="opts opts-wrap" id="nPos"></div></div>
       <div class="cmatrix-wrap">
         <div class="cmatrix-head"><span id="nName">—</span><span class="cmatrix-stat" id="nStat"></span></div>
         <div class="cmatrix-who" id="nWho"></div>
@@ -714,177 +714,177 @@
   <!-- ABOUT screen -->
   <div class="chart-screen hide" id="aboutScreen">
     <div class="chart-bar">
-      <button class="back-btn" id="aboutBack">← 返回</button>
-      <div class="chart-title">关于数据与假设</div>
-      <div class="back-btn" style="visibility:hidden">← 返回</div>
+      <button class="back-btn" id="aboutBack">← Back</button>
+      <div class="chart-title">About data & assumptions</div>
+      <div class="back-btn" style="visibility:hidden">← Back</div>
     </div>
     <div class="chart-body about">
       <div class="ab-card ab-ok">
-        <h3>✅ 这是什么</h3>
-        <p data-i18n-html="about_what_p">一个翻前决策的<b>入门训练工具</b>，帮你建立「什么位置该开什么牌」的 GTO 范围直觉。适合练习、记忆、找漏洞。</p>
+        <h3>✅ What this is</h3>
+        <p data-i18n-html="about_what_p">A <b>beginner training tool</b> for preflop decisions — it builds your intuition for "what to open from where." Great for practice, memorization, and finding leaks.</p>
       </div>
       <div class="ab-card ab-warn">
-        <h3>⚠️ 这不是什么</h3>
-        <p data-i18n-html="about_not_p"><b>大部分范围不是 solver 精确解</b>：开局、大盲防守、面对 3bet/4bet、挤压、冷跟等，是参考公开 GTO 图表 + 扑克理论<b>手工整理的简化范围</b>（界面上不带标签），与 PioSOLVER / GTO Wizard 会有出入——尤其边缘牌取舍和混合频率。<b>例外</b>：各档<b>推弃 / 全下跟注</b>由本工具<b>自算 Nash</b>（界面标<b>「精准」</b>，详见下方「假设条件」），但仍是简化模型、非真实牌桌精确。要做精确研究，请用真正的 solver。</p>
+        <h3>⚠️ What this isn't</h3>
+        <p data-i18n-html="about_not_p"><b>Most ranges are not solver-exact.</b> Opens, BB defense, vs 3-bet/4-bet, squeeze, cold-call are <b>hand-curated simplified ranges</b> from public GTO charts + poker theory (shown without a tag) and will differ from PioSOLVER / GTO Wizard — especially on edge hands and mix frequencies. <b>Exception:</b> the <b>jam/fold & jam-call</b> spots are <b>solved by this app's own Nash solver</b> (tagged <b>"Nash GTO"</b>, see Assumptions below), but still a simplified model, not table-exact. For real precision, use a real solver.</p>
       </div>
       <div class="ab-card">
-        <h3>📐 假设条件</h3>
+        <h3>📐 Assumptions</h3>
         <ul>
-          <li data-i18n-html="about_li1"><b>现金局</b>：100bb 深度、约 2.5x 开局、常规抽水</li>
-          <li data-i18n-html="about_li2"><b>MTT 40/25/15bb</b>：带前注的近似开局范围。<b>注意</b>：真实前注会让范围更宽，本工具偏<b>保守（略紧）</b>，宁紧勿松，可按实战略放宽</li>
-          <li data-i18n-html="about_li3"><b>MTT 6人（终桌/短手）</b>：40bb / 20bb 近似开局。人少→范围更宽；按「取后位＋适度放宽」估计，<b>非精确解</b></li>
-          <li data-i18n-html="about_li4"><b>推弃 / 全下跟注（标「精准」）</b>：用本工具自带 equity + Nash 求解器<b>自算</b>，覆盖 9 人 8/10/12/15/20bb 全下弃、6 人 10/15/20bb、单挑 HU 5–25bb（SB 全下＋BB 跟）、9 人 BB 面对 BTN 全下的跟注。<b>无前注</b>的简化模型（no-overcall / 类级 equity / 蒙特卡洛），<b>非真实牌桌精确</b>；每档可利用度已测量、写在「精准」标签的提示里（越接近 0 越准）</li>
-          <li data-i18n-html="about_li5"><b>泡沫 ICM</b>：<b>本工具最粗的一块</b>。这里简化成「一律收紧开局＝保命」，但真实 ICM 的核心其实是<b>跟注/全下跟注更紧</b>（别出局）；筹码舒服的大牌量反而能<b>开得更宽去施压</b>风险厌恶的对手。请把 ICM 档当「保命直觉」看，别照搬到具体泡沫局</li>
-          <li data-i18n-html="about_li6"><b>面对 3-bet（4bet/跟/弃）</b>：100bb 近似范围，4-bet ~3%。有位置(IP)防守更宽、无位置(OOP)更紧——形状对，但 4bet/跟注的精确分配随下注尺度变化</li>
-          <li data-i18n-html="about_li7"><b>面对 4-bet（5bet全下/跟/弃）</b>：100bb 近似。基本「全下或弃」、跟注极窄；5-bet 视作直接全下</li>
-          <li data-i18n-html="about_li8"><b>挤压 Squeeze（开+跟后反加）</b>：100bb 近似。挤压偏两极化（价值+阻断诈唬）、overcall 为多人底池投机牌；尺度/人数会影响精确范围</li>
-          <li data-i18n-html="about_li9"><b>冷跟 Cold-call（非盲位防守）</b>：100bb 近似。<b>平跟范围≠开局范围</b>——开局会加的牌很多面对加注要改 3bet 或弃；位置越靠前/对手越强，跟注越窄</li>
-          <li data-i18n-html="about_li10"><b>SB 用「加注或弃」模型</b>：真实浅码 SB 常用 limp / limp-jam，本工具未建模</li>
-          <li data-i18n-html="about_li11"><b>边缘混合带</b>：频率按约一半估计，<b>非真实 solver 频率</b></li>
+          <li data-i18n-html="about_li1"><b>Cash:</b> 100bb deep, ~2.5x opens, standard rake</li>
+          <li data-i18n-html="about_li2"><b>MTT 40/25/15bb:</b> approximate ante-adjusted open ranges. <b>Note:</b> real antes widen ranges; this tool is <b>conservative (a touch tight)</b> — widen a bit in practice.</li>
+          <li data-i18n-html="about_li3"><b>MTT 6-max (final table / short):</b> 40bb / 20bb approximate opens. Fewer players → wider; estimated as "later seats + modest widening," <b>not exact</b>.</li>
+          <li data-i18n-html="about_li4"><b>Jam/fold & jam-call (tagged "Nash GTO"):</b> <b>solved</b> with this app's own equity + Nash solver — 9-max 8/10/12/15/20bb jam-or-fold, 6-max 10/15/20bb, heads-up 5–25bb (SB jam + BB call), and 9-max BB calling a BTN jam. A <b>no-ante</b> simplified model (no-overcall / class-level equity / Monte-Carlo), <b>not table-exact</b>; each stack's exploitability is measured and shown in the "Nash GTO" tag tooltip (closer to 0 = more accurate).</li>
+          <li data-i18n-html="about_li5"><b>Bubble ICM:</b> <b>the roughest part.</b> Simplified to "tighten all opens = survive," but real ICM is mostly about <b>calling/jam-calling tighter</b> (don't bust); a big stack can actually <b>open wider to pressure</b> risk-averse opponents. Treat ICM here as "survival intuition," not a literal bubble guide.</li>
+          <li data-i18n-html="about_li6"><b>Vs 3-bet (4-bet/call/fold):</b> 100bb approximation, 4-bet ~3%. In position defends wider, out of position tighter — shape is right, but exact 4-bet/call split varies with sizing.</li>
+          <li data-i18n-html="about_li7"><b>Vs 4-bet (5-bet jam/call/fold):</b> 100bb approximation. Mostly "jam or fold," calls very narrow; 5-bet treated as a direct jam.</li>
+          <li data-i18n-html="about_li8"><b>Squeeze (re-raise after open + call):</b> 100bb approximation. Squeezes are polarized (value + blocker bluffs), overcalls are speculative multiway hands; sizing/players shift the exact range.</li>
+          <li data-i18n-html="about_li9"><b>Cold-call (non-blind defense):</b> 100bb approximation. <b>Flatting range ≠ opening range</b> — many hands you'd open must become a 3-bet or fold vs a raise; earlier position / stronger opener = narrower calls.</li>
+          <li data-i18n-html="about_li10"><b>SB uses a "raise or fold" model:</b> real short-stack SB often limps / limp-jams, not modeled here.</li>
+          <li data-i18n-html="about_li11"><b>Edge mixes:</b> frequencies estimated at ~half, <b>not real solver frequencies</b>.</li>
         </ul>
       </div>
       <div class="ab-card">
-        <h3>🔍 范围怎么来的</h3>
-        <p data-i18n-html="about_src_p">作者参考多个公开 GTO 图表整理而成，并已对照权威来源核对过<b>入池比例与整体形状</b>（量级正确），但<b>未逐手核对</b>。所有数据为原创整理，<b>不含任何第三方版权内容</b>。</p>
+        <h3>🔍 Where the ranges come from</h3>
+        <p data-i18n-html="about_src_p">Curated from several public GTO charts, with <b>VPIP and overall shape</b> checked against authoritative sources (right magnitude), but <b>not verified hand-by-hand</b>. All data is original; <b>no third-party copyrighted content</b>.</p>
       </div>
       <div class="ab-card">
-        <h3>🎯 真要精确？</h3>
-        <p data-i18n-html="about_exact_p">建议使用 PioSOLVER、GTO Wizard、MonkerSolver 等专业 solver 获取针对你的下注尺度、抽水、筹码深度的精确范围。本工具用于建立直觉，不替代它们。</p>
+        <h3>🎯 Need real precision?</h3>
+        <p data-i18n-html="about_exact_p">Use a pro solver — PioSOLVER, GTO Wizard, MonkerSolver — for ranges exact to your sizing, rake, and stack depth. This tool builds intuition; it doesn't replace them.</p>
       </div>
-      <p class="cnote" data-i18n-html="about_note">真 GTO 随下注尺度、抽水、前注、筹码深度变化。本工具固定了上述假设。松鼠出品 🐿</p>
+      <p class="cnote" data-i18n-html="about_note">True GTO shifts with sizing, rake, antes, and stack depth. This tool fixes the assumptions above. Made by a squirrel 🐿</p>
     </div>
   </div>
 
   <!-- CALCULATOR screen -->
   <div class="chart-screen hide" id="calcScreen">
     <div class="chart-bar">
-      <button class="back-btn" id="calcBack">← 返回</button>
-      <div class="chart-title">胜率计算器</div>
-      <div class="back-btn" style="visibility:hidden">← 返回</div>
+      <button class="back-btn" id="calcBack">← Back</button>
+      <div class="chart-title">Equity calculator</div>
+      <div class="back-btn" style="visibility:hidden">← Back</div>
     </div>
     <div class="chart-body calc">
-      <p class="cnote" data-i18n-html="calc_note"><b>蒙特卡洛实算 · 真实数字</b>。范围用逗号分隔，如 <code>22+, AJs+, KQo</code>；单手 <code>AKs</code> 也行。<br>填了<b>牌面</b>就是<b>翻后胜率</b>（给定公共牌），留空则是<b>翻前全下</b>。</p>
+      <p class="cnote" data-i18n-html="calc_note"><b>Real Monte-Carlo · actual numbers.</b> Comma-separate ranges, e.g. <code>22+, AJs+, KQo</code>; a single combo <code>AKs</code> works too.<br>Fill in a <b>board</b> for <b>postflop equity</b> (given community cards); leave it empty for a <b>preflop all-in</b>.</p>
       <div class="calc-row">
-        <div class="calc-lab">牌面 <span class="calc-n" id="calcBN">· 留空=翻前</span></div>
-        <input class="calc-in" id="calcBoard" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="如 Ah Kd 7c（3/4/5 张）" value="">
+        <div class="calc-lab">Board <span class="calc-n" id="calcBN">· empty = preflop</span></div>
+        <input class="calc-in" id="calcBoard" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. Ah Kd 7c (3/4/5 cards)" value="">
       </div>
       <div class="calc-row">
-        <div class="calc-lab">你的范围 <span class="calc-n" id="calcHN"></span></div>
+        <div class="calc-lab">Your range <span class="calc-n" id="calcHN"></span></div>
         <input class="calc-in" id="calcHero" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="QQ+, AKs, AKo">
       </div>
-      <div class="calc-vs">对战</div>
+      <div class="calc-vs">vs</div>
       <div class="calc-row">
-        <div class="calc-lab">对手范围 <span class="calc-n" id="calcVN"></span></div>
+        <div class="calc-lab">Opp range <span class="calc-n" id="calcVN"></span></div>
         <input class="calc-in" id="calcVill" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="TT, JJ, AQs, AQo">
       </div>
-      <button class="big-btn" id="calcRun">计算胜率</button>
+      <button class="big-btn" id="calcRun">Run equity</button>
       <div class="calc-out" id="calcOut"></div>
     </div>
   </div>
 
   <div class="chart-screen hide" id="guideScreen">
     <div class="chart-bar">
-      <button class="back-btn" id="guideBack">← 返回</button>
-      <div class="chart-title">翻前主线 · 怎么练</div>
-      <div class="back-btn" style="visibility:hidden">← 返回</div>
+      <button class="back-btn" id="guideBack">← Back</button>
+      <div class="chart-title">Preflop main line · how to train</div>
+      <div class="back-btn" style="visibility:hidden">← Back</div>
     </div>
     <div class="chart-body about">
       <div class="ab-card ab-ok">
-        <h3>🧭 翻前是一棵决策树</h3>
-        <p data-i18n-html="guide_intro_p">一手牌从「谁先加注」开始，随着反加层层升级。把每个环节单独练熟，整棵树就通了。建议新手<b>从上往下按顺序</b>练。</p>
+        <h3>🧭 Preflop is a decision tree</h3>
+        <p data-i18n-html="guide_intro_p">A hand starts with "who raises first" and escalates with each re-raise. Master each step on its own and the whole tree clicks. Beginners: <b>train top to bottom in order</b>.</p>
       </div>
 
       <div class="gd-spine">
         <div class="gd-node" data-fmt="cash" data-var="6">
           <div class="gd-badge">1</div>
-          <div class="gd-txt" data-i18n-html="guide_node1"><b>开局 RFI ＋ 大盲防守</b><small>你第一个进池该开哪些牌；别人开了你在大盲怎么弃/跟/3-bet。一切的基础。</small></div>
-          <button class="gd-go">练 →</button>
+          <div class="gd-txt" data-i18n-html="guide_node1"><b>Opening RFI + BB defense</b><small>What to open when you're first in; how to fold/call/3-bet in the BB when someone opens. The foundation.</small></div>
+          <button class="gd-go">Train →</button>
         </div>
-        <div class="gd-arrow" data-i18n-html="guide_arrow1">↓ 你开局后，被身后的人反加…</div>
+        <div class="gd-arrow" data-i18n-html="guide_arrow1">↓ You open, someone behind re-raises…</div>
         <div class="gd-node" data-fmt="face3b" data-var="btn">
           <div class="gd-badge">2</div>
-          <div class="gd-txt" data-i18n-html="guide_node2"><b>面对 3-bet</b><small>开局被反加：4-bet / 跟注 / 弃牌。最高频、最该补。重点学有位置 vs 无位置。</small></div>
-          <button class="gd-go">练 →</button>
+          <div class="gd-txt" data-i18n-html="guide_node2"><b>Vs 3-bet</b><small>Your open gets re-raised: 4-bet / call / fold. The most common, most worth fixing. Focus on in vs out of position.</small></div>
+          <button class="gd-go">Train →</button>
         </div>
-        <div class="gd-arrow" data-i18n-html="guide_arrow2">↓ 你（或对手）再加一手，战火升级…</div>
+        <div class="gd-arrow" data-i18n-html="guide_arrow2">↓ Another raise goes in, the war escalates…</div>
         <div class="gd-node" data-fmt="face4b" data-var="ip">
           <div class="gd-badge">3</div>
-          <div class="gd-txt" data-i18n-html="guide_node3"><b>面对 4-bet</b><small>你 3-bet 后被再加：5-bet 全下 / 跟 / 弃。100bb 基本「全下或弃」。</small></div>
-          <button class="gd-go">练 →</button>
+          <div class="gd-txt" data-i18n-html="guide_node3"><b>Vs 4-bet</b><small>Your 3-bet gets re-raised: 5-bet jam / call / fold. At 100bb it's mostly "jam or fold."</small></div>
+          <button class="gd-go">Train →</button>
         </div>
       </div>
 
-      <div class="ab-card" style="margin-top:6px"><h3>🌿 其他常见局面</h3>
-        <p data-i18n-html="guide_other_p">主线之外，这两种也很常见：</p></div>
+      <div class="ab-card" style="margin-top:6px"><h3>🌿 Other common spots</h3>
+        <p data-i18n-html="guide_other_p">Beyond the main line, these two are common too:</p></div>
       <div class="gd-node" data-fmt="squeeze" data-var="bb">
         <div class="gd-badge alt">S</div>
-        <div class="gd-txt" data-i18n-html="guide_nodeS"><b>挤压 Squeeze</b><small>有人开 + 有人跟，轮到你反加。多人底池死钱多，挤压回报高。</small></div>
-        <button class="gd-go">练 →</button>
+        <div class="gd-txt" data-i18n-html="guide_nodeS"><b>Squeeze</b><small>Someone opens + someone calls, then it's on you to re-raise. Multiway pots have dead money — squeezing pays.</small></div>
+        <button class="gd-go">Train →</button>
       </div>
       <div class="gd-node" data-fmt="coldcall" data-var="btn">
         <div class="gd-badge alt">C</div>
-        <div class="gd-txt" data-i18n-html="guide_nodeC"><b>冷跟 Cold-call</b><small>非盲位面对开局：3bet / 平跟 / 弃。注意平跟范围≠开局范围。</small></div>
-        <button class="gd-go">练 →</button>
+        <div class="gd-txt" data-i18n-html="guide_nodeC"><b>Cold-call</b><small>Non-blind facing an open: 3-bet / flat / fold. Remember: flatting range ≠ opening range.</small></div>
+        <button class="gd-go">Train →</button>
       </div>
       <div class="gd-node" data-fmt="mtt" data-var="d40">
         <div class="gd-badge alt">T</div>
-        <div class="gd-txt" data-i18n-html="guide_nodeT"><b>锦标赛 MTT 专线</b><small>按筹码深度变化：40→25→15bb 收紧 → 推弃（8–20bb / 6人 / 单挑 HU）→ 泡沫 ICM。独立一条线。</small></div>
-        <button class="gd-go">练 →</button>
+        <div class="gd-txt" data-i18n-html="guide_nodeT"><b>Tournament MTT track</b><small>Shifts by stack depth: 40→25→15bb tighten → jam/fold (8–20bb / 6-max / heads-up) → bubble ICM. Its own track.</small></div>
+        <button class="gd-go">Train →</button>
       </div>
 
-      <div class="ab-card ab-warn" style="margin-top:10px"><h3>📚 建议顺序</h3>
-        <p data-i18n-html="guide_order_p">① 先把 <b>开局 RFI</b> 练到每个位置张口就来 → ② 再练 <b>大盲防守</b>（同在现金局里）→ ③ <b>面对 3-bet</b>（收益最大）→ ④ <b>面对 4-bet</b> → ⑤ 想打多人池补 <b>挤压</b>，想打比赛走 <b>MTT 专线</b>。用<b>发牌偏好「边缘」</b>专攻每个 spot 的难点。</p></div>
-      <div class="ab-card"><h3>💾 本地存档</h3>
-        <p data-i18n-html="guide_save_p">本地运行时，app 会自动记住你的<b>错题堆、历史最高分、上次设置</b>（存在浏览器本地，不上传）。换浏览器或清缓存会丢失。</p>
-        <button class="gd-go" id="clearDataBtn" style="margin-top:8px;background:var(--fold,#5b6f63);color:#fff">🗑 清除本地存档</button></div>
+      <div class="ab-card ab-warn" style="margin-top:10px"><h3>📚 Suggested order</h3>
+        <p data-i18n-html="guide_order_p">① Drill <b>opening RFI</b> until every seat is instant → ② then <b>BB defense</b> (same Cash menu) → ③ <b>vs 3-bet</b> (biggest gain) → ④ <b>vs 4-bet</b> → ⑤ for multiway add <b>squeeze</b>, for MTTs take the <b>MTT track</b>. Use deal preference <b>"Edge"</b> to attack each spot's tough hands.</p></div>
+      <div class="ab-card"><h3>💾 Local save</h3>
+        <p data-i18n-html="guide_save_p">Running locally, the app remembers your <b>mistake pile, all-time high, and last settings</b> (stored in your browser, never uploaded). Switching browsers or clearing the cache loses them.</p>
+        <button class="gd-go" id="clearDataBtn" style="margin-top:8px;background:var(--fold,#5b6f63);color:#fff">🗑 Clear local save</button></div>
     </div>
   </div>
 
   <div class="chart-screen hide" id="reviewScreen">
     <div class="chart-bar">
-      <button class="back-btn" id="reviewBack">← 返回</button>
-      <div class="chart-title">错题复习堆</div>
-      <div class="back-btn" style="visibility:hidden">← 返回</div>
+      <button class="back-btn" id="reviewBack">← Back</button>
+      <div class="chart-title">Mistake review pile</div>
+      <div class="back-btn" style="visibility:hidden">← Back</div>
     </div>
     <div class="chart-body about">
-      <button class="big-btn" id="reviewAllBtn" style="max-width:430px">▶ 开始复习全部</button>
+      <button class="big-btn" id="reviewAllBtn" style="max-width:430px">▶ Review all</button>
       <div id="reviewList" style="width:100%;max-width:430px;display:flex;flex-direction:column;gap:10px"></div>
     </div>
   </div>
 
   <div class="chart-screen hide" id="statsScreen">
     <div class="chart-bar">
-      <button class="back-btn" id="statsBack">← 返回</button>
-      <div class="chart-title">生涯统计</div>
-      <div class="back-btn" style="visibility:hidden">← 返回</div>
+      <button class="back-btn" id="statsBack">← Back</button>
+      <div class="chart-title">Career stats</div>
+      <div class="back-btn" style="visibility:hidden">← Back</div>
     </div>
     <div class="chart-body about">
       <div class="stats" id="statsTiles" style="width:100%;max-width:430px"></div>
-      <div class="ab-card" id="trendCard" style="width:100%;max-width:430px"><h3>📈 准确率趋势</h3>
+      <div class="ab-card" id="trendCard" style="width:100%;max-width:430px"><h3>📈 Accuracy trend</h3>
         <div id="trendBody"></div>
       </div>
-      <div class="ab-card" id="profileCard" style="width:100%;max-width:430px"><h3>🎯 个人画像</h3>
+      <div class="ab-card" id="profileCard" style="width:100%;max-width:430px"><h3>🎯 Profile</h3>
         <div id="profileBody"></div>
       </div>
-      <div class="ab-card" id="planCard" style="width:100%;max-width:430px"><h3>🗓 训练计划</h3>
+      <div class="ab-card" id="planCard" style="width:100%;max-width:430px"><h3>🗓 Training plan</h3>
         <div id="planBody"></div>
       </div>
-      <div class="ab-card" id="leakCard" style="width:100%;max-width:430px"><h3>🔍 你的漏洞</h3>
+      <div class="ab-card" id="leakCard" style="width:100%;max-width:430px"><h3>🔍 Your leaks</h3>
         <div id="leakBody"></div>
       </div>
-      <div class="ab-card" style="width:100%;max-width:430px"><h3>📊 各档位准确率</h3>
+      <div class="ab-card" style="width:100%;max-width:430px"><h3>📊 Accuracy by spot</h3>
         <div id="statsBars" style="display:flex;flex-direction:column;gap:9px;margin-top:4px"></div>
       </div>
-      <p class="cnote">统计仅在正常训练时累计（复习模式不计入）。数据存在浏览器本地。</p>
+      <p class="cnote">Stats accrue only during normal training (review mode excluded). Data is stored locally in your browser.</p>
     </div>
   </div>
 
   <!-- COACH screen: 问卷 / 诊断答题 / 报告 / 每日卡片 -->
   <div class="chart-screen hide" id="coachScreen">
     <div class="chart-bar">
-      <button class="back-btn" id="coachBack">← 返回</button>
-      <div class="chart-title" id="coachTitle">训练计划</div>
-      <div class="back-btn" style="visibility:hidden">← 返回</div>
+      <button class="back-btn" id="coachBack">← Back</button>
+      <div class="chart-title" id="coachTitle">Training Plan</div>
+      <div class="back-btn" style="visibility:hidden">← Back</div>
     </div>
     <div class="chart-body coach-body" id="coachBody">
       <div id="coachOnboard" style="width:100%;max-width:430px"></div>

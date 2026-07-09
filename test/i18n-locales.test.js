@@ -10,7 +10,7 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { run } = require('../tools/i18n-check.js');
+const { run, checkHtml } = require('../tools/i18n-check.js');
 
 test('i18n: locale 文件与英文源一致(无多余键/占位符错/中文泄漏)', () => {
   const r = run();
@@ -27,4 +27,12 @@ test('i18n: I18N_SUPPORTED 里每种语言都有 native 名', () => {
   const r = run();
   assert.ok(r.supported.length >= 2, 'SUPPORTED 至少要有 en/zh');
   assert.ok(!r.errors.some((e) => /native 名/.test(e)), 'native 名缺失');
+});
+
+/* 静态 HTML 的 SEO 锁:爬虫不跑 JS,首字节必须是英文(默认语言);
+   且每处英文文案都要能反查回中文源串,否则 zh/其它语言下静默保持英文。 */
+test('SEO: 静态 HTML 作者语言=英文,且每处文案都可反查翻译', () => {
+  const r = checkHtml();
+  assert.deepEqual(r.errors, [], '\n' + r.errors.join('\n'));
+  assert.ok(r.mapped >= 50, `I18N_HTML 只有 ${r.mapped} 条`);
 });
