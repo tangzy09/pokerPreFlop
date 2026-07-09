@@ -52,7 +52,9 @@ const INJECT = `
     add('引导跳过后消失', !document.getElementById('introOv'));
     add('语言选择器存在', !!document.getElementById('langToggle'));
     var lt=document.getElementById('langToggle');
-    add('语言选择器有 中/EN 两段', lt && lt.querySelectorAll('button[data-lang]').length===2);
+    // 跟随 I18N_SUPPORTED:加语言不用改测试(≤3 种=分段控件,≥4 种=下拉;两种形态项都是 button[data-lang])
+    var nLang=(typeof I18N_SUPPORTED!=='undefined')?I18N_SUPPORTED.length:2;
+    add('语言选择器项数 = SUPPORTED('+nLang+')', lt && lt.querySelectorAll('button[data-lang]').length===nLang);
     // 四个功能页:从主页打开 → 点返回 → 应回主页(目标屏与训练设置页都隐藏)
     [['homeStats','statsBack','statsScreen'],
      ['homeEquity','calcBack','calcScreen'],

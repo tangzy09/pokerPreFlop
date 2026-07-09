@@ -1,16 +1,45 @@
-/* i18n.js — bilingual layer (English default + 中文), zero-build, loads FIRST.
-   Design: the DATA files (ranges/modes/packs) stay Chinese = the canonical source.
-   We translate only at DISPLAY:
-     L("中文")        → English when LANG==='en', the original Chinese when 'zh'
-                         (lookup by Chinese source; unknown strings fall back to zh)
-     t(key, vars)     → keyed bilingual template (for inline-<b> prose / HTML blocks),
-                         {var} interpolation; reproduces the original Chinese in zh mode
-     applyI18n(root)  → walks static HTML: data-i18n-html keyed blocks + simple text nodes
-   A floating 🌐 toggle flips the language and persists it. */
+/* i18n.js — N-language display layer, zero-build, loads FIRST.
+   Design: the DATA files (ranges/modes/packs) stay Chinese = the canonical **lookup key**
+   (they're never served to crawlers, and packs' 32 name + 60 who-segments are 100% covered).
+   Translation happens only at DISPLAY:
+     L("中文")        → current language; missing → **English**; last resort → the Chinese source.
+                         ⚠ 绝不回落中文源串:10 语言下那会让法语用户屏幕上蹦出中文。
+     tr(key, vars)    → keyed template ({var} interpolation); missing → English.
+     applyI18n(root)  → walks static HTML (data-i18n-html keyed blocks + text nodes) — both via L/tr,
+                         so static HTML needs no per-language markup.
+   **加一种语言 = 只碰 3 处**:I18N_SUPPORTED + I18N_NATIVE + js/locales/<code>.js。detect 的前缀表
+   从 SUPPORTED 派生,别手写第二张。
+   en + zh 内联在本文件 → setLang('en'|'zh') **保持同步**(4 处测试同步调它并立即断言;
+   且 test/load-app.js 会抓 HTML 的 <script src> 列表,locale 文件绝不能做静态 script 标签)。
+   其余语言用**动态 <script> 注入**懒加载:file:// 下 fetch() 取不到 JSON(app 必须离线可跑),
+   动态 script 可以——项目里 pushfold-nash.js 已用同一范式。 */
 
 const I18N_DEFAULT = 'en';
-function _i18nRead(){ try{ const s=localStorage.getItem('gtoLang'); return (s==='zh'||s==='en')?s:I18N_DEFAULT; }catch(e){ return I18N_DEFAULT; } }
-let LANG = _i18nRead();
+/* 只列**真正发货**的语言:hreflang / 翻译覆盖率都以此为准,没译完别提前加进来 */
+const I18N_SUPPORTED = ['en','zh'];
+/* 菜单里每种语言显示自己的名字 */
+const I18N_NATIVE = { en:'English', zh:'中文', ja:'日本語', ko:'한국어', de:'Deutsch',
+                      fr:'Français', es:'Español', 'pt-BR':'Português', ru:'Русский', it:'Italiano' };
+const _I18N_INLINE = { en:1, zh:1 };            // 内联 = 同步可用
+/* 懒加载的 locale:LOCALES[code].L = {中文源串→译文};模板直接进 I18N_TPL[code] */
+const LOCALES = Object.create(null);
+function I18N_REGISTER(code, data){             // js/locales/<code>.js 调它注册自己
+ try{ LOCALES[code] = (data && data.L) || {}; if(data && data.T) I18N_TPL[code] = data.T; }catch(e){}
+}
+function _i18nDetect(){
+ // 生成的每语言静态页会注入 window.__LANG —— URL 即语言,必须压过存储值,否则 /de/ 会显示英文
+ try{ if(typeof window!=='undefined' && window.__LANG && I18N_SUPPORTED.indexOf(window.__LANG)>=0) return window.__LANG; }catch(e){}
+ try{ const s=localStorage.getItem('gtoLang'); if(s && I18N_SUPPORTED.indexOf(s)>=0) return s; }catch(e){}
+ try{                                            // 前缀表从 SUPPORTED 派生(zh-TW→zh、pt-PT→pt-BR)
+  const pref={}; I18N_SUPPORTED.forEach(function(l){ const p=l.split('-')[0]; if(!(p in pref)) pref[p]=l; });
+  const navs=(navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language||''];
+  for(let i=0;i<navs.length;i++){ const p=String(navs[i]).toLowerCase().split('-')[0]; if(pref[p]) return pref[p]; }
+ }catch(e){}
+ return I18N_DEFAULT;
+}
+const _i18nWant = _i18nDetect();
+/* 非内联语言先以英文起步(同步可用),locale 加载完再由 setLang 切过去——与运行时切换共用一条路径 */
+let LANG = _I18N_INLINE[_i18nWant] ? _i18nWant : I18N_DEFAULT;
 function curLang(){ return LANG; }
 
 /* ---- flat map: Chinese source → English (zh mode = identity) ---- */
@@ -594,7 +623,14 @@ _tpl('coachRestartPlan','重新开始','Start over');
 
 /* ---- core lookups ---- */
 function _interp(s, v){ return v ? String(s).replace(/\{(\w+)\}/g, (m,k)=> v[k]!=null ? v[k] : m) : s; }
-function L(zh){ if(LANG==='zh') return zh; const e=I18N_EN[zh]; return e!=null ? e : zh; }
+/* 查表顺序:当前语言 → 英文 → 中文源串(最后兜底,只在英文也缺译时才可能出现) */
+function L(src){
+ if(LANG==='zh') return src;                    // zh 就是查表键本身,恒等
+ const m = LOCALES[LANG];
+ let v = m ? m[src] : undefined;
+ if(v==null) v = I18N_EN[src];                  // ← 回落英文,不是中文源串
+ return v!=null ? v : src;
+}
 // keyed template lookup. Named `tr` (not `t`) because app.js uses `t` for the spot object.
 function tr(key, vars){ const d=I18N_TPL[LANG]||I18N_TPL.en; let s=d[key]; if(s==null) s=I18N_TPL.en[key]; if(s==null) return key; return _interp(s, vars); }
 function tRaw(key){ const d=I18N_TPL[LANG]||I18N_TPL.en; return d[key]!=null ? d[key] : I18N_TPL.en[key]; }
@@ -622,17 +658,18 @@ function _walkText(root){
   let orig=_i18nOrig.get(n);
   if(orig==null){ orig=n.nodeValue; _i18nOrig.set(n, orig); }
   const trimmed=orig.trim();
-  if(LANG==='zh'){ n.nodeValue=orig; return; }
-  const en=I18N_EN[trimmed];
-  n.nodeValue = en!=null ? orig.replace(trimmed, en) : orig;
+  if(LANG==='zh'){ n.nodeValue=orig; return; }   // 切回中文:还原原文
+  const v=L(trimmed);                            // ← 走 L():任意语言,缺译自动回落英文
+  n.nodeValue = (v!==trimmed) ? orig.replace(trimmed, v) : orig;
  });
 }
 function _walkAttr(root, attr){
  root.querySelectorAll('['+attr+']').forEach(el=>{
   let store=_i18nOrig.get(el); if(!store){ store={}; _i18nOrig.set(el, store); }
   if(store[attr]==null) store[attr]=el.getAttribute(attr);
-  const orig=store[attr], en=I18N_EN[(orig||'').trim()];
-  el.setAttribute(attr, LANG==='zh' ? orig : (en!=null?en:orig));
+  const orig=store[attr]; if(LANG==='zh'){ el.setAttribute(attr, orig); return; }
+  const t=(orig||'').trim(), v=L(t);
+  el.setAttribute(attr, (v!==t) ? orig.replace(t, v) : orig);
  });
 }
 function _hasDOM(){ try{ return !!(document && document.body && document.body.nodeType===1); }catch(e){ return false; } }
@@ -647,16 +684,42 @@ function applyI18n(root){
  _updateLangBtn();
  if(typeof rerenderUI==='function'){ try{ rerenderUI(); }catch(e){} }
 }
-// highlight the active segment in the 中|EN selector (单一 #app 级选择器;曾有过 per-screen 的 langToggle2,勿再加回)
+// 高亮当前语言(单一 #app 级选择器;曾有过 per-screen 的 langToggle2,勿再加回)
 function _updateLangBtn(){
  const w=document.getElementById('langToggle'); if(!w) return;
+ const trig=document.getElementById('langTrig');
+ if(trig){ trig.textContent=(I18N_NATIVE[LANG]||LANG)+' ▾'; const m=document.getElementById('langMenu'); if(m) m.style.display='none'; }
  w.querySelectorAll('button[data-lang]').forEach(seg=>{
   const on=seg.dataset.lang===LANG;
   seg.style.background = on ? 'linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f))' : 'transparent';
   seg.style.color = on ? '#16110a' : 'var(--muted,#8fa79a)';
  });
 }
-function setLang(l){ if(l!=='en'&&l!=='zh') return; LANG=l; try{localStorage.setItem('gtoLang',l);}catch(e){} applyI18n(); }
+/* 生成的 /de/ 静态页在子目录,注入 window.__I18N_BASE='../js/locales/' 即可 */
+function _localeBase(){ try{ if(typeof window!=='undefined' && window.__I18N_BASE) return window.__I18N_BASE; }catch(e){} return 'js/locales/'; }
+/* 唯一的 locale 加载入口:内联/已加载→同步回调;其余→动态 <script>(file:// 可用,fetch 不行)。
+   加载失败绝不白屏,只是留在当前语言。 */
+function ensureLocale(code, cb){
+ if(_I18N_INLINE[code] || LOCALES[code]) return cb(true);        // 同步分支:en/zh 及已加载语言
+ if(I18N_SUPPORTED.indexOf(code)<0) return cb(false);
+ if(!_hasDOM()) return cb(false);                                // Node 测试 VM:不注入脚本
+ const s=document.createElement('script');
+ s.src=_localeBase()+code+'.js';
+ s.onload=function(){ cb(!!LOCALES[code]); };
+ s.onerror=function(){ cb(false); };
+ document.head.appendChild(s);
+}
+/* 启动与运行时切换共用这一条路径(别再写第二条:两条路径=两份 bug) */
+function setLang(l){
+ if(I18N_SUPPORTED.indexOf(l)<0) return;
+ ensureLocale(l, function(ok){
+  if(!ok) return;
+  LANG=l;
+  try{ localStorage.setItem('gtoLang', l); }catch(e){}
+  try{ document.documentElement.lang = (l==='zh' ? 'zh-CN' : l); }catch(e){}
+  applyI18n();
+ });
+}
 /* ---- 全屏覆盖层的唯一注册表 ----
    新增屏只加这一处:语言选择器定位(_langBtnVis)、showScreen 导航、coach 开屏、
    ui-smoke 冒烟测试全部消费这一个列表。此前该列表在 4 个文件各存一份且已分叉,
@@ -667,15 +730,16 @@ const SCREENS=['homeScreen','startScreen','overScreen','nashScreen','aboutScreen
 function showScreen(id){
  SCREENS.forEach(s=>{ const e=document.getElementById(s); if(e)e.classList.toggle('hide',s!==id); });
 }
+const _I18N_SHORT = { en:'EN', zh:'中' };          // 分段控件里的短标签(仅 ≤3 种时用)
 function _mountLangToggle(){
  if(!_hasDOM()) return;
  try{
   if(document.getElementById('langToggle')) return;
-  // 单个 #app 级选择器，任何页面都可切换语言
+  const BTN='appearance:none;border:0;background:transparent;font:700 12px/1 system-ui;padding:5px 9px;border-radius:7px;cursor:pointer;transition:.15s;white-space:nowrap';
   const mk=(code,label)=>{
    const seg=document.createElement('button'); seg.type='button'; seg.dataset.lang=code; seg.textContent=label;
-   seg.style.cssText='appearance:none;border:0;background:transparent;font:700 12px/1 system-ui;padding:5px 9px;border-radius:7px;cursor:pointer;transition:.15s';
-   seg.onclick=()=>{ if(LANG===code) return; try{ if(typeof SFX!=='undefined') SFX.click(); }catch(e){} setLang(code); };
+   seg.style.cssText=BTN;
+   seg.onclick=()=>{ if(LANG===code){ _updateLangBtn(); return; } try{ if(typeof SFX!=='undefined') SFX.click(); }catch(e){} setLang(code); };
    return seg;
   };
   const wrap=document.createElement('div'); wrap.id='langToggle'; wrap.title='Language / 语言';
@@ -683,7 +747,27 @@ function _mountLangToggle(){
   // 之前挂 body + fixed 会钉在视口右上角，桌面宽窗口时按钮飘在应用列外面
   const host=document.getElementById('app');
   wrap.style.cssText='position:'+(host?'absolute':'fixed')+';top:calc(7px + env(safe-area-inset-top));right:calc(14px + env(safe-area-inset-right));z-index:150;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
-  wrap.appendChild(mk('zh','中')); wrap.appendChild(mk('en','EN'));
+  if(I18N_SUPPORTED.length<=3){                    // 2–3 种:分段控件(现状,zh 在前保持原顺序)
+   const ordered=I18N_SUPPORTED.slice().sort((a,b)=>(a==='zh'?0:1)-(b==='zh'?0:1)); // 中 在前(沿用原顺序)
+   ordered.forEach(c=>wrap.appendChild(mk(c,_I18N_SHORT[c]||I18N_NATIVE[c]||c)));
+  }else{                                           // ≥4 种:下拉(循环按钮要点 N-1 下,太烂)
+   const trig=document.createElement('button'); trig.type='button'; trig.id='langTrig'; trig.style.cssText=BTN;
+   trig.textContent=(I18N_NATIVE[LANG]||LANG)+' ▾';
+   const menu=document.createElement('div'); menu.id='langMenu';
+   // 挂在 position:absolute 的 wrap 内,右上角控件用 right:0 向左下展开(left:0 会顶出右边缘被裁)
+   menu.style.cssText='display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:136px;flex-direction:column;gap:1px;padding:4px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.97);backdrop-filter:blur(6px);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.45)';
+   I18N_SUPPORTED.forEach(c=>{ const b=mk(c, I18N_NATIVE[c]||c); b.style.cssText=BTN+';text-align:right;width:100%'; menu.appendChild(b); });
+   trig.onclick=(e)=>{
+    try{ e.stopPropagation(); }catch(_){}
+    const open = menu.style.display==='none' || !menu.style.display;
+    menu.style.display = open ? 'flex' : 'none';
+    // 延迟一拍再挂监听,否则开菜单这一次点击自身立刻触发关闭
+    if(open) setTimeout(()=>{ document.addEventListener('pointerdown', function h(ev){
+      if(!wrap.contains(ev.target)){ menu.style.display='none'; document.removeEventListener('pointerdown',h); }
+    }); },0);
+   };
+   wrap.appendChild(trig); wrap.appendChild(menu);
+  }
   (host||document.body).appendChild(wrap);
   const obs=new MutationObserver(_langBtnVis);
   SCREENS.forEach(id=>{const e=document.getElementById(id); if(e) obs.observe(e,{attributes:true,attributeFilter:['class']});});
@@ -701,3 +785,7 @@ function _langBtnVis(){
 /* boot: scripts sit at end of <body>, so the DOM is ready here. app.js (loaded
    after) will define rerenderUI; we run a second applyI18n at the end of app.js. */
 try{ _mountLangToggle(); }catch(e){} // applyI18n 只在 app.js 尾部跑一次:脚本同步执行到那之前不会绘制,双跑=浪费一次全文档遍历
+try{ document.documentElement.lang = (LANG==='zh' ? 'zh-CN' : LANG); }catch(e){}
+/* 检测到的语言若非内联(懒加载),此刻以英文起步,加载完再切——走的仍是 setLang 那条唯一路径。
+   目前 SUPPORTED=['en','zh'] 全内联,本行是 dormant;第一批 locale 文件落地即生效。 */
+try{ if(_i18nWant!==LANG) setLang(_i18nWant); }catch(e){}
