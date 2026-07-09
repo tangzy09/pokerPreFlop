@@ -404,10 +404,12 @@ function coachRenderReport(diagnosis){
     }
   });
   segments.forEach(seg=>{
-    planRows+=`<div class="coach-plan-row"><span class="coach-plan-day">Day ${seg.start}${seg.end>seg.start?'-'+seg.end:''}</span><span>${tr('coachPlanFocus')} · ${L(seg.name)||seg.name}</span></div>`;
+    const d=seg.start+(seg.end>seg.start?'-'+seg.end:'');   // "3" 或区间 "3-5"
+    planRows+=`<div class="coach-plan-row"><span class="coach-plan-day">${tr('coachPlanDayLbl',{d})}</span><span>${tr('coachPlanFocus')} · ${L(seg.name)||seg.name}</span></div>`;
   });
   if(mixedDays.length){
-    planRows+=`<div class="coach-plan-row"><span class="coach-plan-day">Day ${mixedDays[0].idx+1}-${mixedDays[mixedDays.length-1].idx+1}</span><span>${tr('coachPlanMixed')}</span></div>`;
+    const d=(mixedDays[0].idx+1)+'-'+(mixedDays[mixedDays.length-1].idx+1);
+    planRows+=`<div class="coach-plan-row"><span class="coach-plan-day">${tr('coachPlanDayLbl',{d})}</span><span>${tr('coachPlanMixed')}</span></div>`;
   }
 
   const simpleNote=!verdict.detailed?`<div class="coach-note">${tr('coachQuickEst')}</div>`:'';
@@ -559,7 +561,7 @@ function coachRenderDay(){
     else if(i===plan.curDay){ style='color:var(--gold)'; marker='●'; }
     else { style='color:var(--muted)'; marker='○'; }
     weekRows+=`<div class="coach-plan-row">
-      <span class="coach-plan-day">Day ${i+1}</span>
+      <span class="coach-plan-day">${tr('coachPlanDayLbl',{d:i+1})}</span>
       <span style="${style}">${marker} ${i===plan.curDay?'<b>'+dName+'</b>':dName}</span>
     </div>`;
   }

@@ -25,7 +25,14 @@ const LOCALES_DIR = path.join(ROOT, 'js', 'locales');
 const INLINE = { en: 1, zh: 1 };                       // 内联在 i18n.js,不需要 locale 文件
 
 const CJK = /[㐀-䶿一-鿿豈-﫿]/;
-const phOf = (s) => (String(s).match(/\{\w+\}/g) || []).sort().join(',');
+/* ⚠ _tpl 的值可以是**数组**(如 pitch 的 5 条卖点)。展平成字符串数组逐条比,
+   别 String(array) 拼成 "a,b,c" 再查——那会给出似是而非的结论。 */
+const flat = (v) => (Array.isArray(v) ? v : [v]).map((x) => String(x));
+const phOf = (v) => flat(v).map((s) => (s.match(/\{\w+\}/g) || []).sort().join(',')).join('|');
+const anyCJK = (v) => flat(v).some((s) => CJK.test(s));
+/* 汉字合法的语言:日语汉字/繁简中文。**禁 CJK 会误杀 ja**——对这些语言改用
+   「L 的译文 == 中文源键」来抓「把源串复制进译文」这个真实失败模式。 */
+const CJK_LANGS = new Set(['zh', 'zh-TW', 'ja']);
 
 /* 静态 HTML 里**有意不翻译**的语言中立字面量(迁移前就已是英文,已逐条核对 git HEAD)。
    往这里加 = 有意识的决定,不是静默放过。徽章 / 筹码档 / 单字母 / 被 JS 覆写的占位符。 */
@@ -128,12 +135,20 @@ function run() {
     tHave.filter((k) => k in srcT && phOf(srcT[k]) !== phOf(T[k]))
       .forEach((k) => errors.push(`${code}: T 占位符不一致 '${k}' 期望[${phOf(srcT[k])}] 实为[${phOf(T[k])}]`));
 
-    // 非 zh 的译文里不该有 CJK(多半是把中文源串直接复制进来了)
-    if (code !== 'zh') {
-      const leak = [...lHave.filter((k) => CJK.test(String(L[k]))).map((k) => 'L:' + k),
-                    ...tHave.filter((k) => CJK.test(String(T[k]))).map((k) => 'T:' + k)];
+    // 拉丁/西里尔等语言的译文里不该有 CJK(多半是把中文源串直接复制进来了)。
+    // ja/zh-TW 汉字合法 → 改用「L 译文 == 中文源键」抓复制(下一段)。
+    if (!CJK_LANGS.has(code)) {
+      const leak = [...lHave.filter((k) => anyCJK(L[k])).map((k) => 'L:' + k),
+                    ...tHave.filter((k) => anyCJK(T[k])).map((k) => 'T:' + k)];
       leak.slice(0, 5).forEach((k) => errors.push(`${code}: 译文含中文(疑似复制源串) ${k}`));
       if (leak.length > 5) errors.push(`${code}: …另有 ${leak.length - 5} 处译文含中文`);
+    }
+    // 任何语言:L 的键多为中文源串,译文若与键相同 = 复制了键(ja 下 CJK 检查抓不到)。
+    // ⚠ 只在**键含 CJK** 时判——有些键本身就是英文术语(3-bet / MTT / IP / OOP),译文本就该相同。
+    if (code !== 'zh') {
+      const copied = lHave.filter((k) => CJK.test(k) && typeof L[k] === 'string' && L[k].trim() === k.trim());
+      copied.slice(0, 5).forEach((k) => errors.push(`${code}: L 译文等于中文源键(复制键) ${JSON.stringify(k)}`));
+      if (copied.length > 5) errors.push(`${code}: …另有 ${copied.length - 5} 处 L 译文等于源键`);
     }
 
     const done = lHave.filter((k) => k in srcL).length + tHave.filter((k) => k in srcT).length;

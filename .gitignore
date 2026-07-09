@@ -32,3 +32,4 @@ __pycache__/
 
 # GH Actions 备用流水线留本地(PAT 无 workflow scope 推不上去;Codemagic 是主路线)
 /.github/
+_langshots/

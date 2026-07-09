@@ -16,7 +16,7 @@
 
 const I18N_DEFAULT = 'en';
 /* 只列**真正发货**的语言:hreflang / 翻译覆盖率都以此为准,没译完别提前加进来 */
-const I18N_SUPPORTED = ['en','zh'];
+const I18N_SUPPORTED = ['en','zh','ja','de','es'];
 /* 菜单里每种语言显示自己的名字 */
 const I18N_NATIVE = { en:'English', zh:'中文', ja:'日本語', ko:'한국어', de:'Deutsch',
                       fr:'Français', es:'Español', 'pt-BR':'Português', ru:'Русский', it:'Italiano' };
@@ -705,7 +705,10 @@ _tpl('leakTypeDesc_icm','泡沫期手牌把握不准，需练 ICM 意识','Bubbl
 _tpl('pwWhyPlan','20 天个性化训练计划是 Pro 功能','The 20-day personalised plan is a Pro feature');
 _tpl('pwWhyPlanYou','解锁你的 20 天计划——先攻:{focus}','Unlock your 20-day plan — first up: {focus}');
 // 每日卡片
-_tpl('coachDayN','Day {d} / 20','Day {d} / 20');
+_tpl('coachDayN','第 {d} / 20 天','Day {d} / 20');
+/* 20 天计划的「Day N」标签。以前在 coach.js 里硬编码成 `Day ${n}`,绕过了整个 i18n 层
+   —— 连中文模式都显示 "Day 1"。{d} 可以是 "3" 也可以是区间 "3-5"。 */
+_tpl('coachPlanDayLbl','第 {d} 天','Day {d}');
 _tpl('coachStreak','🔥 {n} 天','🔥 {n} days');
 _tpl('coachDaySubtitle','你今天的主题','Your focus today');
 _tpl('coachTodayTask','今日任务','Today\'s tasks');
@@ -865,10 +868,10 @@ function _mountLangToggle(){
   // 之前挂 body + fixed 会钉在视口右上角，桌面宽窗口时按钮飘在应用列外面
   const host=document.getElementById('app');
   wrap.style.cssText='position:'+(host?'absolute':'fixed')+';top:calc(7px + env(safe-area-inset-top));right:calc(14px + env(safe-area-inset-right));z-index:150;display:flex;gap:2px;padding:2px;border:1px solid var(--line,#2a352d);background:rgba(22,29,24,.85);backdrop-filter:blur(4px);border-radius:9px';
-  if(I18N_SUPPORTED.length<=3){                    // 2–3 种:分段控件(现状,zh 在前保持原顺序)
-   const ordered=I18N_SUPPORTED.slice().sort((a,b)=>(a==='zh'?0:1)-(b==='zh'?0:1)); // 中 在前(沿用原顺序)
+  if(I18N_SUPPORTED.length<=2){                    // 只有 en/zh:沿用原来的 中|EN 分段控件
+   const ordered=I18N_SUPPORTED.slice().sort((a,b)=>(a==='zh'?0:1)-(b==='zh'?0:1)); // 中 在前
    ordered.forEach(c=>wrap.appendChild(mk(c,_I18N_SHORT[c]||I18N_NATIVE[c]||c)));
-  }else{                                           // ≥4 种:下拉(循环按钮要点 N-1 下,太烂)
+  }else{                                           // ≥3 种:下拉(分段控件塞不下 native 名,且循环切换要点 N-1 下)
    const trig=document.createElement('button'); trig.type='button'; trig.id='langTrig'; trig.style.cssText=BTN;
    trig.textContent=(I18N_NATIVE[LANG]||LANG)+' ▾';
    const menu=document.createElement('div'); menu.id='langMenu';
