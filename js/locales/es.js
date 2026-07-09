@@ -763,6 +763,10 @@ I18N_REGISTER("es", {
   "coachMixedTheme": "Situaciones mixtas",
   "coachComplete": "🎉 ¡Plan de 20 días completado!",
   "coachCompleteSub": "Terminaste el ciclo completo de diagnóstico + entrenamiento. ¡Sigue así!",
-  "coachRestartPlan": "Empezar de nuevo"
+  "coachRestartPlan": "Empezar de nuevo",
+  "pwYearTrialSmall": "Primeros {d} días gratis para nuevos suscriptores · luego se renueva automáticamente",
+  "pwLegal": "La suscripción se renueva automáticamente; cancela cuando quieras",
+  "pwPrivacy": "Política de privacidad",
+  "pwTerms": "Términos de uso (EULA)"
  }
 });

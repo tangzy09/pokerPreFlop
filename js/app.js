@@ -72,13 +72,18 @@ function showPaywall(why){
    <div style="font-family:'Space Grotesk';font-weight:700;font-size:21px;color:var(--gold,#e8c66a);text-align:center">${tr('pwTitle')}</div>
    <div id="pwWhy" style="text-align:center;color:var(--muted,#8fa79a);font-size:13px;margin:4px 0 14px"></div>
    <div id="pwList" style="display:flex;flex-direction:column;gap:9px;font-size:13.5px;color:var(--ink,#f1f5ee)"></div>
+   <!-- 3.1.2(c) 拒审修复:计费金额必须是最醒目的价格元素——大字永远是「$XX.XX/年」,
+        免费试用只能做小字附注(曾把试用放大字被拒);隐私政策 + Apple 标准 EULA 链接必须在 app 内可点 -->
    <button id="pwYear" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:#16110a;background:linear-gradient(180deg,var(--gold,#e8c66a),var(--gold2,#b8902f));width:100%;padding:13px;border-radius:13px;margin-top:16px;display:flex;flex-direction:column;gap:1px;align-items:center">
-     <span>${(typeof Pay!=='undefined'&&Pay.yearTrialDays>0)?tr('pwYearTrial',{d:Pay.yearTrialDays}):(typeof Pay!=='undefined'&&Pay.yearPrice)?tr('pwYearDyn',{p:Pay.yearPrice}):tr('pwYear')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${(typeof Pay!=='undefined'&&Pay.yearTrialDays>0)?tr('pwYearTrialNote',{p:(Pay.yearPrice||'$29.99')}):tr('pwYearNote')}</small></button>
+     <span>${(typeof Pay!=='undefined'&&Pay.yearPrice)?tr('pwYearDyn',{p:Pay.yearPrice}):tr('pwYear')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${(typeof Pay!=='undefined'&&Pay.yearTrialDays>0)?tr('pwYearTrialSmall',{d:Pay.yearTrialDays}):tr('pwYearNote')}</small></button>
    <button id="pwSub" style="appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;color:var(--gold,#e8c66a);background:transparent;border:1px solid var(--gold,#e8c66a);width:100%;padding:13px;border-radius:13px;margin-top:9px;display:flex;flex-direction:column;gap:1px;align-items:center">
      <span>${tr('pwSub')}</span><small style="font-weight:500;font-size:11px;opacity:.72">${tr('pwSubNote')}</small></button>
    <button id="pwRestore" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-size:13px;color:var(--muted,#8fa79a);background:transparent;width:100%;padding:8px;margin-top:8px;text-decoration:underline">${tr('pwRestore')}</button>
    <button id="pwClose" style="appearance:none;border:0;cursor:pointer;font-family:inherit;font-size:14px;color:var(--muted,#8fa79a);background:transparent;width:100%;padding:10px;margin-top:2px">${tr('pwClose')}</button>
    <div style="text-align:center;color:var(--foldink,#54655a);font-size:11px;margin-top:6px">${tr('pwFoot')}</div>
+   <div style="text-align:center;font-size:11px;margin-top:8px;color:var(--muted,#8fa79a)">${tr('pwLegal')} ·
+     <a href="https://pre-flop.ai-speeds.com/privacy.html" target="_blank" rel="noopener" style="color:var(--muted,#8fa79a)">${tr('pwPrivacy')}</a> ·
+     <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener" style="color:var(--muted,#8fa79a)">${tr('pwTerms')}</a></div>
   </div>`;
   document.body.appendChild(el);
   el.querySelector('#pwList').innerHTML=tRaw('pitch').map(s=>`<div>· ${s}</div>`).join('');

@@ -763,6 +763,10 @@ I18N_REGISTER("ja", {
   "coachMixedTheme": "ミックスシーン",
   "coachComplete": "🎉 20 日間プラン完了!",
   "coachCompleteSub": "診断 + トレーニングの全サイクルを終えました。この調子で続けましょう!",
-  "coachRestartPlan": "最初からやり直す"
+  "coachRestartPlan": "最初からやり直す",
+  "pwYearTrialSmall": "新規登録者は最初の{d}日間無料 · 以降自動更新",
+  "pwLegal": "サブスクリプションは自動更新 · いつでもキャンセル可",
+  "pwPrivacy": "プライバシーポリシー",
+  "pwTerms": "利用規約 (EULA)"
  }
 });

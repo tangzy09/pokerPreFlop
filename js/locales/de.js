@@ -763,6 +763,10 @@ I18N_REGISTER("de", {
   "coachComplete": "🎉 20-Tage-Plan abgeschlossen!",
   "coachCompleteSub": "Du hast den kompletten Diagnose- + Trainingszyklus geschafft. Weiter so!",
   "coachRestartPlan": "Von vorn beginnen",
-  "coachPlanDayLbl": "Tag {d}"
+  "coachPlanDayLbl": "Tag {d}",
+  "pwYearTrialSmall": "Erste {d} Tage gratis für neue Abonnenten · danach automatische Verlängerung",
+  "pwLegal": "Abo verlängert sich automatisch, jederzeit kündbar",
+  "pwPrivacy": "Datenschutz",
+  "pwTerms": "Nutzungsbedingungen (EULA)"
  }
 });

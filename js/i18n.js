@@ -435,6 +435,11 @@ _tpl('pwYearNote', '最划算 · 合 $2.50 / 月 · 比月订省 50%', 'Best val
 _tpl('pwYearTrial', '新订户免费试用 {d} 天', 'New subscribers: try free for {d} days');
 _tpl('pwYearTrialNote', '之后 {p} / 年 · 随时取消', 'then {p}/yr · cancel anytime');
 _tpl('pwYearDyn', '年订阅 · {p} / 年', 'Yearly · {p}/yr');
+/* 3.1.2(c):试用只能是计费金额下方的小字附注(pwYearTrial/pwYearTrialNote 曾做大字被拒,已停用但键保留) */
+_tpl('pwYearTrialSmall', '新订户前 {d} 天免费 · 之后自动续期', 'First {d} days free for new subscribers · then auto-renews');
+_tpl('pwLegal', '订阅自动续期,可随时取消', 'Subscriptions auto-renew until cancelled');
+_tpl('pwPrivacy', '隐私政策', 'Privacy Policy');
+_tpl('pwTerms', '使用条款 (EULA)', 'Terms of Use (EULA)');
 _tpl('pwBuyFail', '购买没有完成——请稍后再试或点「恢复已购买」', 'Purchase didn\'t go through — try again or tap "Restore purchases"');
 _tpl('persistFail', '进度保存失败(存储空间满或隐私模式)——本次训练可能不会被记录', 'Could not save progress (storage full or private mode) — this session may not be recorded');
 _tpl('pwSub', '月订阅 · $4.99 / 月', 'Monthly · $4.99/mo');
