@@ -844,6 +844,8 @@ function setLang(l){
   try{ localStorage.setItem('gtoLang', l); }catch(e){}
   try{ document.documentElement.lang = (l==='zh' ? 'zh-CN' : l); }catch(e){}
   applyI18n();
+  // 新手引导卡片是 tr() 一次性渲染的 innerHTML,applyI18n 遍历不到 → 显式重绘(见 app.js maybeIntro)
+  try{ if(typeof window!=='undefined' && window.__introRerender) window.__introRerender(); }catch(e){}
  });
 }
 /* ---- 全屏覆盖层的唯一注册表 ----

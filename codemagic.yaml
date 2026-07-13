@@ -50,6 +50,10 @@ workflows:
             plutil -replace CFBundleDisplayName -string "Preflop Camp" ios/App/App/Info.plist
           fi
           plutil -replace ITSAppUsesNonExemptEncryption -bool false ios/App/App/Info.plist
+          # 声明 app 真实支持的界面语言(i18n.js 的 I18N_SUPPORTED)。Capacitor 用 JS 切语言、包里没有
+          # .lproj,苹果就只认英语 → 商店页「语言」栏显示 "English" 一种,中/日/德/西用户以为不支持,
+          # 且各语言商店的相关性排序吃亏。CFBundleLocalizations 一行修好。
+          plutil -replace CFBundleLocalizations -json '["en","zh-Hans","ja","de","es"]' ios/App/App/Info.plist
           npx cap sync ios
 
       - name: 拉取/创建签名文件(用 CERTIFICATE_PRIVATE_KEY 建发布证书 + 描述文件)+ 诊断

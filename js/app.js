@@ -1613,9 +1613,13 @@ function maybeIntro(){
   const seen=()=>{ STORE.seenIntro=1; persist(); };
   const ov=document.createElement('div'); ov.className='intro-ov'; ov.id='introOv';
   const card=document.createElement('div'); card.className='intro-card'; ov.appendChild(card);
-  document.body.appendChild(ov);
+  // ⚠ 必须挂进 #app（= 语言按钮 langToggle 的宿主），不能挂 body:#app 是 position:fixed,而 fixed
+  // 元素**无条件创建层叠上下文**(z-index:auto 也算) → 挂 body 时本层(140) 与 langToggle(150) 分属
+  // 两个上下文,比的是 #app 的层级(auto≈0) vs 140,引导层反而盖住语言按钮,首启时语言切换点不动。
+  // 同一宿主内 140<150 才真正生效。ov 仍是 fixed inset:0(#app 无 transform),覆盖全屏不受影响。
+  (document.getElementById('app') || document.body).appendChild(ov);
   let step=0;
-  const close=()=>{ seen(); ov.remove(); };
+  const close=()=>{ seen(); ov.remove(); try{ window.__introRerender=null; }catch(e){} };
   const render=()=>{
    const dots=[0,1,2].map(i=>`<i class="${i===step?'on':''}"></i>`).join('');
    const body=tr('intro'+step);
@@ -1629,6 +1633,9 @@ function maybeIntro(){
    on('inGo',()=>{ close(); guideLaunch('cash','6'); });      // 第一课:现金 6 人 RFI+防守
   };
   render();
+  // 引导卡片的 HTML 由 tr() 一次性渲染,applyI18n 的 DOM 遍历翻不动它 → 切语言后必须重绘,
+  // 否则用户在引导里切了德语、界面变了、这张卡还是英文(setLang 末尾会调这个 hook)。
+  try{ window.__introRerender = render; }catch(e){}
  }catch(e){}
 }
 
