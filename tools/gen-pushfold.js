@@ -14,9 +14,16 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { buildEqMatrix, solveRing, ringRegret, CLASSES } = require('./pushfold');
-const { enforceMonotonic } = require('./monotonic');
+const { enforceMonotonic, enforceStackMonotonic } = require('./monotonic');
 
-const SAMPLES = 4000, SEED = 1234;
+/* ⚠ SAMPLES 4000 → 25000(2026-07):4000 样本下,一整条 EV≈0 的边缘牌(杂色大牌)会被求解噪声
+   打成**纯策略**(20bb CO 的 JTo 直接 freq=1.00),同档的 enforceMonotonic 再沿支配链把 5 手更强
+   的牌一起拽到 100% —— 公开的 20bb 推弃图因此是错的。25000 样本下同一手降到 0.35(混合,符合它
+   near-indifferent 的身份)。⚠ EV 的排序**不随样本改变**(ATo 恒 -0.14 / JTo 恒 +0.01),那不是噪声,
+   是模型本身的局限:solveRing 算被跟概率时不做去牌(`pCall = m/totW`,与全下者手牌无关),所以杂色 A
+   拿不到「手握一张 A 砍掉对手 AA/AK/AQ/AJ 组合」的阻断牌功劳,被系统性低估。要根治得把 pCall 改成
+   按全下者手牌条件化(真去牌)——那是另一件事,别在这里假装已经解决。 */
+const SAMPLES = 25000, SEED = 1234;
 const SOLVE = { iters: 8000, damp: 0.02 };            // legacy 用（保 snapshot 不变）
 const SOLVE_NASH = { iters: 4000, damp: 0.03 };       // nash 查询用（精度足够，提速）
 const ANTES = [0, 0.125];                                   // 段階2: ante 档（竞品 12.5%）
@@ -98,6 +105,19 @@ for (const S of STACKS6_LEGACY) {
   const seats = {}, seatsEV = {};
   for (const [n, idx] of Object.entries(SEAT6)) { seats[n] = trim(ring.seats[idx].jam); seatsEV[n] = ring.seats[idx].jamEV; }
   ring6[S] = { seats, seatsEV };
+}
+
+/* 跨档单调性:同一座位、同一手牌的全下频率必须随筹码变深而非递增(筹码越深,被跟时输得越多,
+   奖品还是那些盲注)。enforceMonotonic 只管同档内的牌力支配,管不到这一层 —— 20bb CO 的
+   反向凸起就是从这个缝里漏出去的。 */
+{
+  const j9 = enforceStackMonotonic(Object.fromEntries(STACKS_LEGACY.map((S) => [S, stacks[S].seats])));
+  for (const S of STACKS_LEGACY) stacks[S].seats = j9[S];
+  const j6 = enforceStackMonotonic(Object.fromEntries(STACKS6_LEGACY.map((S) => [S, ring6[S].seats])));
+  for (const S of STACKS6_LEGACY) ring6[S].seats = j6[S];
+  // 跟注全下的范围同理随深度收紧(价格变差)
+  const co = enforceStackMonotonic(Object.fromEntries(STACKS_CO_LEGACY.map((S) => [S, { btn: calloff[S].btn }])));
+  for (const S of STACKS_CO_LEGACY) calloff[S].btn = co[S].btn;
 }
 
 const data = {

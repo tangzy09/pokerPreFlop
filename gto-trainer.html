@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Preflop Camp — Free Texas Hold'em Preflop GTO Trainer · Solved Nash Push/Fold EV</title>
-<meta name="description" content="Free Texas Hold'em preflop GTO trainer: opening, blind defense, 3-bet/4-bet, squeeze, cold-call. Push/fold ranges are our own solved Nash with real per-hand EV — never fabricated. Offline, no signup.">
+<!-- ⚠ title/desc 有 SEO 显示宽度上限(title ≤60 / desc ≤155 字符,CJK 按 2 计):超了 SERP 直接截断。
+     改动后跑 node tools/seo-len-check.js 复验(index.html 由 gto-trainer.html 生成,一起被量)。 -->
+<title>PreFlop Camp — Free GTO Preflop Trainer &amp; Nash Charts</title>
+<meta name="description" content="Free GTO preflop trainer for Texas Hold'em: opening ranges, blind defence, 3-bet/4-bet, squeeze, plus self-solved push/fold Nash charts with per-hand EV.">
 <link rel="canonical" href="https://pre-flop.ai-speeds.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://pre-flop.ai-speeds.com/">
@@ -569,9 +571,12 @@
       <button class="home-card" id="homeEquity"><span class="hc-pro">PRO</span><span class="hc-ic">🧮</span><span class="hc-t">Equity</span><span class="hc-s">Live equity</span></button>
       <button class="home-card" id="homePath"><span class="hc-ic">🧭</span><span class="hc-t">Learning path</span><span class="hc-s">RFI to MTT · see progress</span></button>
       <button class="home-card" id="homeStats"><span class="hc-ic">📈</span><span class="hc-t">Stats</span><span class="hc-s">Profile + leaks</span></button>
+      <!-- ⚠ 真实静态 <a>,不是 JS 注入:这是落地页体系(charts/,50 页)接到网站根的**唯一入口**。
+           删了它,那 50 页就只剩 sitemap 可达 → 抓取优先级垫底、收录率暴跌(见 seo-audit-repair)。 -->
+      <a class="home-card wide" id="homeCharts" href="charts/"><span class="hc-ic">📊</span><span class="hc-txt"><span class="hc-t">Preflop Charts</span><span class="hc-s">Free 13×13 range charts + Nash push/fold EV tables</span></span></a>
       <a class="home-card wide" id="homeSister" href="https://post-flop-coach.ai-speeds.com/" target="_blank" rel="noopener"><span class="hc-ic">♦</span><span class="hc-txt"><span class="hc-t">Postflop Coach</span><span class="hc-s">30-lesson postflop trainer · sister app</span></span></a>
     </div>
-    <p class="seo-intro" style="max-width:440px;margin:26px auto 0;color:#8fa79a;font-size:.78rem;line-height:1.7;text-align:center">Preflop Camp is a free preflop GTO trainer for Texas Hold'em: full cash & tournament coverage (open raises, blind defense, vs 3-bet/4-bet, squeeze, cold-call, limp & straddle pots, 8-25bb push/fold); push/fold and call-off charts are self-solved Nash equilibria with real per-hand EV — no fabricated numbers. Includes a preflop diagnosis, a 20-day personal plan, mistake review and leak analysis. Offline, bilingual, no signup.</p>
+    <p class="seo-intro" style="max-width:440px;margin:26px auto 0;color:#8fa79a;font-size:.78rem;line-height:1.7;text-align:center">Preflop Camp is a free preflop GTO trainer for Texas Hold'em: full cash & tournament coverage (open raises, blind defense, vs 3-bet/4-bet, squeeze, cold-call, limp & straddle pots, 8-25bb push/fold); push/fold and call-off charts are self-solved Nash equilibria with real per-hand EV — no fabricated numbers. Includes a preflop diagnosis, a 20-day personal plan, mistake review and leak analysis. Offline, bilingual, no signup.<br>Free charts, no signup: <a href="charts/" style="color:#e8c66a">preflop range charts + push/fold Nash tables</a></p>
   </div>
 
   <!-- 推弃特训：快速选档直达（全部 precise 自算 Nash,反馈带求解器真 EV） -->

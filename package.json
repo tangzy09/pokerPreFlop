@@ -9,6 +9,7 @@
     "test:solver": "python tools/solver/run_all.py",
     "test:ui": "node test/ui-smoke.js",
     "i18n:check": "node tools/i18n-check.js",
+  "seo": "node tools/gen-seo-pages.js && node tools/seo-len-check.js",
     "test:all": "node --test \"test/*.test.js\" && node test/ui-smoke.js && python tools/solver/run_all.py",
     "shots": "node tools/gen-store-shots.js",
     "build:www": "node tools/build-www.js",

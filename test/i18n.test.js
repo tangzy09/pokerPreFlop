@@ -93,6 +93,7 @@ test('英文模式:HTML 静态可见文本都有英文翻译(applyI18n/_walkText
   // 复刻 _walkText 的范围:剔除 <script>/<style> 与 [data-i18n-html] 子树(后者走 tr() 模板,
   // 不查 I18N_EN),其余文本节点 trim 后整串必须命中字典 —— 抓 home-card 标题/按钮文案这类静态漏译。
   let html = fs.readFileSync(path.join(ROOT, 'gto-trainer.html'), 'utf8')
+    .replace(/<!--[\s\S]*?-->/g, '') // 注释不是文本节点,_walkText 不碰它(中文注释曾在这里假报漏译)
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<([a-z]+)[^>]*\bdata-i18n-html\b[^>]*>[\s\S]*?<\/\1>/gi, '');

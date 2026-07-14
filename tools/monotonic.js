@@ -49,4 +49,36 @@ function enforceMonotonic(table) {
   return out;
 }
 
-module.exports = { enforceMonotonic, ALL_HANDS, dominates, parse };
+/* enforceStackMonotonic(bySt) — **跨筹码档**单调性(2026-07 加,修 20bb CO 的公开 bug)。
+ *
+ * Why: enforceMonotonic 只在**同一档之内**按牌力支配关系拉平,从不跨档比较。于是 20bb 的
+ * CO 行可以推得比 15bb 还宽(KJo/QJo/KTo/QTo/JTo 在 15bb 推 0.26、在 20bb 推 1.00)——
+ * 筹码越深推得越宽,方向是反的,而这个错在 app 里公开展示了几个月没人发现。
+ * 根因是一手 EV≈0 的边缘牌被求解噪声打成纯策略(freq=1),再被同档的支配链一路上推。
+ *
+ * 不变量:推弃博弈里筹码越深、被跟时输得越多、拿到的还是同样的盲注 → **同一座位、同一手牌
+ * 的全下频率必须随筹码深度非递增**。据此把每手牌的频率压成沿 stack 非递增(取「不超过更浅档
+ * 的频率」),噪声造成的反向凸起被抹平,真实的收紧不受影响。
+ *
+ * 入参 bySt = { <stack>: { <pos>: {hand:freq} } },原地返回新表(不改入参)。
+ */
+function enforceStackMonotonic(bySt) {
+  const stacks = Object.keys(bySt).map(Number).sort((a, b) => a - b); // 浅 → 深
+  const out = {};
+  for (const S of stacks) out[S] = {};
+  for (const S of stacks) for (const pos of Object.keys(bySt[S])) out[S][pos] = { ...bySt[S][pos] };
+  for (let i = 1; i < stacks.length; i++) {
+    const S = stacks[i], prev = stacks[i - 1];
+    for (const pos of Object.keys(out[S])) {
+      const cur = out[S][pos], up = out[prev][pos];
+      if (!up) continue;
+      for (const h of Object.keys(cur)) {
+        const cap = up[h] || 0;               // 更浅一档没推的牌,更深档也不该推
+        if (cur[h] > cap) { if (cap > 0) cur[h] = cap; else delete cur[h]; }
+      }
+    }
+  }
+  return out;
+}
+
+module.exports = { enforceMonotonic, enforceStackMonotonic, ALL_HANDS, dominates, parse };

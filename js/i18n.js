@@ -111,7 +111,11 @@ const I18N_HTML = {
  "Players":"牌桌人数",
  "Position":"位置",
  "Postflop Coach":"翻后教练",
- "Preflop Camp — Free Texas Hold'em Preflop GTO Trainer · Solved Nash Push/Fold EV":"翻前训练营 Preflop Camp — 免费德州扑克翻前 GTO 训练器 · 自算 Nash 推弃真 EV",
+ "Preflop Charts":"翻前范围图",
+ "Free 13×13 range charts + Nash push/fold EV tables":"免费 13×13 范围图 + Nash 推弃 EV 表",
+ "Free charts, no signup:":"免费图表，无需注册：",
+ "preflop range charts + push/fold Nash tables":"翻前范围图与推弃 Nash 表",
+ "PreFlop Camp — Free GTO Preflop Trainer & Nash Charts":"翻前训练营 — 免费 GTO 翻前训练器与 Nash 范围图",
  "Preflop Camp is a free preflop GTO trainer for Texas Hold'em: full cash & tournament coverage (open raises, blind defense, vs 3-bet/4-bet, squeeze, cold-call, limp & straddle pots, 8-25bb push/fold); push/fold and call-off charts are self-solved Nash equilibria with real per-hand EV — no fabricated numbers. Includes a preflop diagnosis, a 20-day personal plan, mistake review and leak analysis. Offline, bilingual, no signup.":"翻前训练营(Preflop Camp)是免费的德州扑克翻前 GTO 决策训练器：现金局与锦标赛全场景(开局加注、大小盲防守、面对 3-bet/4-bet、挤压、冷跟、跛入与 straddle、8–25bb 推弃)；推弃与跟注档位为自算 Nash 均衡并附每手真实 EV —— 绝不编造数据。含翻前诊断、20 天个性化训练计划、错题复习与漏洞分析，离线可用、无需注册、中英双语。Free preflop GTO trainer for Texas Hold'em: solved Nash push/fold with real per-hand EV, diagnosis + 20-day plan, offline, bilingual, no signup.",
  "Preflop diagnosis + 20-day plan":"翻前诊断 + 20 天个性化计划",
  "Preflop main line · how to train":"翻前主线 · 怎么练",
@@ -154,6 +158,10 @@ const I18N_EN = {
  '翻前训练营 Preflop Camp — 免费德州扑克翻前 GTO 训练器 · 自算 Nash 推弃真 EV':'Preflop Camp — Free Texas Hold\'em Preflop GTO Trainer · Solved Nash Push/Fold EV',
  '翻前训练营(Preflop Camp)是免费的德州扑克翻前 GTO 决策训练器：现金局与锦标赛全场景(开局加注、大小盲防守、面对 3-bet/4-bet、挤压、冷跟、跛入与 straddle、8–25bb 推弃)；推弃与跟注档位为自算 Nash 均衡并附每手真实 EV —— 绝不编造数据。含翻前诊断、20 天个性化训练计划、错题复习与漏洞分析，离线可用、无需注册、中英双语。Free preflop GTO trainer for Texas Hold\'em: solved Nash push/fold with real per-hand EV, diagnosis + 20-day plan, offline, bilingual, no signup.':'Preflop Camp is a free preflop GTO trainer for Texas Hold\'em: full cash & tournament coverage (open raises, blind defense, vs 3-bet/4-bet, squeeze, cold-call, limp & straddle pots, 8-25bb push/fold); push/fold and call-off charts are self-solved Nash equilibria with real per-hand EV — no fabricated numbers. Includes a preflop diagnosis, a 20-day personal plan, mistake review and leak analysis. Offline, bilingual, no signup.',
  '翻后教练':'Postflop Coach','30 课翻后训练 · 姐妹站':'30-lesson postflop trainer · sister app',
+ /* charts/ 落地页入口(首页里唯一把 50 张落地页接到根的真实 <a>) */
+ '翻前范围图':'Preflop Charts','免费 13×13 范围图 + Nash 推弃 EV 表':'Free 13×13 range charts + Nash push/fold EV tables',
+ '免费图表，无需注册：':'Free charts, no signup:','翻前范围图与推弃 Nash 表':'preflop range charts + push/fold Nash tables',
+ '翻前训练营 — 免费 GTO 翻前训练器与 Nash 范围图':'PreFlop Camp — Free GTO Preflop Trainer & Nash Charts',
  '错题':'Mistakes','图表':'Charts','算胜率':'Equity','统计':'Stats',
  // —— start screen ——
  'GTO 翻前对战 · 训练营':'GTO Preflop · Trainer','GTO 翻前':'GTO Preflop ','训练':'Training',

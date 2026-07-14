@@ -8,9 +8,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { buildEqMatrix, solveRing, ringRegret, CLASSES } = require('./pushfold');
-const { enforceMonotonic } = require('./monotonic');
+const { enforceMonotonic, enforceStackMonotonic } = require('./monotonic');
 
-const SAMPLES = 4000, SEED = 1234, STACKS = [5, 8, 10, 12, 15, 20, 25];
+/* SAMPLES 4000 → 25000:与 gen-pushfold 同因 —— 4000 样本会把 EV≈0 的边缘牌打成纯策略,
+   同档的支配链再把更强的牌一起拽上去(9 人桌 20bb CO 实锤)。理由详见 gen-pushfold.js。 */
+const SAMPLES = 25000, SEED = 1234, STACKS = [5, 8, 10, 12, 15, 20, 25];
 const SOLVE = { nSeats: 2, iters: 8000, damp: 0.02 };
 
 console.log(`building equity matrix (samples=${SAMPLES})…`);
@@ -33,6 +35,15 @@ for (const S of STACKS) {
   exploit[S] = Math.round(ringRegret(S, EQ, ring).maxRegret * 1000) / 1000;
   stacks[S] = { jam: trim(jam), call: trim(call), jamEV: ring.seats[0].jamEV, callEV: ring.seats[0].callerEV[1] };
   console.log(`  ${S}bb: SB jam ${(pct(jam) * 100).toFixed(0)}%  BB call ${(pct(call) * 100).toFixed(0)}%  | exploit ${exploit[S]}bb`);
+}
+
+/* 跨档单调性(见 monotonic.js):SB 的全下范围与 BB 的跟注范围都必须随筹码变深而非递增。
+   enforceStackMonotonic 吃 {stack:{pos:table}},这里把 jam/call 当作两个「位置」喂进去。 */
+{
+  const fixed = enforceStackMonotonic(
+    Object.fromEntries(STACKS.map((S) => [S, { jam: stacks[S].jam, call: stacks[S].call }]))
+  );
+  for (const S of STACKS) { stacks[S].jam = fixed[S].jam; stacks[S].call = fixed[S].call; }
 }
 
 const data = {
